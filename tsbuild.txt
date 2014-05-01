@@ -1,1 +1,0 @@
---target ES5 --out static/scripts/collaboegm.js ts/app/app.ts
