@@ -26,69 +26,53 @@ module egrid {
   @class egrid.Node
   */
   export class Node implements NodeData {
-    public index : number;
-    public x : number;
-    public y : number;
-    public baseWidth : number;
-    public baseHeight : number;
-    public width : number;
-    public height : number;
-    public theta : number;
-    public text : string;
-    public dagre : any;
-    public weight : number;
-    public key : number;
-    public original : boolean;
-    public isTop : boolean;
-    public isBottom : boolean;
-    public active : boolean;
-    public participants : string[];
+    public index: number;
+    public x: number = 0;
+    public y: number = 0;
+    public baseWidth: number;
+    public baseHeight: number;
+    public width: number;
+    public height: number;
+    public theta: number = 0;
+    public dagre: any;
+    public key: number;
+    public isTop: boolean;
+    public isBottom: boolean;
+    public active: boolean = true;
+    public visible: boolean = true;
     private static nextKey = 0;
-
 
     /**
     @class egrid.Node
     @constructor
     */
     constructor(
-        text : string, weight : number = undefined,
-        original : boolean = undefined, participants : string [] = undefined) {
-      this.text = text;
-      this.x = 0;
-      this.y = 0;
-      this.theta = 0;
-      this.weight = weight || 1;
+        public text: string,
+        public weight: number = 1,
+        public original: boolean = false,
+        public participants: string[] = []) {
       this.key = Node.nextKey++;
-      this.active = true;
-      this.original = original || false;
-      this.participants = participants || [];
     }
-
 
     left() : Svg.Point {
       return Svg.Rect.left(this.x, this.y, this.width, this.height);
     }
 
-
     right() : Svg.Point {
       return Svg.Rect.right(this.x, this.y, this.width, this.height);
     }
-
 
     top() : Svg.Point {
       return Svg.Rect.top(this.x, this.y, this.width, this.height);
     }
 
-
     bottom() : Svg.Point {
       return Svg.Rect.bottom(this.x, this.y, this.width, this.height);
     }
 
-
     center() : Svg.Point {
       return Svg.Rect.center(this.x, this.y, this.width, this.height);
     }
-
 
     toString() : string {
       return this.key.toString();
@@ -100,24 +84,23 @@ module egrid {
   @class egrid.Link
   */
   export class Link {
-    public index : number;
-    public points : Svg.Point[];
-    public previousPoints : Svg.Point[];
-    public dagre : any;
-    public weight : number;
-    public key : number;
+    public index: number;
+    public points: Svg.Point[];
+    public previousPoints: Svg.Point[];
+    public dagre: any;
+    public key: number;
     private static nextKey = 0;
-
 
     /**
     @class egrid.Link
     @constructor
     */
-    constructor(public source : Node, public target : Node, weight : number = undefined) {
-      this.weight = weight || 1;
+    constructor(
+        public source: Node,
+        public target : Node,
+        public weight: number = 1) {
       this.key = Link.nextKey++;
     }
-
 
     toString() : string {
       return this.key.toString();
@@ -134,13 +117,11 @@ module egrid {
   class CommandTransaction {
     private commands : Command[] = [];
 
-
     execute() : void {
       this.commands.forEach((command) => {
         command.execute();
       });
     }
-
 
     revert() : void {
       this.commands.reverse().forEach(command => {
@@ -148,7 +129,6 @@ module egrid {
       });
       this.commands.reverse();
     }
-
 
     push(command : Command) : void {
       this.commands.push(command);
@@ -173,30 +153,22 @@ module egrid {
   @class egrid.Grid
   */
   export class Grid {
-    private nodes_ : Node[];
-    private links_ : Link[];
-    private paths : Link[];
-    private linkMatrix : boolean[][];
-    private pathMatrix : boolean[][];
-    private undoStack : CommandTransaction[];
-    private redoStack : CommandTransaction[];
-    private transaction : CommandTransaction;
-    private checkActive_ : boolean;
-    private minimumWeight_ : number;
-
+    private nodes_: Node[] = [];
+    private links_: Link[] = [];
+    private paths: Link[] = [];
+    private linkMatrix: boolean[][];
+    private pathMatrix: boolean[][];
+    private undoStack: CommandTransaction[] = [];
+    private redoStack: CommandTransaction[] = [];
+    private transaction: CommandTransaction;
+    private checkActive_: boolean = false;
+    private minimumWeight_: number = 0;
 
     /**
     @class egrid.Grid
     @constructor
     */
     constructor() {
-      this.nodes_ = [];
-      this.links_ = [];
-      this.paths = [];
-      this.undoStack = [];
-      this.redoStack = [];
-      this.linkMatrix = [];
-      this.pathMatrix = [];
     }
 
 
@@ -466,7 +438,7 @@ module egrid {
 
     activeNodes() : Node[] {
       return this.nodes().filter(node => {
-        return (!this.checkActive_ || node.active) && node.weight >= this.minimumWeight_;
+        return (!this.checkActive_ || node.active) && node.weight >= this.minimumWeight_ && node.visible;
       });
     }
 
@@ -497,7 +469,7 @@ module egrid {
 
     activeLinks() : Link[] {
       var removeNodes = this.nodes().filter(node => {
-        return node.weight < this.minimumWeight_;
+        return node.weight < this.minimumWeight_ || !node.visible;
       });
       var newPathMatrix = this.linkMatrix.map(row => row.map(v => v));
       removeNodes.forEach(node => {
@@ -514,8 +486,10 @@ module egrid {
         return newPathMatrix[link.source.index][link.target.index]
           && (!this.checkActive_ || link.source.active)
           && link.source.weight >= this.minimumWeight_
+          && link.source.visible
           && (!this.checkActive_ || link.target.active)
-          && link.target.weight >= this.minimumWeight_;
+          && link.target.weight >= this.minimumWeight_
+          && link.target.visible;
       });
     }
 
