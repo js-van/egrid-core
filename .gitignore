@@ -1,4 +1,5 @@
 egrid-core.js
 egrid-core.d.ts
+bower_components
 node_modules
 src/typings

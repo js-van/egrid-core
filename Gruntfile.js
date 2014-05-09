@@ -12,6 +12,12 @@ module.exports = function(grunt) {
         }
       }
     },
+    mocha_phantomjs: {
+      options: {
+        'reporter': 'dot'
+      },
+      all: ['test/**/*.html']
+    },
     watch: {
       scripts: {
         files: ['src/**/*.ts'],
@@ -22,7 +28,9 @@ module.exports = function(grunt) {
 
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-typescript');
+  grunt.loadNpmTasks('grunt-mocha-phantomjs');
 
   grunt.registerTask('default', ['watch']);
   grunt.registerTask('compile', ['typescript']);
+  grunt.registerTask('test', ['mocha_phantomjs']);
 };

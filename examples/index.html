@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html ng-app="egrid-core-example">
+<head>
+<meta charset="utf-8"/>
+<title>E-Grid core</title>
+<link rel="stylesheet" href="../bower_components/bootstrap/dist/css/bootstrap.min.css"/>
+<style>
+g.node > rect {
+  fill: lightgray;
+}
+
+g.node > rect, g.link > path {
+  stroke: black;
+}
+</style>
+</head>
+<body ng-controller="EgridCoreExampleController">
+<div class="container">
+  <div class="row">
+    <div class="col-xs-8">
+      <svg id="svg"></svg>
+    </div>
+    <div class="col-xs-4">
+      <form>
+        <div class="form-group" ng-repeat="node in grid.nodes">
+          <label><input type="checkbox" ng-model="node.visible" ng-change="update()"/>{{node.text}}</label>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script src="../bower_components/angular/angular.min.js"></script>
+<script src="../bower_components/d3/d3.min.js"></script>
+<script src="../lib/dagre.js"></script>
+<script src="../egrid-core.js"></script>
+<script src="example.js"></script>
+</body>
+</html>
