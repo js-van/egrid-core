@@ -22,6 +22,8 @@ interface GridNode {
 
 
 interface GridLink {
+  dagre?: any;
+  points?: number[][];
   source: GridNode;
   target: GridNode;
 }
@@ -33,10 +35,14 @@ interface Grid {
 }
 
 
-var linkLine = d3.svg.line();
+var linkLine = d3.svg.line().interpolate('monotone');
+var linkPointsSize = 20;
 var svgCss = '\
 g.node > rect {\
   fill: lightgray;\
+}\
+g.link > path {\
+  fill: none;\
 }\
 g.node > rect, g.link > path {\
   stroke: black;\
@@ -125,9 +131,7 @@ function calculateTextSize(nodeText: (nodeData: any) => string) {
 
 function createNode() {
   return function(selection) {
-    selection
-      .append('rect')
-      ;
+    selection.append('rect');
     selection
       .append('text')
       .each(function(node: GridNode) {
@@ -143,25 +147,21 @@ function createNode() {
 }
 
 
-function updateNodes(nodeScale, nodeKey, nodeText) {
+function updateNodes(nodeScale, nodeText) {
   var r = 5;
   var strokeWidth = 1;
   return function(selection) {
-    var nodes = selection
-      .selectAll('g.node')
-      .data(nodes => nodes, (node: GridNode) => nodeKey(node.data))
-      ;
-    nodes
+    selection
       .enter()
       .append('g')
       .classed('node', true)
       .call(createNode())
       ;
-    nodes
+    selection
       .exit()
       .remove()
       ;
-    nodes
+    selection
       .call(calculateTextSize(nodeText))
       .each((node: GridNode) => {
         node.originalWidth = node.textWidth + 2 * r;
@@ -171,12 +171,12 @@ function updateNodes(nodeScale, nodeKey, nodeText) {
         node.height = (node.originalHeight + strokeWidth) * node.scale;
       })
       ;
-    nodes
+    selection
       .select('text')
       .text((node: GridNode) => nodeText(node.data))
       .attr('y', (node: GridNode) => -node.textHeight / 2)
       ;
-    nodes
+    selection
       .select('rect')
       .attr({
         x: (node: GridNode) => -node.originalWidth / 2,
@@ -190,24 +190,23 @@ function updateNodes(nodeScale, nodeKey, nodeText) {
 }
 
 
-function updateLinks(nodeKey) {
+function updateLinks() {
   return function(selection) {
-    var links = selection
-      .selectAll('g.link')
-      .data(links => links, link => {
-        return nodeKey(link.source.data) + ':' + nodeKey(link.target.data);
-      })
-      ;
-    links
+    selection
       .enter()
       .append('g')
       .classed('link', true)
       .append('path')
       .attr('d', link => {
-        return linkLine([[link.source.x, link.source.y], [link.target.x, link.target.y]]);
+        var points = [];
+        points.push([link.source.x, link.source.y]);
+        for (var i = 1; i < linkPointsSize; ++i) {
+          points.push([link.target.x, link.target.y]);
+        }
+        return linkLine(points);
       })
       ;
-    links
+    selection
       .exit()
       .remove()
       ;
@@ -226,60 +225,50 @@ interface UpdateOptions {
 
 
 function update(options: UpdateOptions) {
-
   return function(selection) {
     selection.each(function(data) {
-      var grid
+      var container = d3.select(this);
       if (data) {
-        grid = makeGrid(
+        var oldNodes = [];
+        if (container.select('g.nodes').empty()) {
+          container.append('g').classed('nodes', true);
+          container.append('g').classed('links', true);
+        } else {
+          oldNodes = container.selectAll('g.nodes > g.node').data();
+        }
+        var grid = makeGrid(
           data.nodes,
           data.links,
           options.nodeKey,
           options.nodeVisibility,
           options.linkLower,
           options.linkUpper,
-          d3.select(this).selectAll('g.node').data());
+          oldNodes);
+        container
+          .select('g.nodes')
+          .selectAll('g.node')
+          .data(grid.nodes, (node: GridNode) => options.nodeKey(node.data))
+          .call(updateNodes(options.nodeScale, options.nodeText))
+          ;
+        container
+          .select('g.links')
+          .selectAll('g.link')
+          .data(grid.links, (link: GridLink) => {
+            return options.nodeKey(link.source.data) + ':' + options.nodeKey(link.target.data);
+          })
+          .call(updateLinks())
+          ;
+      } else {
+        container.select('g.nodes').remove();
+        container.select('g.links').remove();
       }
-      var linksContainer = d3.select(this)
-        .selectAll('g.links')
-        .data(grid === undefined ? [] : [grid.links])
-        ;
-      linksContainer
-        .enter()
-        .append('g')
-        .classed('links', true)
-        ;
-      linksContainer
-        .exit()
-        .remove()
-        ;
-
-      var nodesContainer = d3.select(this)
-        .selectAll('g.nodes')
-        .data(grid === undefined ? [] : [grid.nodes])
-        ;
-      nodesContainer
-        .enter()
-        .append('g')
-        .classed('nodes', true)
-        ;
-      nodesContainer
-        .exit()
-        .remove()
-        ;
-
-      nodesContainer
-        .call(updateNodes(options.nodeScale, options.nodeKey, options.nodeText))
-        ;
-      linksContainer
-        .call(updateLinks(options.nodeText))
-        ;
     });
   };
 }
 
 
 interface LayoutOptions {
+  nodeKey: (nodeData: any) => string;
 }
 
 
@@ -289,6 +278,14 @@ function layout(options: LayoutOptions) {
       var container = d3.select(this);
       var nodes = container.selectAll('g.node').data();
       var links = container.selectAll('g.link').data();
+      nodes.sort((node1: GridNode, node2: GridNode) => {
+        return d3.ascending(options.nodeKey(node1.data), options.nodeKey(node2.data));
+      });
+      links.sort((link1: GridLink, link2: GridLink) => {
+        var key1 = options.nodeKey(link1.source.data) + options.nodeKey(link1.target.data);
+        var key2 = options.nodeKey(link2.source.data) + options.nodeKey(link2.target.data);
+        return d3.ascending(key1, key2);
+      });
       dagre.layout()
         .nodes(nodes)
         .edges(links)
@@ -302,6 +299,17 @@ function layout(options: LayoutOptions) {
       nodes.forEach((node: GridNode) => {
         node.x = node.dagre.x;
         node.y = node.dagre.y;
+      });
+      links.forEach((link: GridLink) => {
+        link.points = [];
+        link.points.push([link.source.x, link.source.y]);
+        link.dagre.points.forEach(obj => {
+          link.points.push([obj.x, obj.y]);
+        });
+        link.points.push([link.target.x, link.target.y]);
+        for (var i = 0, n = linkPointsSize - link.points.length; i < n; ++i) {
+          link.points.push([link.target.x, link.target.y]);
+        }
       });
     })
   };
@@ -333,9 +341,10 @@ function transition(options: TransitionOptions) {
       .style('fill', node => options.nodeColor(node.data))
       ;
     transition
-      .selectAll('g.links > g.link > path')
+      .selectAll('g.links > g.link')
+      .select('path')
       .attr('d', link => {
-        return linkLine([[link.source.x, link.source.y], [link.target.x, link.target.y]])
+        return linkLine(link.points);
       })
       ;
   };
@@ -353,6 +362,7 @@ export function call(selection: D3.Selection, that: EGM) {
       nodeVisibility: that.nodeVisibility(),
     }))
     .call(layout({
+      nodeKey: that.nodeKey(),
     }))
     .call(transition({
       nodeColor: that.nodeColor(),
