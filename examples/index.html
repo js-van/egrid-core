@@ -22,9 +22,15 @@ g.node > rect, g.link > path {
     </div>
     <div class="col-xs-4">
       <form>
-        <div class="form-group" ng-repeat="node in grid.nodes">
-          <label><input type="checkbox" ng-model="node.visible" ng-change="update()"/>{{node.text}}</label>
-        </div>
+        <table class="table">
+          <tr ng-repeat="node in grid.nodes">
+            <td><input type="checkbox" ng-model="node.visible" ng-change="update()"/></td>
+            <td><input type="text" ng-model="node.text" ng-change="update()"/></td>
+            <td><input type="number" min="0" step="1" ng-model="node.size" ng-change="update()"/></td>
+            <td><input type="number" min="0" max="1" step="0.1" ng-model="node.opacity" ng-change="update()"/></td>
+            <td><input type="color" ng-model="node.color" ng-change="update()"/></td>
+          </tr>
+        </table>
       </form>
     </div>
   </div>

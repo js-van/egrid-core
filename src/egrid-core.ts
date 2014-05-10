@@ -105,31 +105,77 @@ function makeGrid<NodeDataType, LinkDataType>(
 }
 
 
-function createNode(nodeText) {
-  var r = 5;
+function calculateTextSize(nodeText: (nodeData: any) => string) {
+  return function(selection) {
+    var measure = d3.select('body').append('svg');
+    var measureText = measure.append('text');
+
+    selection
+      .each((node: GridNode) => {
+        measureText.text(nodeText(node.data));
+        var bbox = (<any>measureText.node()).getBBox();
+        node.textWidth = bbox.width;
+        node.textHeight = bbox.height;
+      });
+
+    measure.remove();
+  };
+}
+
+
+function createNode() {
   return function(selection) {
     selection
       .append('rect')
       ;
     selection
       .append('text')
-      .text((node: GridNode) => nodeText(node.data))
       .each(function(node: GridNode) {
-        var bbox = this.getBBox();
         node.x = 0;
         node.y = 0;
-        node.textWidth = bbox.width;
-        node.textHeight = bbox.height;
-        node.originalWidth = node.textWidth + 2 * r;
-        node.originalHeight = node.textHeight + 2 * r;
       })
       .attr({
-        y: (node: GridNode) => -node.textHeight / 2,
         'text-anchor': 'middle',
         'dominant-baseline': 'text-before-edge',
       })
       ;
-    selection
+  };
+}
+
+
+function updateNodes(nodeScale, nodeKey, nodeText) {
+  var r = 5;
+  return function(selection) {
+    var nodes = selection
+      .selectAll('g.node')
+      .data(nodes => nodes, (node: GridNode) => nodeKey(node.data))
+      ;
+    nodes
+      .enter()
+      .append('g')
+      .classed('node', true)
+      .call(createNode())
+      ;
+    nodes
+      .exit()
+      .remove()
+      ;
+    nodes
+      .call(calculateTextSize(nodeText))
+      .each((node: GridNode) => {
+        node.originalWidth = node.textWidth + 2 * r;
+        node.originalHeight = node.textHeight + 2 * r;
+        node.scale = nodeScale(node.data);
+        node.width = node.originalWidth * node.scale;
+        node.height = node.originalHeight * node.scale;
+      })
+      ;
+    nodes
+      .select('text')
+      .text((node: GridNode) => nodeText(node.data))
+      .attr('y', (node: GridNode) => -node.textHeight / 2)
+      ;
+    nodes
       .select('rect')
       .attr({
         x: (node: GridNode) => -node.originalWidth / 2,
@@ -137,54 +183,18 @@ function createNode(nodeText) {
         width: (node: GridNode) => node.originalWidth,
         height: (node: GridNode) => node.originalHeight,
         rx: r,
-      })
-      ;
+      });
+
   };
 }
 
 
-function updateNodes(nodeScaleMax, nodeScaleMin, nodeWeight, nodeText) {
-  return function(selection) {
-    var nodes = selection
-      .selectAll('g.node')
-      .data(nodes => nodes, (node: GridNode) => nodeText(node.data))
-      ;
-    nodes
-      .enter()
-      .append('g')
-      .classed('node', true)
-      .call(createNode(nodeText))
-      ;
-    nodes
-      .exit()
-      .remove()
-      ;
-    var nodeScale: (node: GridNode) => number = (() => {
-      var data = nodes.empty() ? [] : nodes.data();
-      var scale = d3.scale.linear()
-        .domain(d3.extent(data, (node: GridNode) => nodeWeight(node.data)))
-        .range([nodeScaleMin, nodeScaleMax]);
-      return (node: GridNode): number => {
-        return scale(nodeWeight(node.data))
-      };
-    })();
-    nodes
-      .each((node: GridNode) => {
-        node.scale = nodeScale(node);
-        node.width = node.originalWidth * node.scale;
-        node.height = node.originalHeight * node.scale;
-      })
-      ;
-  };
-}
-
-
-function updateLinks(nodeText) {
+function updateLinks(nodeKey) {
   return function(selection) {
     var links = selection
       .selectAll('g.link')
       .data(links => links, link => {
-        return nodeText(link.source.data) + nodeText(link.target.data);
+        return nodeKey(link.source.data) + ':' + nodeKey(link.target.data);
       })
       ;
     links
@@ -207,11 +217,10 @@ function updateLinks(nodeText) {
 interface UpdateOptions {
   linkLower: (linkData: any) => number;
   linkUpper: (linkData: any) => number;
-  nodeScaleMax: number;
-  nodeScaleMin: number;
+  nodeKey: (nodeData: any) => string;
+  nodeScale: (nodeData: any) => number;
   nodeText: (nodeData: any) => string;
   nodeVisibility: (nodeData: any) => boolean;
-  nodeWeight: (nodeData: any) => number;
 }
 
 
@@ -224,7 +233,7 @@ function update(options: UpdateOptions) {
         grid = makeGrid(
           data.nodes,
           data.links,
-          options.nodeText,
+          options.nodeKey,
           options.nodeVisibility,
           options.linkLower,
           options.linkUpper,
@@ -259,7 +268,7 @@ function update(options: UpdateOptions) {
         ;
 
       nodesContainer
-        .call(updateNodes(options.nodeScaleMax, options.nodeScaleMin, options.nodeWeight, options.nodeText))
+        .call(updateNodes(options.nodeScale, options.nodeKey, options.nodeText))
         ;
       linksContainer
         .call(updateLinks(options.nodeText))
@@ -337,11 +346,10 @@ export function call(selection: D3.Selection, that: EGM) {
     .call(update({
       linkLower: that.linkLower(),
       linkUpper: that.linkUpper(),
-      nodeScaleMax: that.nodeScaleMax(),
-      nodeScaleMin: that.nodeScaleMin(),
+      nodeKey: that.nodeKey(),
+      nodeScale: that.nodeScale(),
       nodeText: that.nodeText(),
       nodeVisibility: that.nodeVisibility(),
-      nodeWeight: that.nodeWeight(),
     }))
     .call(layout({
     }))
@@ -372,18 +380,16 @@ export interface EGM {
   linkUpper(val: (linkData: any) => number): EGM;
   nodeColor(): (nodeData: any) => string;
   nodeColor(val: (nodeData: any) => string): EGM;
+  nodeKey(): (nodeData: any) => string;
+  nodeKey(val: (nodeData: any) => string): EGM;
   nodeOpacity(): (nodeData: any) => number;
   nodeOpacity(val: (nodeData: any) => number): EGM;
-  nodeScaleMin(): number;
-  nodeScaleMin(val: number): EGM;
-  nodeScaleMax(): number;
-  nodeScaleMax(val: number): EGM;
+  nodeScale(): (nodeData: any) => number;
+  nodeScale(val: (nodeData: any) => number): EGM;
   nodeText(): (nodeData: any) => string;
   nodeText(val: (nodeData: any) => string): EGM;
   nodeVisibility(): (nodeData: any) => boolean;
   nodeVisibility(val: (nodeData: any) => boolean): EGM;
-  nodeWeight(): (nodeData: any) => number;
-  nodeWeight(val: (nodeData: any) => number): EGM;
 }
 
 
@@ -392,12 +398,11 @@ export interface EGMOptions {
   linkLower?: (linkData: any) => number;
   linkUpper?: (linkData: any) => number;
   nodeColor?: (nodeData: any) => string;
+  nodeKey?: (nodeData: any) => string;
   nodeOpacity?: (nodeData: any) => number;
-  nodeScaleMax?: number;
-  nodeScaleMin?: number;
+  nodeScale?: (nodeData: any) => number;
   nodeText?: (nodeData: any) => string;
   nodeVisibility?: (nodeData: any) => boolean;
-  nodeWeight?: (nodeData: any) => number;
 }
 
 
@@ -417,12 +422,11 @@ export function egm(options: EGMOptions = {}): EGM {
     'linkLower',
     'linkUpper',
     'nodeColor',
+    'nodeKey',
     'nodeOpacity',
-    'nodeScaleMax',
-    'nodeScaleMin',
+    'nodeScale',
     'nodeText',
     'nodeVisibility',
-    'nodeWeight',
   ];
   var f: EGM = <any>function EGM(selection: D3.Selection) {
     return Impl.call(selection, f);
@@ -449,12 +453,12 @@ export function egm(options: EGMOptions = {}): EGM {
     linkUpper: (linkData: any) => linkData.upper,
     nodeColor: () => '',
     nodeOpacity: () => 1,
-    nodeScaleMax: 1,
-    nodeScaleMin: 1,
-    nodeText: node => node.text,
+    nodeScale: () => 1,
+    nodeText: (nodeData: any) => nodeData.text,
     nodeVisibility: () => true,
-    nodeWeight: () => 1,
   });
-  return f.options(options);
+  return f
+    .options(options)
+    .nodeKey((nodeData: any) => f.nodeText()(nodeData));
 }
 }
