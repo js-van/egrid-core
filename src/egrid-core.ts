@@ -145,6 +145,7 @@ function createNode() {
 
 function updateNodes(nodeScale, nodeKey, nodeText) {
   var r = 5;
+  var strokeWidth = 1;
   return function(selection) {
     var nodes = selection
       .selectAll('g.node')
@@ -166,8 +167,8 @@ function updateNodes(nodeScale, nodeKey, nodeText) {
         node.originalWidth = node.textWidth + 2 * r;
         node.originalHeight = node.textHeight + 2 * r;
         node.scale = nodeScale(node.data);
-        node.width = node.originalWidth * node.scale;
-        node.height = node.originalHeight * node.scale;
+        node.width = (node.originalWidth + strokeWidth) * node.scale;
+        node.height = (node.originalHeight + strokeWidth) * node.scale;
       })
       ;
     nodes
