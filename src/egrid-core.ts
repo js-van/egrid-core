@@ -18,6 +18,8 @@ interface GridNode {
   x?: number;
   y?: number;
   scale?: number;
+  parents: GridNode[];
+  children: GridNode[];
 }
 
 
@@ -47,7 +49,92 @@ g.link > path {\
 g.node > rect, g.link > path {\
   stroke: black;\
 }\
+g.node.lower > rect, g.link.lower > path {\
+  stroke: blue;\
+}\
+g.node.upper > rect, g.link.upper > path {\
+  stroke: red;\
+}\
+g.node.selected > rect {\
+  stroke: purple;\
+}\
 ';
+
+
+function onClickNode(container: D3.Selection, nodeKey: (nodeData: any) => string) {
+  function connectedNodeKeys(node: GridNode, adjacencies: (node: GridNode) => GridNode[]) {
+    var fronts: GridNode[] = [node];
+    var visited = d3.set();
+    while (fronts.length > 0) {
+      var front = fronts.pop();
+      var key = nodeKey(front.data);
+      if (!visited.has(key)) {
+        visited.add(key);
+        adjacencies(front).forEach((node: GridNode) => {
+          fronts.push(node);
+        });
+      }
+    }
+    return visited;
+  }
+
+  return function(node: GridNode) {
+    var alreadySelected = d3.select(this).classed('selected');
+
+    container
+      .selectAll('g.node')
+      .classed('selected', false)
+      .classed('lower', false)
+      .classed('upper', false);
+    container
+      .selectAll('g.link')
+      .classed('lower', false)
+      .classed('upper', false);
+
+    if (!alreadySelected) {
+      d3.select(this)
+        .classed('selected', true);
+
+      var ancestors = connectedNodeKeys(node, (node: GridNode) => node.parents);
+      var descendants = connectedNodeKeys(node, (node: GridNode) => node.children);
+      container
+        .selectAll('g.link')
+        .classed('upper', (link: GridLink) => {
+          return ancestors.has(nodeKey(link.source.data)) && ancestors.has(nodeKey(link.target.data))
+        })
+        .classed('lower', (link: GridLink) => {
+          return descendants.has(nodeKey(link.source.data)) && descendants.has(nodeKey(link.target.data))
+        })
+        ;
+      ancestors.remove(nodeKey(node.data));
+      descendants.remove(nodeKey(node.data));
+      container
+        .selectAll('g.node')
+        .classed('upper', (node: GridNode) => ancestors.has(nodeKey(node.data)))
+        .classed('lower', (node: GridNode) => descendants.has(nodeKey(node.data)))
+        ;
+    }
+  };
+}
+
+
+function makeAdjacencyList<NodeDataType, LinkDataType>(
+    nodes: NodeDataType[],
+    links: LinkDataType[],
+    linkLower: (linkData: LinkDataType) => number,
+    linkUpper: (linkData: LinkDataType) => number) {
+  var adjacencies = nodes.map(() => {
+    return {
+      upper: d3.set(),
+      lower: d3.set(),
+    };
+  });
+  links.forEach(link => {
+    adjacencies[linkUpper(link)].lower.add(linkLower(link));
+    adjacencies[linkLower(link)].upper.add(linkUpper(link));
+  });
+  return adjacencies;
+}
 
 
 function makeGrid<NodeDataType, LinkDataType>(
@@ -68,16 +155,7 @@ function makeGrid<NodeDataType, LinkDataType>(
     };
   });
   var gridLinks = [];
-  var adjacencies = nodes.map(() => {
-    return {
-      upper: d3.set(),
-      lower: d3.set(),
-    };
-  });
-  links.forEach(link => {
-    adjacencies[linkUpper(link)].lower.add(linkLower(link));
-    adjacencies[linkLower(link)].upper.add(linkUpper(link));
-  });
+  var adjacencies = makeAdjacencyList(nodes, links, linkLower, linkUpper);
   nodes.forEach((node, i) => {
     if (!nodeVisibility(node)) {
       adjacencies[i].upper.forEach(upper => {
@@ -97,6 +175,8 @@ function makeGrid<NodeDataType, LinkDataType>(
     }
   });
   nodes.forEach((node, i) => {
+    gridNodes[i].parents = adjacencies[i].upper.values().map(j => gridNodes[j]);
+    gridNodes[i].children = adjacencies[i].lower.values().map(j => gridNodes[j]);
     adjacencies[i].lower.forEach(j => {
       gridLinks.push({
         source: gridNodes[i],
@@ -184,8 +264,8 @@ function updateNodes(nodeScale, nodeText) {
         width: (node: GridNode) => node.originalWidth,
         height: (node: GridNode) => node.originalHeight,
         rx: r,
-      });
-
+      })
+      ;
   };
 }
 
@@ -231,8 +311,8 @@ function update(options: UpdateOptions) {
       if (data) {
         var oldNodes = [];
         if (container.select('g.nodes').empty()) {
-          container.append('g').classed('nodes', true);
           container.append('g').classed('links', true);
+          container.append('g').classed('nodes', true);
         } else {
           oldNodes = container.selectAll('g.nodes > g.node').data();
         }
@@ -249,6 +329,7 @@ function update(options: UpdateOptions) {
           .selectAll('g.node')
           .data(grid.nodes, (node: GridNode) => options.nodeKey(node.data))
           .call(updateNodes(options.nodeScale, options.nodeText))
+          .on('click', onClickNode(container, options.nodeKey))
           ;
         container
           .select('g.links')
