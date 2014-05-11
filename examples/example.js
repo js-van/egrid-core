@@ -12,7 +12,8 @@ var app = angular.module('egrid-core-example', ['ui.router'])
             links: [{upper: 0, lower: 1}, {upper: 1, lower: 2}]
           };
           var egm = egrid.egm()
-            .nodeText(Object);
+            .nodeText(Object)
+            .size([600, 200]);
           d3.select('svg.display')
             .datum(grid)
             .call(egm.css())
@@ -53,7 +54,8 @@ var app = angular.module('egrid-core-example', ['ui.router'])
             },
             nodeVisibility: function(node) {
               return node.visible;
-            }
+            },
+            size: [$('svg.display').width(), 300],
           });
           d3.select('svg.display')
             .datum(grid)

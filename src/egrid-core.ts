@@ -40,8 +40,8 @@ interface Grid {
 var linkLine = d3.svg.line().interpolate('monotone');
 var linkPointsSize = 20;
 var svgCss = '\
-g.node > rect {\
-  fill: white;\
+g.node > rect, rect.background {\
+  fill: mintcream;\
 }\
 g.link > path {\
   fill: none;\
@@ -311,6 +311,7 @@ function update(options: UpdateOptions) {
       if (data) {
         var oldNodes = [];
         if (container.select('g.nodes').empty()) {
+          container.append('rect').classed('background', true);
           container.append('g').classed('links', true);
           container.append('g').classed('nodes', true);
         } else {
@@ -342,6 +343,7 @@ function update(options: UpdateOptions) {
       } else {
         container.select('g.nodes').remove();
         container.select('g.links').remove();
+        container.select('rect.background').remove();
       }
     });
   };
@@ -433,6 +435,7 @@ function transition(options: TransitionOptions) {
 
 
 export function call(selection: D3.Selection, that: EGM) {
+  var size = that.size();
   selection
     .call(update({
       linkLower: that.linkLower(),
@@ -442,6 +445,7 @@ export function call(selection: D3.Selection, that: EGM) {
       nodeText: that.nodeText(),
       nodeVisibility: that.nodeVisibility(),
     }))
+    .call(resize(size[0], size[1]))
     .call(layout({
       nodeKey: that.nodeKey(),
     }))
@@ -452,11 +456,31 @@ export function call(selection: D3.Selection, that: EGM) {
 }
 
 
-export function css(selection: D3.Selection) {
-  selection
-    .append('defs')
-    .append('style')
-    .text(svgCss);
+export function css() {
+  return function(selection: D3.Selection) {
+    selection
+      .append('defs')
+      .append('style')
+      .text(svgCss);
+  };
+}
+
+
+export function resize(width: number, height: number) {
+  return function(selection: D3.Selection) {
+    selection
+      .attr({
+        width: width,
+        height: height,
+      })
+      ;
+    selection
+      .select('rect.background')
+      .attr({
+        width: width,
+        height: height,
+      });
+  };
 }
 }
 
@@ -482,6 +506,9 @@ export interface EGM {
   nodeText(val: (nodeData: any) => string): EGM;
   nodeVisibility(): (nodeData: any) => boolean;
   nodeVisibility(val: (nodeData: any) => boolean): EGM;
+  resize(width: number, height: number): (selction: D3.Selection) => void;
+  size(): number[];
+  size(val: number[]): EGM;
 }
 
 
@@ -495,6 +522,7 @@ export interface EGMOptions {
   nodeScale?: (nodeData: any) => number;
   nodeText?: (nodeData: any) => string;
   nodeVisibility?: (nodeData: any) => boolean;
+  size?: number[];
 }
 
 
@@ -519,14 +547,15 @@ export function egm(options: EGMOptions = {}): EGM {
     'nodeScale',
     'nodeText',
     'nodeVisibility',
+    'size',
   ];
   var f: EGM = <any>function EGM(selection: D3.Selection) {
     return Impl.call(selection, f);
   }
 
-  f.css = function() {
-    return Impl.css;
-  }
+  f.css = Impl.css;
+
+  f.resize = Impl.resize;
 
   f.options = function(options: EGMOptions) {
     optionAttributes.forEach((attr: string) => {
@@ -548,6 +577,7 @@ export function egm(options: EGMOptions = {}): EGM {
     nodeScale: () => 1,
     nodeText: (nodeData: any) => nodeData.text,
     nodeVisibility: () => true,
+    size: [1, 1],
   });
   return f
     .options(options)

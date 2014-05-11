@@ -60,8 +60,8 @@ var egrid;
         var linkLine = d3.svg.line().interpolate('monotone');
         var linkPointsSize = 20;
         var svgCss = '\
-g.node > rect {\
-  fill: white;\
+g.node > rect, rect.background {\
+  fill: mintcream;\
 }\
 g.link > path {\
   fill: none;\
@@ -280,6 +280,7 @@ g.node.selected > rect {\
                     if (data) {
                         var oldNodes = [];
                         if (container.select('g.nodes').empty()) {
+                            container.append('rect').classed('background', true);
                             container.append('g').classed('links', true);
                             container.append('g').classed('nodes', true);
                         } else {
@@ -295,6 +296,7 @@ g.node.selected > rect {\
                     } else {
                         container.select('g.nodes').remove();
                         container.select('g.links').remove();
+                        container.select('rect.background').remove();
                     }
                 });
             };
@@ -354,6 +356,7 @@ g.node.selected > rect {\
         }
 
         function call(selection, that) {
+            var size = that.size();
             selection.call(update({
                 linkLower: that.linkLower(),
                 linkUpper: that.linkUpper(),
@@ -361,7 +364,7 @@ g.node.selected > rect {\
                 nodeScale: that.nodeScale(),
                 nodeText: that.nodeText(),
                 nodeVisibility: that.nodeVisibility()
-            })).call(layout({
+            })).call(resize(size[0], size[1])).call(layout({
                 nodeKey: that.nodeKey()
             })).call(transition({
                 nodeColor: that.nodeColor(),
@@ -370,10 +373,26 @@ g.node.selected > rect {\
         }
         Impl.call = call;
 
-        function css(selection) {
-            selection.append('defs').append('style').text(svgCss);
+        function css() {
+            return function (selection) {
+                selection.append('defs').append('style').text(svgCss);
+            };
         }
         Impl.css = css;
+
+        function resize(width, height) {
+            return function (selection) {
+                selection.attr({
+                    width: width,
+                    height: height
+                });
+                selection.select('rect.background').attr({
+                    width: width,
+                    height: height
+                });
+            };
+        }
+        Impl.resize = resize;
     })(Impl || (Impl = {}));
 
     function egm(options) {
@@ -397,15 +416,16 @@ g.node.selected > rect {\
             'nodeOpacity',
             'nodeScale',
             'nodeText',
-            'nodeVisibility'
+            'nodeVisibility',
+            'size'
         ];
         var f = function EGM(selection) {
             return Impl.call(selection, f);
         };
 
-        f.css = function () {
-            return Impl.css;
-        };
+        f.css = Impl.css;
+
+        f.resize = Impl.resize;
 
         f.options = function (options) {
             var _this = this;
@@ -441,7 +461,8 @@ g.node.selected > rect {\
             },
             nodeVisibility: function () {
                 return true;
-            }
+            },
+            size: [1, 1]
         });
         return f.options(options).nodeKey(function (nodeData) {
             return f.nodeText()(nodeData);
