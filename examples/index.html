@@ -5,28 +5,31 @@
 <title>E-Grid core</title>
 <link rel="stylesheet" href="../bower_components/bootstrap/dist/css/bootstrap.min.css"/>
 </head>
-<body ng-controller="EgridCoreExampleController">
+<body>
+<nav class="navbar navbar-default navbar-static-top">
+  <div class="container">
+    <a class="navbar-brand" href="#">egrid-core Examples</a>
+  </div>
+</nav>
 <div class="container">
   <div class="row">
-    <div class="col-xs-8">
-      <svg id="svg"></svg>
+    <div class="col-xs-2">
+      <ul class="nav nav-pills nav-stacked">
+        <li ui-sref-active="active">
+          <a ui-sref="simple">Simple</a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="color">Coloring</a>
+        </li>
+      </ul>
     </div>
-    <div class="col-xs-4">
-      <form>
-        <table class="table">
-          <tr ng-repeat="node in grid.nodes">
-            <td><input type="checkbox" ng-model="node.visible" ng-change="update()"/></td>
-            <td><input type="text" ng-model="node.text" ng-change="update()"/></td>
-            <td><input type="number" min="0" step="1" ng-model="node.size" ng-change="update()"/></td>
-            <td><input type="number" min="0" max="1" step="0.1" ng-model="node.opacity" ng-change="update()"/></td>
-            <td><input type="color" ng-model="node.color" ng-change="update()"/></td>
-          </tr>
-        </table>
-      </form>
+    <div class="col-xs-10">
+      <div ui-view/>
     </div>
   </div>
 </div>
 <script src="../bower_components/angular/angular.min.js"></script>
+<script src="../bower_components/angular-ui-router/release/angular-ui-router.min.js"></script>
 <script src="../bower_components/d3/d3.min.js"></script>
 <script src="../lib/dagre.js"></script>
 <script src="../egrid-core.js"></script>

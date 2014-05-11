@@ -18,7 +18,7 @@
   "dependencies": {
     "d3": "~3.4.6",
     "bootstrap": "~3.1.1",
-    "angularjs": "*",
-    "angular": "~1.2.16"
+    "angular": "~1.2.16",
+    "angular-ui-router": "~0.2.10"
   }
 }

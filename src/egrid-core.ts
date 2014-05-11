@@ -41,7 +41,7 @@ var linkLine = d3.svg.line().interpolate('monotone');
 var linkPointsSize = 20;
 var svgCss = '\
 g.node > rect {\
-  fill: lightgray;\
+  fill: white;\
 }\
 g.link > path {\
   fill: none;\

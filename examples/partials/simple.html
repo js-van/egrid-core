@@ -1,0 +1,23 @@
+<div>
+  <div>
+    <h2>Demo</h2>
+    <div class="thumbnail">
+      <svg class="display" height="100"/>
+    </div>
+  </div>
+  <div>
+    <h2>Source</h2>
+    <pre>
+var grid = {
+  nodes: ['hoge', 'fuga', 'piyo'],
+  links: [{upper: 0, lower: 1}, {upper: 1, lower: 2}]
+};
+var egm = egrid.egm()
+  .nodeText(Object);
+d3.select('svg.display')
+  .datum(grid)
+  .call(egm.css())
+  .call(egm);
+    </pre>
+  </div>
+</div>
