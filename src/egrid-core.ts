@@ -39,24 +39,27 @@ interface Grid {
 
 var linkLine = d3.svg.line().interpolate('monotone');
 var linkPointsSize = 20;
-var svgCss = '\
+var svgCssTemplate = '\
 g.node > rect, rect.background {\
-  fill: mintcream;\
+  fill: :backgroundColor;\
 }\
 g.link > path {\
   fill: none;\
 }\
 g.node > rect, g.link > path {\
-  stroke: black;\
+  stroke: :strokeColor;\
+}\
+g.node > text {\
+  fill: :strokeColor;\
 }\
 g.node.lower > rect, g.link.lower > path {\
-  stroke: blue;\
+  stroke: :lowerStrokeColor;\
 }\
 g.node.upper > rect, g.link.upper > path {\
-  stroke: red;\
+  stroke: :upperStrokeColor;\
 }\
 g.node.selected > rect {\
-  stroke: purple;\
+  stroke: :selectedStrokeColor;\
 }\
 ';
 
@@ -456,10 +459,32 @@ export function call(selection: D3.Selection, that: EGM) {
 }
 
 
-export function css() {
+export interface CssOptions {
+  backgroundColor?: string;
+  strokeColor?: string;
+  upperStrokeColor?: string;
+  lowerStrokeColor?: string;
+  selectedStrokeColor?: string;
+}
+
+
+export function css(options: CssOptions = {}) {
+  function get(val, defaultVal) {
+    return val === undefined ? defaultVal : val;
+  }
+  var svgCss = svgCssTemplate
+    .replace(/:backgroundColor/g, get(options.backgroundColor, 'whitesmoke'))
+    .replace(/:strokeColor/g, get(options.strokeColor, 'black'))
+    .replace(/:upperStrokeColor/g, get(options.upperStrokeColor, 'red'))
+    .replace(/:lowerStrokeColor/g, get(options.lowerStrokeColor, 'blue'))
+    .replace(/:selectedStrokeColor/g, get(options.selectedStrokeColor, 'purple'));
   return function(selection: D3.Selection) {
     selection
+      .selectAll('defs.egrid-style')
+      .remove();
+    selection
       .append('defs')
+      .classed('egrid-style', true)
       .append('style')
       .text(svgCss);
   };
@@ -486,7 +511,7 @@ export function resize(width: number, height: number) {
 
 export interface EGM {
   (selection: D3.Selection): EGM;
-  css(): (selection: D3.Selection) => void;
+  css(CssOptions): (selection: D3.Selection) => void;
   options(options: EGMOptions): EGM;
   enableClickNode(): boolean;
   enableClickNode(val: boolean): EGM;

@@ -59,24 +59,27 @@ var egrid;
     (function (Impl) {
         var linkLine = d3.svg.line().interpolate('monotone');
         var linkPointsSize = 20;
-        var svgCss = '\
+        var svgCssTemplate = '\
 g.node > rect, rect.background {\
-  fill: mintcream;\
+  fill: :backgroundColor;\
 }\
 g.link > path {\
   fill: none;\
 }\
 g.node > rect, g.link > path {\
-  stroke: black;\
+  stroke: :strokeColor;\
+}\
+g.node > text {\
+  fill: :strokeColor;\
 }\
 g.node.lower > rect, g.link.lower > path {\
-  stroke: blue;\
+  stroke: :lowerStrokeColor;\
 }\
 g.node.upper > rect, g.link.upper > path {\
-  stroke: red;\
+  stroke: :upperStrokeColor;\
 }\
 g.node.selected > rect {\
-  stroke: purple;\
+  stroke: :selectedStrokeColor;\
 }\
 ';
 
@@ -373,9 +376,15 @@ g.node.selected > rect {\
         }
         Impl.call = call;
 
-        function css() {
+        function css(options) {
+            if (typeof options === "undefined") { options = {}; }
+            function get(val, defaultVal) {
+                return val === undefined ? defaultVal : val;
+            }
+            var svgCss = svgCssTemplate.replace(/:backgroundColor/g, get(options.backgroundColor, 'whitesmoke')).replace(/:strokeColor/g, get(options.strokeColor, 'black')).replace(/:upperStrokeColor/g, get(options.upperStrokeColor, 'red')).replace(/:lowerStrokeColor/g, get(options.lowerStrokeColor, 'blue')).replace(/:selectedStrokeColor/g, get(options.selectedStrokeColor, 'purple'));
             return function (selection) {
-                selection.append('defs').append('style').text(svgCss);
+                selection.selectAll('defs.egrid-style').remove();
+                selection.append('defs').classed('egrid-style', true).append('style').text(svgCss);
             };
         }
         Impl.css = css;
