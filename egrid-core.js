@@ -1,481 +1,373 @@
-var egrid;
-(function (egrid) {
-    (function (svg) {
-        (function (_transform) {
-            var Translate = (function () {
-                function Translate(tx, ty) {
-                    this.tx = tx;
-                    this.ty = ty;
-                }
-                Translate.prototype.toString = function () {
-                    return 'translate(' + this.tx + ',' + this.ty + ')';
-                };
-                return Translate;
-            })();
-            _transform.Translate = Translate;
+(function() {
+  var graph;
 
-            var Scale = (function () {
-                function Scale(sx, sy) {
-                    this.sx = sx;
-                    this.sy = sy;
-                }
-                Scale.prototype.toString = function () {
-                    return 'scale(' + this.sx + ',' + this.sy + ')';
-                };
-                return Scale;
-            })();
-            _transform.Scale = Scale;
+  if (!egrid) {
+    this.egrid = {};
+  }
 
-            function translate(tx, ty) {
-                if (typeof ty === "undefined") { ty = 0; }
-                return new Translate(tx, ty);
-            }
-            _transform.translate = translate;
+  if (!egrid.core) {
+    this.egrid.core = {};
+  }
 
-            function scale(sx, sy) {
-                if (typeof sy === "undefined") { sy = sx; }
-                return new Scale(sx, sy);
-            }
-            _transform.scale = scale;
+  if (!egrid.core.graph) {
+    this.egrid.core.graph = {};
+  }
 
-            function compose() {
-                var transforms = [];
-                for (var _i = 0; _i < (arguments.length - 0); _i++) {
-                    transforms[_i] = arguments[_i + 0];
-                }
-                return transforms.map(function (transform) {
-                    return transform.toString();
-                }).join('');
-            }
-            _transform.compose = compose;
-        })(svg.transform || (svg.transform = {}));
-        var transform = svg.transform;
-    })(egrid.svg || (egrid.svg = {}));
-    var svg = egrid.svg;
-})(egrid || (egrid = {}));
-var egrid;
-(function (egrid) {
-    var Impl;
-    (function (Impl) {
-        var linkLine = d3.svg.line().interpolate('monotone');
-        var linkPointsSize = 20;
-        var svgCssTemplate = '\
-g.node > rect, rect.background {\
-  fill: :backgroundColor;\
-}\
-g.link > path {\
-  fill: none;\
-}\
-g.node > rect, g.link > path {\
-  stroke: :strokeColor;\
-}\
-g.node > text {\
-  fill: :strokeColor;\
-}\
-g.node.lower > rect, g.link.lower > path {\
-  stroke: :lowerStrokeColor;\
-}\
-g.node.upper > rect, g.link.upper > path {\
-  stroke: :upperStrokeColor;\
-}\
-g.node.selected > rect {\
-  stroke: :selectedStrokeColor;\
-}\
-';
+  graph = this.egrid.core.graph;
 
-        function onClickNode(container, nodeKey) {
-            function connectedNodeKeys(node, adjacencies) {
-                var fronts = [node];
-                var visited = d3.set();
-                while (fronts.length > 0) {
-                    var front = fronts.pop();
-                    var key = nodeKey(front.data);
-                    if (!visited.has(key)) {
-                        visited.add(key);
-                        adjacencies(front).forEach(function (node) {
-                            fronts.push(node);
-                        });
-                    }
-                }
-                return visited;
-            }
+  graph.adjacencyList = function() {
+    var AdjacencyList, nextVertexId, vertices;
+    nextVertexId = 0;
+    vertices = {};
+    AdjacencyList = (function() {
+      function AdjacencyList() {}
 
-            return function (node) {
-                var alreadySelected = d3.select(this).classed('selected');
-
-                container.selectAll('g.node').classed('selected', false).classed('lower', false).classed('upper', false);
-                container.selectAll('g.link').classed('lower', false).classed('upper', false);
-
-                if (!alreadySelected) {
-                    d3.select(this).classed('selected', true);
-
-                    var ancestors = connectedNodeKeys(node, function (node) {
-                        return node.parents;
-                    });
-                    var descendants = connectedNodeKeys(node, function (node) {
-                        return node.children;
-                    });
-                    container.selectAll('g.link').classed('upper', function (link) {
-                        return ancestors.has(nodeKey(link.source.data)) && ancestors.has(nodeKey(link.target.data));
-                    }).classed('lower', function (link) {
-                        return descendants.has(nodeKey(link.source.data)) && descendants.has(nodeKey(link.target.data));
-                    });
-                    ancestors.remove(nodeKey(node.data));
-                    descendants.remove(nodeKey(node.data));
-                    container.selectAll('g.node').classed('upper', function (node) {
-                        return ancestors.has(nodeKey(node.data));
-                    }).classed('lower', function (node) {
-                        return descendants.has(nodeKey(node.data));
-                    });
-                }
-            };
+      AdjacencyList.prototype.vertices = function() {
+        var u, _results;
+        _results = [];
+        for (u in vertices) {
+          _results.push(u);
         }
+        return _results;
+      };
 
-        function makeAdjacencyList(nodes, links, linkLower, linkUpper) {
-            var adjacencies = nodes.map(function () {
-                return {
-                    upper: d3.set(),
-                    lower: d3.set()
-                };
-            });
-            links.forEach(function (link) {
-                adjacencies[linkUpper(link)].lower.add(linkLower(link));
-                adjacencies[linkLower(link)].upper.add(linkUpper(link));
-            });
-            return adjacencies;
+      AdjacencyList.prototype.edges = function() {
+        var u, _ref;
+        return (_ref = []).concat.apply(_ref, (function() {
+          var _i, _len, _ref, _results;
+          _ref = this.vertices();
+          _results = [];
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            u = _ref[_i];
+            _results.push(this.outEdges(u));
+          }
+          return _results;
+        }).call(this));
+      };
+
+      AdjacencyList.prototype.adjacentVertices = function(u) {
+        var v, _results;
+        _results = [];
+        for (v in vertices[u].outAdjacencies) {
+          _results.push(v);
         }
+        return _results;
+      };
 
-        function makeGrid(nodes, links, nodeKey, nodeVisibility, linkLower, linkUpper, oldNodes) {
-            var oldNodesMap = {};
-            oldNodes.forEach(function (node) {
-                oldNodesMap[nodeKey(node.data)] = node;
-            });
-            var gridNodes = nodes.map(function (nodeData) {
-                return oldNodesMap[nodeKey(nodeData)] || {
-                    data: nodeData
-                };
-            });
-            var gridLinks = [];
-            var adjacencies = makeAdjacencyList(nodes, links, linkLower, linkUpper);
-            nodes.forEach(function (node, i) {
-                if (!nodeVisibility(node)) {
-                    adjacencies[i].upper.forEach(function (upper) {
-                        adjacencies[i].lower.forEach(function (lower) {
-                            adjacencies[upper].lower.add(lower);
-                            adjacencies[lower].upper.add(upper);
-                        });
-                    });
-                    adjacencies[i].upper.forEach(function (upper) {
-                        adjacencies[upper].lower.remove(i);
-                    });
-                    adjacencies[i].lower.forEach(function (lower) {
-                        adjacencies[lower].upper.remove(i);
-                    });
-                    adjacencies[i].upper = d3.set();
-                    adjacencies[i].lower = d3.set();
-                }
-            });
-            nodes.forEach(function (node, i) {
-                gridNodes[i].parents = adjacencies[i].upper.values().map(function (j) {
-                    return gridNodes[j];
-                });
-                gridNodes[i].children = adjacencies[i].lower.values().map(function (j) {
-                    return gridNodes[j];
-                });
-                adjacencies[i].lower.forEach(function (j) {
-                    gridLinks.push({
-                        source: gridNodes[i],
-                        target: gridNodes[j]
-                    });
-                });
-            });
-            return {
-                nodes: gridNodes.filter(function (node) {
-                    return nodeVisibility(node.data);
-                }),
-                links: gridLinks
-            };
+      AdjacencyList.prototype.invAdjacentVertices = function(u) {
+        var v, _results;
+        _results = [];
+        for (v in vertices[u].inAdjacencies) {
+          _results.push(v);
         }
+        return _results;
+      };
 
-        function calculateTextSize(nodeText) {
-            return function (selection) {
-                var measure = d3.select('body').append('svg');
-                var measureText = measure.append('text');
-
-                selection.each(function (node) {
-                    measureText.text(nodeText(node.data));
-                    var bbox = measureText.node().getBBox();
-                    node.textWidth = bbox.width;
-                    node.textHeight = bbox.height;
-                });
-
-                measure.remove();
-            };
+      AdjacencyList.prototype.outEdges = function(u) {
+        var v, _results;
+        _results = [];
+        for (v in vertices[u].outAdjacencies) {
+          _results.push([u, v]);
         }
+        return _results;
+      };
 
-        function createNode() {
-            return function (selection) {
-                selection.append('rect');
-                selection.append('text').each(function (node) {
-                    node.x = 0;
-                    node.y = 0;
-                }).attr({
-                    'text-anchor': 'middle',
-                    'dominant-baseline': 'text-before-edge'
-                });
-            };
+      AdjacencyList.prototype.inEdges = function(u) {
+        var v, _i, _len, _ref, _results;
+        _ref = vertices[u].inAdjacencies;
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          v = _ref[_i];
+          _results.push([v, u]);
         }
+        return _results;
+      };
 
-        function updateNodes(nodeScale, nodeText) {
-            var r = 5;
-            var strokeWidth = 1;
-            return function (selection) {
-                selection.enter().append('g').classed('node', true).call(createNode());
-                selection.exit().remove();
-                selection.call(calculateTextSize(nodeText)).each(function (node) {
-                    node.originalWidth = node.textWidth + 2 * r;
-                    node.originalHeight = node.textHeight + 2 * r;
-                    node.scale = nodeScale(node.data);
-                    node.width = (node.originalWidth + strokeWidth) * node.scale;
-                    node.height = (node.originalHeight + strokeWidth) * node.scale;
-                });
-                selection.select('text').text(function (node) {
-                    return nodeText(node.data);
-                }).attr('y', function (node) {
-                    return -node.textHeight / 2;
-                });
-                selection.select('rect').attr({
-                    x: function (node) {
-                        return -node.originalWidth / 2;
-                    },
-                    y: function (node) {
-                        return -node.originalHeight / 2;
-                    },
-                    width: function (node) {
-                        return node.originalWidth;
-                    },
-                    height: function (node) {
-                        return node.originalHeight;
-                    },
-                    rx: r
-                });
-            };
-        }
+      AdjacencyList.prototype.outDegree = function(u) {
+        return Object.keys(vertices[u].outAdjacencies).length;
+      };
 
-        function updateLinks() {
-            return function (selection) {
-                selection.enter().append('g').classed('link', true).append('path').attr('d', function (link) {
-                    var points = [];
-                    points.push([link.source.x, link.source.y]);
-                    for (var i = 1; i < linkPointsSize; ++i) {
-                        points.push([link.target.x, link.target.y]);
-                    }
-                    return linkLine(points);
-                });
-                selection.exit().remove();
-            };
-        }
+      AdjacencyList.prototype.inDegree = function(u) {
+        return Object.keys(vertices[u].inAdjacencies).length;
+      };
 
-        function update(options) {
-            return function (selection) {
-                selection.each(function (data) {
-                    var container = d3.select(this);
-                    if (data) {
-                        var oldNodes = [];
-                        if (container.select('g.nodes').empty()) {
-                            container.append('rect').classed('background', true);
-                            container.append('g').classed('links', true);
-                            container.append('g').classed('nodes', true);
-                        } else {
-                            oldNodes = container.selectAll('g.nodes > g.node').data();
-                        }
-                        var grid = makeGrid(data.nodes, data.links, options.nodeKey, options.nodeVisibility, options.linkLower, options.linkUpper, oldNodes);
-                        container.select('g.nodes').selectAll('g.node').data(grid.nodes, function (node) {
-                            return options.nodeKey(node.data);
-                        }).call(updateNodes(options.nodeScale, options.nodeText)).on('click', onClickNode(container, options.nodeKey));
-                        container.select('g.links').selectAll('g.link').data(grid.links, function (link) {
-                            return options.nodeKey(link.source.data) + ':' + options.nodeKey(link.target.data);
-                        }).call(updateLinks());
-                    } else {
-                        container.select('g.nodes').remove();
-                        container.select('g.links').remove();
-                        container.select('rect.background').remove();
-                    }
-                });
-            };
-        }
+      AdjacencyList.prototype.numVertices = function() {
+        return Object.keys(vertices).length;
+      };
 
-        function layout(options) {
-            return function (selection) {
-                selection.each(function () {
-                    var container = d3.select(this);
-                    var nodes = container.selectAll('g.node').data();
-                    var links = container.selectAll('g.link').data();
-                    nodes.sort(function (node1, node2) {
-                        return d3.ascending(options.nodeKey(node1.data), options.nodeKey(node2.data));
-                    });
-                    links.sort(function (link1, link2) {
-                        var key1 = options.nodeKey(link1.source.data) + options.nodeKey(link1.target.data);
-                        var key2 = options.nodeKey(link2.source.data) + options.nodeKey(link2.target.data);
-                        return d3.ascending(key1, key2);
-                    });
-                    dagre.layout().nodes(nodes).edges(links).lineUpTop(true).lineUpBottom(true).rankDir('LR').rankSep(200).edgeSep(20).run();
-                    nodes.forEach(function (node) {
-                        node.x = node.dagre.x;
-                        node.y = node.dagre.y;
-                    });
-                    links.forEach(function (link) {
-                        link.points = [];
-                        link.points.push([link.source.x, link.source.y]);
-                        link.dagre.points.forEach(function (obj) {
-                            link.points.push([obj.x, obj.y]);
-                        });
-                        link.points.push([link.target.x, link.target.y]);
-                        for (var i = 0, n = linkPointsSize - link.points.length; i < n; ++i) {
-                            link.points.push([link.target.x, link.target.y]);
-                        }
-                    });
-                });
-            };
-        }
+      AdjacencyList.prototype.numEdges = function() {
+        var i;
+        return ((function() {
+          var _i, _len, _ref, _results;
+          _ref = this.vertices();
+          _results = [];
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            i = _ref[_i];
+            _results.push(this.outDegree(i));
+          }
+          return _results;
+        }).call(this)).reduce(function(t, s) {
+          return t + s;
+        });
+      };
 
-        function transition(options) {
-            return function (selection) {
-                var nodes = selection.selectAll('g.nodes > g.node').data();
-                var links = selection.selectAll('g.links > g.link').data();
-                var transition = selection.transition();
-                transition.selectAll('g.nodes > g.node').attr('transform', function (node) {
-                    return egrid.svg.transform.compose(egrid.svg.transform.translate(node.x, node.y), egrid.svg.transform.scale(node.scale));
-                }).style('opacity', function (node) {
-                    return options.nodeOpacity(node.data);
-                });
-                transition.selectAll('g.nodes > g.node > rect').style('fill', function (node) {
-                    return options.nodeColor(node.data);
-                });
-                transition.selectAll('g.links > g.link').select('path').attr('d', function (link) {
-                    return linkLine(link.points);
-                });
-            };
-        }
+      AdjacencyList.prototype.vertex = function(u) {
+        return u;
+      };
 
-        function call(selection, that) {
-            var size = that.size();
-            selection.call(update({
-                linkLower: that.linkLower(),
-                linkUpper: that.linkUpper(),
-                nodeKey: that.nodeKey(),
-                nodeScale: that.nodeScale(),
-                nodeText: that.nodeText(),
-                nodeVisibility: that.nodeVisibility()
-            })).call(resize(size[0], size[1])).call(layout({
-                nodeKey: that.nodeKey()
-            })).call(transition({
-                nodeColor: that.nodeColor(),
-                nodeOpacity: that.nodeOpacity()
-            }));
-        }
-        Impl.call = call;
+      AdjacencyList.prototype.edge = function(u, v) {
+        return vertices[u].outAdjacencies[v] != null;
+      };
 
-        function css(options) {
-            if (typeof options === "undefined") { options = {}; }
-            function get(val, defaultVal) {
-                return val === undefined ? defaultVal : val;
-            }
-            var svgCss = svgCssTemplate.replace(/:backgroundColor/g, get(options.backgroundColor, 'whitesmoke')).replace(/:strokeColor/g, get(options.strokeColor, 'black')).replace(/:upperStrokeColor/g, get(options.upperStrokeColor, 'red')).replace(/:lowerStrokeColor/g, get(options.lowerStrokeColor, 'blue')).replace(/:selectedStrokeColor/g, get(options.selectedStrokeColor, 'purple'));
-            return function (selection) {
-                selection.selectAll('defs.egrid-style').remove();
-                selection.append('defs').classed('egrid-style', true).append('style').text(svgCss);
-            };
+      AdjacencyList.prototype.addEdge = function(u, v, prop) {
+        if (prop == null) {
+          prop = {};
         }
-        Impl.css = css;
+        vertices[u].outAdjacencies[v] = prop;
+        vertices[v].inAdjacencies[u] = prop;
+        return [u, v];
+      };
 
-        function resize(width, height) {
-            return function (selection) {
-                selection.attr({
-                    width: width,
-                    height: height
-                });
-                selection.select('rect.background').attr({
-                    width: width,
-                    height: height
-                });
-            };
-        }
-        Impl.resize = resize;
-    })(Impl || (Impl = {}));
+      AdjacencyList.prototype.removeEdge = function(u, v) {
+        delete vertices[u].outAdjacencies[v];
+        delete vertices[v].inAdjacencies[u];
+      };
 
-    function egm(options) {
-        if (typeof options === "undefined") { options = {}; }
-        function accessor(key) {
-            var val;
-            return function (arg) {
-                if (arg === undefined) {
-                    return val;
-                }
-                val = arg;
-                return this;
-            };
-        }
-        var optionAttributes = [
-            'enableClickNode',
-            'linkLower',
-            'linkUpper',
-            'nodeColor',
-            'nodeKey',
-            'nodeOpacity',
-            'nodeScale',
-            'nodeText',
-            'nodeVisibility',
-            'size'
-        ];
-        var f = function EGM(selection) {
-            return Impl.call(selection, f);
+      AdjacencyList.prototype.addVertex = function(prop) {
+        vertices[nextVertexId] = {
+          outAdjacencies: {},
+          inAdjacencies: {},
+          property: prop
         };
+        return nextVertexId++;
+      };
 
-        f.css = Impl.css;
+      AdjacencyList.prototype.clearVertex = function(u) {
+        var v;
+        vertices[u].outAdjacencies = {};
+        outAdjacencies[i] = {};
+        for (v in vertices[u].inAdjacencies) {
+          delete vertices[v].inAdjacencies[u];
+        }
+      };
 
-        f.resize = Impl.resize;
+      AdjacencyList.prototype.removeVertex = function(u) {
+        delete vertices[u];
+      };
 
-        f.options = function (options) {
-            var _this = this;
-            optionAttributes.forEach(function (attr) {
-                _this[attr](options[attr]);
-            });
-            return this;
-        };
+      AdjacencyList.prototype.get = function(u, v) {
+        if (v != null) {
+          return vertices[u].outAdjacencies[v];
+        } else {
+          return vertices[u].property;
+        }
+      };
 
-        optionAttributes.forEach(function (attr) {
-            f[attr] = accessor(attr + '_');
-        });
+      return AdjacencyList;
 
-        f.options({
-            enableClickNode: true,
-            linkLower: function (linkData) {
-                return linkData.lower;
-            },
-            linkUpper: function (linkData) {
-                return linkData.upper;
-            },
-            nodeColor: function () {
-                return '';
-            },
-            nodeOpacity: function () {
-                return 1;
-            },
-            nodeScale: function () {
-                return 1;
-            },
-            nodeText: function (nodeData) {
-                return nodeData.text;
-            },
-            nodeVisibility: function () {
-                return true;
-            },
-            size: [1, 1]
-        });
-        return f.options(options).nodeKey(function (nodeData) {
-            return f.nodeText()(nodeData);
-        });
+    })();
+    return new AdjacencyList;
+  };
+
+}).call(this);
+
+(function() {
+  var graph;
+
+  if (!egrid) {
+    this.egrid = {};
+  }
+
+  if (!egrid.core) {
+    this.egrid.core = {};
+  }
+
+  if (!egrid.core.graph) {
+    this.egrid.core.graph = {};
+  }
+
+  graph = this.egrid.core.graph;
+
+  graph.dijkstra = function() {
+    var dijkstra, inv, weight;
+    weight = function(p) {
+      return p.weight;
+    };
+    inv = false;
+    dijkstra = function(graph, i) {
+      var adjacentVertices, distance, distances, j, queue, u, v, _i, _len, _ref;
+      adjacentVertices = inv ? function(u) {
+        return graph.invAdjacentVertices(u);
+      } : function(u) {
+        return graph.adjacentVertices(u);
+      };
+      distances = {};
+      for (j in graph.vertices()) {
+        distances[j] = Infinity;
+      }
+      distances[i] = 0;
+      queue = [i];
+      while (queue.length > 0) {
+        u = queue.pop();
+        _ref = adjacentVertices(u);
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          v = _ref[_i];
+          if (distances[v] === Infinity) {
+            queue.push(v);
+          }
+          distance = distances[u] + weight(graph.get(u, v));
+          if (distance < distances[v]) {
+            distances[v] = distance;
+          }
+        }
+      }
+      return distances;
+    };
+    dijkstra.weight = function(f) {
+      if (f != null) {
+        weight = f;
+        return dijkstra;
+      } else {
+        return weight;
+      }
+    };
+    dijkstra.inv = function(flag) {
+      if (flag != null) {
+        inv = flag;
+        return dijkstra;
+      } else {
+        return inv;
+      }
+    };
+    return dijkstra;
+  };
+
+}).call(this);
+
+(function() {
+  var graph;
+
+  if (!egrid) {
+    this.egrid = {};
+  }
+
+  if (!egrid.core) {
+    this.egrid.core = {};
+  }
+
+  if (!egrid.core.graph) {
+    this.egrid.core.graph = {};
+  }
+
+  graph = this.egrid.core.graph;
+
+  graph.warshallFloyd = function() {
+    var warshallFloyd, weight;
+    weight = function(p) {
+      return p.weight;
+    };
+    warshallFloyd = function(graph) {
+      var distance, distances, i, j, k, u, v, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _m, _n, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+      distances = {};
+      _ref = graph.vertices();
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        u = _ref[_i];
+        distances[u] = {};
+        _ref1 = graph.vertices();
+        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+          v = _ref1[_j];
+          distances[u][v] = Infinity;
+        }
+        distances[u][u] = 0;
+        _ref2 = graph.adjacentVertices(u);
+        for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
+          v = _ref2[_k];
+          distances[u][v] = weight(graph.get(u, v));
+        }
+      }
+      _ref3 = graph.vertices();
+      for (_l = 0, _len3 = _ref3.length; _l < _len3; _l++) {
+        k = _ref3[_l];
+        _ref4 = graph.vertices();
+        for (_m = 0, _len4 = _ref4.length; _m < _len4; _m++) {
+          i = _ref4[_m];
+          _ref5 = graph.vertices();
+          for (_n = 0, _len5 = _ref5.length; _n < _len5; _n++) {
+            j = _ref5[_n];
+            distance = distances[i][k] + distances[k][j];
+            if (distance < distances[i][j]) {
+              distances[i][j] = distance;
+            }
+          }
+        }
+      }
+      return distances;
+    };
+    warshallFloyd.weight = function(f) {
+      if (f != null) {
+        weight = f;
+        return warshallFloyd;
+      } else {
+        return weight;
+      }
+    };
+    return warshallFloyd;
+  };
+
+}).call(this);
+
+(function() {
+  var centrality;
+
+  if (!egrid) {
+    this.egrid = {};
+  }
+
+  if (!egrid.core) {
+    this.egrid.core = {};
+  }
+
+  if (!egrid.core.network) {
+    this.egrid.core.network = {};
+  }
+
+  if (!egrid.core.network.centrality) {
+    this.egrid.core.network.centrality = {};
+  }
+
+  centrality = this.egrid.core.network.centrality;
+
+  centrality.inDegree = function(graph) {
+    var u, _i, _len, _ref, _results;
+    _ref = graph.vertices();
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      u = _ref[_i];
+      _results.push(graph.inDegree(u));
     }
-    egrid.egm = egm;
-})(egrid || (egrid = {}));
+    return _results;
+  };
+
+  centrality.outDegree = function(graph) {
+    var u, _i, _len, _ref, _results;
+    _ref = graph.vertices();
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      u = _ref[_i];
+      _results.push(graph.outDegree(u));
+    }
+    return _results;
+  };
+
+  centrality.degree = function(graph) {
+    var u, _i, _len, _ref, _results;
+    _ref = graph.vertices();
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      u = _ref[_i];
+      _results.push(graph.inDegree(u) + graph.outDegree(u));
+    }
+    return _results;
+  };
+
+}).call(this);
