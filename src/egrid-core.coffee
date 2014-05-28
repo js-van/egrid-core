@@ -2,7 +2,7 @@
 @egrid.core = {} unless @egrid.core
 
 
-edgeLine = d3.svg.line().interpolate('monotone')
+edgeLine = d3.svg.line().interpolate('linear')
 edgePointsSize = 20
 
 
@@ -169,34 +169,42 @@ makeGrid = (graph, pred, oldVertices) ->
   vertices: vertices, edges: edges
 
 
-initContainer = ->
+initContainer = (zoom) ->
   (selection) ->
     contents = selection.select 'g.contents'
     if contents.empty()
+      selection
+        .append 'rect'
+        .classed 'background', true
+        .call zoom
       contents = selection
         .append 'g'
         .classed 'contents', true
-      contents
-        .append 'rect'
-        .classed 'background', true
       contents
         .append 'g'
         .classed 'edges', true
       contents
         .append 'g'
         .classed 'vertices', true
+      zoom
+        .on 'zoom', ->
+          e = d3.event
+          t = egrid.core.svg.transform.translate(e.translate[0], e.translate[1])
+          s = egrid.core.svg.transform.scale(e.scale)
+          contents.attr 'transform', egrid.core.svg.transform.compose(t, s)
+
     return
 
 
 update = (arg) ->
-  {vertexScale, vertexText, vertexVisibility} = arg
+  {vertexScale, vertexText, vertexVisibility, zoom} = arg
 
   (selection) ->
     selection
       .each (graph) ->
         container = d3.select this
         if graph?
-          container.call initContainer()
+          container.call initContainer zoom
           contents = container.select 'g.contents'
 
           {vertices, edges} = makeGrid graph
@@ -271,24 +279,26 @@ transition = (arg) ->
       .style 'opacity', (u) -> vertexOpacity u.data
     trans
       .selectAll 'g.vertices > g.vertex > rect'
-      .style 'fill', (u) -> vertexColor u.data
+      .style 'fill', (u) -> vertexColor u.data, u.key
     trans
       .selectAll 'g.edges > g.edge'
       .select 'path'
       .attr 'd', (e) -> edgeLine e.points
 
 
-draw = (selection) ->
-  selection
-    .call update
-      vertexScale: @vertexScale()
-      vertexText: @vertexText()
-      vertexVisibility: @vertexVisibility()
-    .call resize @size()[0], @size()[1]
-    .call layout()
-    .call transition
-      vertexOpacity: @vertexOpacity()
-      vertexColor: @vertexColor()
+draw = (egm, zoom) ->
+  (selection) ->
+    selection
+      .call update
+        vertexScale: egm.vertexScale()
+        vertexText: egm.vertexText()
+        vertexVisibility: egm.vertexVisibility()
+        zoom: zoom
+      .call resize egm.size()[0], egm.size()[1]
+      .call layout()
+      .call transition
+        vertexOpacity: egm.vertexOpacity()
+        vertexColor: egm.vertexColor()
 
 
 css = (options = {}) ->
@@ -342,8 +352,12 @@ resize = (width, height) ->
 
 
 @egrid.core.egm = (options={}) ->
+  zoom = d3.behavior.zoom()
+    .on 'zoom', ->
+      console.log arguments, d3.event
+
   egm = (selection) ->
-    draw.call egm, selection
+    draw(egm, zoom) selection
     return
 
   accessor = (defaultVal) ->

@@ -5,10 +5,19 @@
 centrality = @egrid.core.network.centrality
 
 centrality.inDegree = (graph) ->
-  graph.inDegree(u) for u in graph.vertices()
+  result = {}
+  for u in graph.vertices()
+    result[u] = graph.inDegree u
+  result
 
 centrality.outDegree = (graph) ->
-  graph.outDegree(u) for u in graph.vertices()
+  result = {}
+  for u in graph.vertices()
+    result[u] = graph.outDegree u
+  result
 
 centrality.degree = (graph) ->
-  graph.inDegree(u) + graph.outDegree(u) for u in graph.vertices()
+  result = {}
+  for u in graph.vertices()
+    result[u] = (graph.outDegree u) + (graph.inDegree u)
+  result
