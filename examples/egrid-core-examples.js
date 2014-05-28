@@ -7,12 +7,12 @@ var app = angular.module('egrid-core-example', ['ui.router'])
         url: '/simple',
         templateUrl: 'partials/simple.html',
         controller: function($scope) {
-          var grid = {
-            nodes: ['hoge', 'fuga', 'piyo'],
-            links: [{upper: 0, lower: 1}, {upper: 1, lower: 2}]
-          };
-          var egm = egrid.egm()
-            .nodeText(Object)
+          var graph = egrid.core.graph.graph()
+          var grid = graph(
+            [{text: 'hoge'}, {text: 'fuga'}, {text: 'piyo'}],
+            [{source: 0, target: 1}, {source: 1, target: 2}]
+          );
+          var egm = egrid.core.egm()
             .size([600, 200]);
           d3.select('svg.display')
             .datum(grid)

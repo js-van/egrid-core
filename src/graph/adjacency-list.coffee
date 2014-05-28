@@ -3,12 +3,16 @@
 @egrid.core.graph = {} unless egrid.core.graph
 graph = @egrid.core.graph
 
-graph.adjacencyList = ->
+graph.adjacencyList = (v, e) ->
   nextVertexId = 0
   vertices = {}
 
   class AdjacencyList
-    constructor: ->
+    constructor: (vertices=[], edges=[]) ->
+      for vertex in vertices
+        @addVertex vertex
+      for {source, target} in edges
+        @addEdge source, target
 
     vertices: -> u for u of vertices
 
@@ -68,4 +72,4 @@ graph.adjacencyList = ->
       else
         vertices[u].property
 
-  new AdjacencyList
+  new AdjacencyList v, e
