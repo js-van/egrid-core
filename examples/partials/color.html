@@ -13,56 +13,14 @@
           <th>Opacity</th>
           <th>Color</th>
         </tr>
-        <tr ng-repeat="node in grid.nodes">
-          <td><label><input type="checkbox" ng-model="node.visible" ng-change="update()"/> Visible</label></td>
-          <td><input class="form-control" type="text" ng-model="node.text" ng-change="update()"/></td>
-          <td><input class="form-control" type="number" min="0" step="1" ng-model="node.size" ng-change="update()"/></td>
-          <td><input class="form-control" type="number" min="0" max="1" step="0.1" ng-model="node.opacity" ng-change="update()"/></td>
-          <td><input class="form-control" type="color" ng-model="node.color" ng-change="update()"/></td>
+        <tr ng-repeat="vertex in vertices">
+          <td><label><input type="checkbox" ng-model="vertex.visible" ng-change="update()"/> Visible</label></td>
+          <td><input class="form-control" type="text" ng-model="vertex.text" ng-change="update()"/></td>
+          <td><input class="form-control" type="number" min="0" step="1" ng-model="vertex.size" ng-change="update()"/></td>
+          <td><input class="form-control" type="number" min="0" max="1" step="0.1" ng-model="vertex.opacity" ng-change="update()"/></td>
+          <td><input class="form-control" type="color" ng-model="vertex.color" ng-change="update()"/></td>
         </tr>
       </table>
     </form>
-  </div>
-  <div>
-    <h2>Source</h2>
-    <pre>
-var grid = $scope.grid = {
-  nodes: [
-    {text: 'aaa', size: 1, visible: true, color: '#ff0000', opacity: 0.5},
-    {text: 'いいい', size: 2, visible: true, color: '#00ff00', opacity: 0.8},
-    {text: 'ccc', size: 3, visible: true, color: '#0000ff', opacity: 0.2},
-    {text: 'ddd', size: 4, visible: true, color: '#00ffff', opacity: 0.4},
-    {text: 'eee', size: 5, visible: true, color: '#ff00ff', opacity: 0.6},
-    {text: 'fff', size: 6, visible: false, color: '#ffff00', opacity: 0.7}
-  ],
-  links: [
-    {upper: 0, lower: 1},
-    {upper: 1, lower: 2},
-    {upper: 3, lower: 1},
-    {upper: 1, lower: 4},
-    {upper: 1, lower: 5}
-  ]
-};
-var egm = egrid.egm({
-  enableClickNode: true,
-  nodeColor: function(node) {
-    return node.color;
-  },
-  nodeOpacity: function(node) {
-    return node.opacity;
-  },
-  nodeScale: function(node) {
-    return node.size;
-  },
-  nodeVisibility: function(node) {
-    return node.visible;
-  },
-  size: [$('svg.display').width(), 300],
-});
-d3.select('svg.display')
-  .datum(grid)
-  .call(egm.css())
-  .call(egm);
-    </pre>
   </div>
 </div>

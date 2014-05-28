@@ -7,7 +7,7 @@ edgePointsSize = 20
 
 
 onClickVertex = (arg) ->
-  {container, vertexText} = arg
+  {container, graph} = arg
   (u) ->
     alreadySelected = d3
       .select @
@@ -25,21 +25,33 @@ onClickVertex = (arg) ->
         upper: false
 
     if not alreadySelected
+      dijkstra = egrid.core.graph.dijkstra()
+        .weight -> 1
+      descendants = d3.set()
+      for v, dist of dijkstra graph, u.key
+        if dist < Infinity
+          descendants.add(v)
+      dijkstra.inv true
+      ancestors = d3.set()
+      for v, dist of dijkstra graph, u.key
+        if dist < Infinity
+          ancestors.add(v)
+
       d3
         .select @
         .classed 'selected', true
       container
         .selectAll 'g.edge'
         .classed
-          upper: ([v, w]) -> ancestors.has(v) and ancestors.has(w)
-          lower: ([v, w]) -> descendants.has(v) and descendants.has(w)
+          upper: ({source, target}) -> ancestors.has(source.key) and ancestors.has(target.key)
+          lower: ({source, target}) -> descendants.has(source.key) and descendants.has(target.key)
       ancestors.remove(u)
       descendants.remove(u)
       container
         .selectAll 'g.vertex'
         .classed
-          upper: (v) -> ancestors.has(v)
-          lower: (v) -> descendants.has(v)
+          upper: (v) -> ancestors.has(v.key)
+          lower: (v) -> descendants.has(v.key)
 
 
 calculateTextSize = (vertexText) ->
@@ -150,9 +162,10 @@ makeGrid = (graph, pred, oldVertices) ->
     else
       for v in graph.adjacentVertices u
         for w in graph.invAdjacentVertices u
-          edges.push
-            source: verticesMap[w]
-            target: verticesMap[v]
+          if (pred v) and (pred w)
+            edges.push
+              source: verticesMap[w]
+              target: verticesMap[v]
   vertices: vertices, edges: edges
 
 
@@ -199,7 +212,7 @@ update = (arg) ->
               vertexText: vertexText
             .on 'click', onClickVertex
               container: container
-              vertexText: vertexText
+              graph: graph
           contents
             .select 'g.edges'
             .selectAll 'g.edge'
@@ -271,6 +284,7 @@ draw = (selection) ->
       vertexScale: @vertexScale()
       vertexText: @vertexText()
       vertexVisibility: @vertexVisibility()
+    .call resize @size()[0], @size()[1]
     .call layout()
     .call transition
       vertexOpacity: @vertexOpacity()
@@ -327,7 +341,7 @@ resize = (width, height) ->
     return
 
 
-@egrid.core.egm = (options) ->
+@egrid.core.egm = (options={}) ->
   egm = (selection) ->
     draw.call egm, selection
     return
@@ -355,11 +369,11 @@ resize = (width, height) ->
   egm.resize = resize
 
   egm.options = (options) ->
-    for attr in optionAttributes
+    for attr of optionAttributes
       egm[attr] options[attr]
     egm
 
   for attr, val of optionAttributes
     egm[attr] = accessor val
 
-  egm
+  egm.options options

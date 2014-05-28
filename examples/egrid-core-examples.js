@@ -7,25 +7,32 @@ var app = angular.module('egrid-core-example', ['ui.router'])
         url: '/simple',
         templateUrl: 'partials/simple.html',
         controller: function($scope) {
-          var graph = egrid.core.graph.graph()
-          var grid = graph(
-            [{text: 'hoge'}, {text: 'fuga'}, {text: 'piyo'}],
-            [{source: 0, target: 1}, {source: 1, target: 2}]
-          );
-          var egm = egrid.core.egm()
-            .size([600, 200]);
-          d3.select('svg.display')
-            .datum(grid)
-            .call(egm.css())
-            .call(egm);
+          function draw() {
+            var graph = egrid.core.graph.graph()
+            var grid = graph(
+              [{text: 'hoge'}, {text: 'fuga'}, {text: 'piyo'}],
+              [{source: 0, target: 1}, {source: 1, target: 2}]
+            );
+            var egm = egrid.core.egm()
+              .size([600, 200]);
+            d3.select('svg.display')
+              .datum(grid)
+              .call(egm.css())
+              .call(egm);
+          }
+
+          $scope.code = draw.toString();
+
+          draw();
         }
       })
       .state('color', {
         url: '/color',
         templateUrl: 'partials/color.html',
         controller: function($scope) {
-          var grid = $scope.grid = {
-            nodes: [
+          var graph = egrid.core.graph.graph();
+          var grid = graph(
+            [
               {text: 'aaa', size: 1, visible: true, color: '#ff0000', opacity: 0.5},
               {text: 'いいい', size: 2, visible: true, color: '#00ff00', opacity: 0.8},
               {text: 'ccc', size: 3, visible: true, color: '#0000ff', opacity: 0.2},
@@ -33,27 +40,27 @@ var app = angular.module('egrid-core-example', ['ui.router'])
               {text: 'eee', size: 5, visible: true, color: '#ff00ff', opacity: 0.6},
               {text: 'fff', size: 6, visible: false, color: '#ffff00', opacity: 0.7}
             ],
-            links: [
-              {upper: 0, lower: 1},
-              {upper: 1, lower: 2},
-              {upper: 3, lower: 1},
-              {upper: 1, lower: 4},
-              {upper: 1, lower: 5}
+            [
+              {source: 0, target: 1},
+              {source: 1, target: 2},
+              {source: 3, target: 1},
+              {source: 1, target: 4},
+              {source: 1, target: 5}
             ]
-          };
-          var egm = egrid.egm({
+          );
+          var egm = egrid.core.egm({
             enableClickNode: true,
-            nodeColor: function(node) {
-              return node.color;
+            vertexColor: function(vertex) {
+              return vertex.color;
             },
-            nodeOpacity: function(node) {
-              return node.opacity;
+            vertexOpacity: function(vertex) {
+              return vertex.opacity;
             },
-            nodeScale: function(node) {
-              return node.size;
+            vertexScale: function(vertex) {
+              return vertex.size;
             },
-            nodeVisibility: function(node) {
-              return node.visible;
+            vertexVisibility: function(vertex) {
+              return vertex.visible;
             },
             size: [$('div.display-container').width(), 300],
           });
@@ -62,6 +69,9 @@ var app = angular.module('egrid-core-example', ['ui.router'])
             .call(egm.css())
             .call(egm);
 
+          $scope.vertices = grid.vertices().map(function(u) {
+            return grid.get(u);
+          });
           $scope.update = function() {
             d3.select('svg.display').call(egm);
           };
@@ -71,12 +81,13 @@ var app = angular.module('egrid-core-example', ['ui.router'])
         url: '/css',
         templateUrl: 'partials/css.html',
         controller: function($scope) {
-          var grid = {
-            nodes: ['hoge', 'fuga', 'piyo'],
-            links: [{upper: 0, lower: 1}, {upper: 1, lower: 2}]
-          };
-          var egm = egrid.egm()
-            .nodeText(Object)
+          var graph = egrid.core.graph.graph()
+          var grid = graph(
+            ['hoge', 'fuga', 'piyo'],
+            [{source: 0, target: 1}, {source: 1, target: 2}]
+          );
+          var egm = egrid.core.egm()
+            .vertexText(Object)
             .size([$('div.display-container').width(), 400]);
           $scope.css = {
             backgroundColor: '#ffffff',
