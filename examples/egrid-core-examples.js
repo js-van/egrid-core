@@ -117,24 +117,38 @@ var app = angular.module('egrid-core-example', ['ui.router'])
         controller: function($scope, data) {
           var graph = egrid.core.graph.graph();
           var grid = graph(data.data.nodes, data.data.links);
-          var centrality = egrid.core.network.centrality.degree(grid);
-
-          var extent = d3.extent(grid.vertices(), function(u) {
-            return centrality[u];
-          });
-          var scale = d3.scale.linear()
-            .domain(extent)
-            .range([240, 0]);
+          var degreeCentrality = egrid.core.network.centrality.degree;
+          var closenessCentrality = egrid.core.network.centrality.closeness(function() {return 1});
 
           var egm = egrid.core.egm()
-            .vertexColor(function(_, u) {
-              return d3.hsl(scale(centrality[u]), 1, 0.5).toString();
-            })
             .size([600, 600]);
           d3.select('svg.display')
             .datum(grid)
             .call(egm.css())
             .call(egm);
+
+          $scope.centrality = 'degree';
+          $scope.$watch('centrality', function(oldValue, newValue) {
+            var centrality;
+            if ($scope.centrality == 'degree') {
+              centrality = degreeCentrality(grid);
+            } else {
+              centrality = closenessCentrality(grid);
+            }
+
+            var extent = d3.extent(grid.vertices(), function(u) {
+              return centrality[u];
+            });
+            var scale = d3.scale.linear()
+              .domain(extent)
+              .range([240, 0]);
+
+            egm.vertexColor(function(_, u) {
+              return d3.hsl(scale(centrality[u]), 1, 0.5).toString();
+            });
+            d3.select('svg.display')
+              .call(egm);
+          });
         }
       })
       ;

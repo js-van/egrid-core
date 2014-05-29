@@ -1,6 +1,16 @@
 <div>
   <div>
     <h2>Demo</h2>
+    <div>
+      <form>
+        <div class="radio">
+          <label><input type="radio" value="degree" ng-model="centrality"/> Degree centrality</label>
+        </div>
+        <div class="radio">
+          <label><input type="radio" value="closeness" ng-model="centrality"/> Closeness centrality</label>
+        </div>
+      </form>
+    </div>
     <div class="thumbnail" style="width: 600px;">
       <svg class="display"/>
     </div>
