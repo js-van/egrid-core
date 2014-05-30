@@ -119,6 +119,7 @@ var app = angular.module('egrid-core-example', ['ui.router'])
           var grid = graph(data.data.nodes, data.data.links);
           var degreeCentrality = egrid.core.network.centrality.degree;
           var closenessCentrality = egrid.core.network.centrality.closeness(function() {return 1});
+          var betweennessCentrality = egrid.core.network.centrality.betweenness();
 
           var egm = egrid.core.egm()
             .size([600, 600]);
@@ -132,8 +133,10 @@ var app = angular.module('egrid-core-example', ['ui.router'])
             var centrality;
             if ($scope.centrality == 'degree') {
               centrality = degreeCentrality(grid);
-            } else {
+            } else if ($scope.centrality == 'closeness') {
               centrality = closenessCentrality(grid);
+            } else {
+              centrality = betweennessCentrality(grid);
             }
 
             var extent = d3.extent(grid.vertices(), function(u) {
