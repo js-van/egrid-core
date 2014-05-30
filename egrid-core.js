@@ -821,6 +821,79 @@
 
   this.egrid.core.network.centrality = centrality = this.egrid.core.network.centrality || {};
 
+  centrality.betweenness = function() {
+    return function(graph) {
+      var d, delta, paths, queue, result, s, sigma, stack, t, v, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4;
+      result = {};
+      _ref = graph.vertices();
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        v = _ref[_i];
+        result[v] = 0;
+      }
+      _ref1 = graph.vertices();
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        s = _ref1[_j];
+        stack = [];
+        paths = {};
+        sigma = {};
+        d = {};
+        delta = {};
+        _ref2 = graph.vertices();
+        for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
+          t = _ref2[_k];
+          paths[t] = [];
+          sigma[t] = 0;
+          d[t] = -1;
+          delta[t] = 0;
+        }
+        sigma[s] = 1;
+        d[s] = 0;
+        queue = [s];
+        while (queue.length > 0) {
+          v = queue.shift();
+          stack.push(v);
+          _ref3 = graph.adjacentVertices(v);
+          for (_l = 0, _len3 = _ref3.length; _l < _len3; _l++) {
+            w = _ref3[_l];
+            if (d[w] < 0) {
+              queue.push(w);
+              d[w] = d[v] + 1;
+            }
+            if (d[w] === d[v] + 1) {
+              sigma[w] += sigma[v];
+              paths[w].push(v);
+            }
+          }
+        }
+        while (stack.length > 0) {
+          w = stack.pop();
+          _ref4 = paths[w];
+          for (_m = 0, _len4 = _ref4.length; _m < _len4; _m++) {
+            v = _ref4[_m];
+            delta[v] += sigma[v] / sigma[w] * (1 + delta[w]);
+            if (w !== s) {
+              result[w] += delta[w];
+            }
+          }
+        }
+      }
+      return result;
+    };
+  };
+
+}).call(this);
+
+(function() {
+  var centrality;
+
+  this.egrid = this.egrid || {};
+
+  this.egrid.core = this.egrid.core || {};
+
+  this.egrid.core.network = this.egrid.core.network || {};
+
+  this.egrid.core.network.centrality = centrality = this.egrid.core.network.centrality || {};
+
   centrality.closeness = function(weight) {
     var warshallFloyd;
     warshallFloyd = egrid.core.graph.warshallFloyd().weight(weight);
