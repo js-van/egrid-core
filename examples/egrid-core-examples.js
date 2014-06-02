@@ -1,7 +1,7 @@
 function scatterMatrix(data) {
   var width = 960,
       size = 150,
-      padding = 19.5;
+      padding = 30;
   var x = d3.scale.linear()
       .range([padding / 2, size - padding / 2]);
   var y = d3.scale.linear()
@@ -18,7 +18,7 @@ function scatterMatrix(data) {
 
   return function(selection) {
     var domainByTrait = {},
-        traits = d3.keys(data[0]).filter(function(d) { return d !== "species"; }),
+        traits = d3.keys(data[0]).filter(function(d) { return d !== "text"; }),
         n = traits.length;
 
     traits.forEach(function(trait) {
@@ -40,50 +40,50 @@ function scatterMatrix(data) {
         .attr("height", size * n + padding)
       .append("g")
         .attr("transform", "translate(" + padding + "," + padding / 2 + ")");
-  
+
     svg.selectAll(".x.axis")
         .data(traits)
       .enter().append("g")
         .attr("class", "x axis")
         .attr("transform", function(d, i) { return "translate(" + (n - i - 1) * size + ",0)"; })
         .each(function(d) { x.domain(domainByTrait[d]); d3.select(this).call(xAxis); });
-  
+
     svg.selectAll(".y.axis")
         .data(traits)
       .enter().append("g")
         .attr("class", "y axis")
         .attr("transform", function(d, i) { return "translate(0," + i * size + ")"; })
         .each(function(d) { y.domain(domainByTrait[d]); d3.select(this).call(yAxis); });
-  
+
     var cell = svg.selectAll(".cell")
         .data(cross(traits, traits))
       .enter().append("g")
         .attr("class", "cell")
         .attr("transform", function(d) { return "translate(" + (n - d.i - 1) * size + "," + d.j * size + ")"; })
         .each(plot);
-  
+
     // Titles for the diagonal.
     cell.filter(function(d) { return d.i === d.j; }).append("text")
         .attr("x", padding)
         .attr("y", padding)
         .attr("dy", ".71em")
         .text(function(d) { return d.x; });
-  
+
     cell.call(brush);
-  
+
     function plot(p) {
       var cell = d3.select(this);
-  
+
       x.domain(domainByTrait[p.x]);
       y.domain(domainByTrait[p.y]);
-  
+
       cell.append("rect")
           .attr("class", "frame")
           .attr("x", padding / 2)
           .attr("y", padding / 2)
           .attr("width", size - padding)
           .attr("height", size - padding);
-  
+
       cell.selectAll("circle")
           .data(data)
         .enter().append("circle")
@@ -92,9 +92,9 @@ function scatterMatrix(data) {
           .attr("r", 3)
           .style("fill", function(d) { return color(d.species); });
     }
-  
+
     var brushCell;
-  
+
     // Clear the previously-active brush, if any.
     function brushstart(p) {
       if (brushCell !== this) {
@@ -104,7 +104,7 @@ function scatterMatrix(data) {
         brushCell = this;
       }
     }
-  
+
     // Highlight the selected circles.
     function brushmove(p) {
       var e = brush.extent();
@@ -113,24 +113,39 @@ function scatterMatrix(data) {
             || e[0][1] > d[p.y] || d[p.y] > e[1][1];
       });
     }
-  
+
     // If the brush is empty, select all circles.
     function brushend() {
       if (brush.empty()) svg.selectAll(".inactive").classed("inactive", false);
     }
-  
+
     function cross(a, b) {
       var c = [], n = a.length, m = b.length, i, j;
       for (i = -1; ++i < n;) for (j = -1; ++j < m;) c.push({x: a[i], i: i, y: b[j], j: j});
       return c;
     }
-  
+
     d3.select(self.frameElement).style("height", size * n + padding + 20 + "px");
   }
 }
 
 
 var app = angular.module('egrid-core-example', ['ui.router'])
+  .factory('d3get', ['$q', function($q) {
+    return function(xhr) {
+      var deferred = $q.defer();
+      xhr
+        .on('load', function(data) {
+          deferred.resolve(data);
+        })
+        .on('error', function(ststus) {
+          deferred.reject(status);
+        })
+        .get()
+        ;
+      return deferred.promise;
+    };
+  }])
   .config(function($stateProvider, $urlRouterProvider) {
     $urlRouterProvider.otherwise('/color');
 
@@ -244,61 +259,97 @@ var app = angular.module('egrid-core-example', ['ui.router'])
         resolve: {
           data: function($http) {
             return $http.get('data/pen.json');
+          },
+          centrality: function(d3get) {
+            return d3get(d3.csv('data/pen.csv')
+              .row(function(d) {
+                return {
+                  weight: +d.weight,
+                  degree: +d.degree,
+                  closeness: +d.closeness,
+                  betweenness: +d.betweenness,
+                  eigenvector: +d.eigenvector,
+                  katz: +d.katz,
+                  average: +d.average,
+                  naverage: +d.naverage,
+                  pca1: +d.pca1,
+                  pca2: +d.pca2
+                };
+              }));
           }
         },
-        controller: function($scope, data) {
+        controller: function($scope, data, centrality) {
           var graph = egrid.core.graph.graph();
           var grid = graph(data.data.nodes, data.data.links);
-          var weight = grid.vertices().map(function(u) {return grid.get(u).weight});
-          var degreeCentrality = egrid.core.network.centrality.degree(grid);
-          var closenessCentrality = egrid.core.network.centrality.closeness(function() {return 1})(grid);
-          var betweennessCentrality = egrid.core.network.centrality.betweenness()(grid);
-
-          var weights = grid.vertices().map(function(u) {
-            return {
-              weight: weight[u],
-              degreeCentrality: degreeCentrality[u],
-              closenessCentrality: closenessCentrality[u],
-              betweennessCentrality: betweennessCentrality[u]
-            };
-          });
 
           d3.select('svg.scatter-plot')
-            .call(scatterMatrix(weights));
+            .call(scatterMatrix(centrality));
 
           var egm = egrid.core.egm()
+            .enableZoom(false)
             .size([600, 600]);
           d3.select('svg.display')
             .datum(grid)
             .call(egm.css())
-            .call(egm);
+            .call(egm)
+            .call(egm.center());
+
+          function draw() {
+            var extent = d3.extent(grid.vertices(), function(u) {
+              return centrality[u][$scope.centrality];
+            });
+            var colorScale = d3.scale.linear()
+              .domain(extent)
+              .range([240, 0]);
+            var scale = d3.scale.linear()
+              .domain(extent)
+              .range([0, 1]);
+
+            egm
+              .vertexVisibility(function(_, u) {
+                return scale(centrality[u][$scope.centrality]) >= $scope.threshold;
+              })
+              .vertexColor(function(_, u) {
+                return d3.hsl(colorScale(centrality[u][$scope.centrality]), 1, 0.5).toString();
+              });
+
+            d3.select('svg.display')
+              .call(egm)
+              .call(egm.center());
+          }
+
+          $scope.centralities = [
+            {value: 'weight', name: 'Weight'},
+            {value: 'degree', name: 'Degree Centrality'},
+            {value: 'closeness', name: 'Closeness Centrality'},
+            {value: 'betweenness', name: 'Betweenness Centrality'},
+            {value: 'eigenvector', name: 'Eigenvector Centrality'},
+            {value: 'katz', name: 'Katz Centrality'},
+            {value: 'average', name: 'Average'},
+            {value: 'naverage', name: 'Normalized Average'},
+            {value: 'pca1', name: 'PCA1'},
+            {value: 'pca2', name: 'PCA2'}
+          ];
 
           $scope.centrality = 'degree';
           $scope.$watch('centrality', function(oldValue, newValue) {
-            var centrality;
-            if ($scope.centrality == 'weight') {
-              centrality = weight;
-            } else if ($scope.centrality == 'degree') {
-              centrality = degreeCentrality;
-            } else if ($scope.centrality == 'closeness') {
-              centrality = closenessCentrality;
-            } else {
-              centrality = betweennessCentrality;
+            if (oldValue != newValue) {
+              draw();
             }
-
-            var extent = d3.extent(grid.vertices(), function(u) {
-              return centrality[u];
-            });
-            var scale = d3.scale.linear()
-              .domain(extent)
-              .range([240, 0]);
-
-            egm.vertexColor(function(_, u) {
-              return d3.hsl(scale(centrality[u]), 1, 0.5).toString();
-            });
-            d3.select('svg.display')
-              .call(egm);
           });
+
+          $scope.threshold = 0;
+          $scope.$watch('threshold', function(oldValue, newValue) {
+            if (oldValue != newValue) {
+              draw();
+            }
+          });
+
+          $scope.nVisibleNode = function() {
+            return d3.selectAll('svg.display g.vertex').size();
+          };
+
+          draw();
         }
       })
       ;
