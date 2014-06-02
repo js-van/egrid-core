@@ -176,7 +176,6 @@ initContainer = (zoom) ->
       selection
         .append 'rect'
         .classed 'background', true
-        .call zoom
       contents = selection
         .append 'g'
         .classed 'contents', true
@@ -186,18 +185,17 @@ initContainer = (zoom) ->
       contents
         .append 'g'
         .classed 'vertices', true
-      zoom
-        .on 'zoom', ->
-          e = d3.event
-          t = egrid.core.svg.transform.translate(e.translate[0], e.translate[1])
-          s = egrid.core.svg.transform.scale(e.scale)
-          contents.attr 'transform', egrid.core.svg.transform.compose(t, s)
+      zoom.on 'zoom', ->
+        e = d3.event
+        t = egrid.core.svg.transform.translate(e.translate[0], e.translate[1])
+        s = egrid.core.svg.transform.scale(e.scale)
+        contents.attr 'transform', egrid.core.svg.transform.compose(t, s)
 
     return
 
 
 update = (arg) ->
-  {vertexScale, vertexText, vertexVisibility, zoom} = arg
+  {vertexScale, vertexText, vertexVisibility, enableZoom, zoom} = arg
 
   (selection) ->
     selection
@@ -206,11 +204,19 @@ update = (arg) ->
         if graph?
           container.call initContainer zoom
           contents = container.select 'g.contents'
+          if enableZoom
+            container
+              .select 'rect.background'
+              .call zoom
+          else
+            container
+              .select 'rect.background'
+              .on '.zoom', null
 
           {vertices, edges} = makeGrid graph
-          , ((u) -> vertexVisibility graph.get u)
+          , ((u) -> vertexVisibility (graph.get u), u)
           , d3.selectAll('g.vertex').data()
-          
+
           contents
             .select 'g.vertices'
             .selectAll 'g.vertex'
@@ -293,6 +299,7 @@ draw = (egm, zoom) ->
         vertexScale: egm.vertexScale()
         vertexText: egm.vertexText()
         vertexVisibility: egm.vertexVisibility()
+        enableZoom: egm.enableZoom()
         zoom: zoom
       .call resize egm.size()[0], egm.size()[1]
       .call layout()
@@ -353,8 +360,6 @@ resize = (width, height) ->
 
 @egrid.core.egm = (options={}) ->
   zoom = d3.behavior.zoom()
-    .on 'zoom', ->
-      console.log arguments, d3.event
 
   egm = (selection) ->
     draw(egm, zoom) selection
@@ -371,6 +376,7 @@ resize = (width, height) ->
 
   optionAttributes =
     enableClickVertex: true
+    enableZoom: true
     vertexColor: -> ''
     vertexOpacity: -> 1
     vertexScale: -> 1
@@ -381,6 +387,22 @@ resize = (width, height) ->
   egm.css = css
 
   egm.resize = resize
+
+  egm.center = () ->
+    (selection) ->
+      [width, height] = egm.size()
+      vertices = selection
+        .selectAll 'g.vertex'
+        .data()
+      left = d3.min vertices, (vertex) -> vertex.x - vertex.width / 2
+      right = d3.max vertices, (vertex) -> vertex.x + vertex.width / 2
+      top = d3.min vertices, (vertex) -> vertex.y - vertex.height / 2
+      bottom = d3.max vertices, (vertex) -> vertex.y + vertex.height / 2
+      scale = Math.min width / (right - left), height / (bottom - top)
+      zoom
+        .scale scale
+        .translate [(width - (right - left) * scale) / 2, (height - (bottom - top) * scale) / 2]
+        .event selection.select 'g.contents'
 
   egm.options = (options) ->
     for attr of optionAttributes
