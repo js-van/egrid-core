@@ -224,7 +224,7 @@
       var contents;
       contents = selection.select('g.contents');
       if (contents.empty()) {
-        selection.append('rect').classed('background', true).call(zoom);
+        selection.append('rect').classed('background', true);
         contents = selection.append('g').classed('contents', true);
         contents.append('g').classed('edges', true);
         contents.append('g').classed('vertices', true);
@@ -240,8 +240,8 @@
   };
 
   update = function(arg) {
-    var vertexScale, vertexText, vertexVisibility, zoom;
-    vertexScale = arg.vertexScale, vertexText = arg.vertexText, vertexVisibility = arg.vertexVisibility, zoom = arg.zoom;
+    var enableZoom, vertexScale, vertexText, vertexVisibility, zoom;
+    vertexScale = arg.vertexScale, vertexText = arg.vertexText, vertexVisibility = arg.vertexVisibility, enableZoom = arg.enableZoom, zoom = arg.zoom;
     return function(selection) {
       return selection.each(function(graph) {
         var container, contents, edges, vertices, _ref;
@@ -249,8 +249,13 @@
         if (graph != null) {
           container.call(initContainer(zoom));
           contents = container.select('g.contents');
+          if (enableZoom) {
+            container.select('rect.background').call(zoom);
+          } else {
+            container.select('rect.background').on('.zoom', null);
+          }
           _ref = makeGrid(graph, (function(u) {
-            return vertexVisibility(graph.get(u));
+            return vertexVisibility(graph.get(u), u);
           }), d3.selectAll('g.vertex').data()), vertices = _ref.vertices, edges = _ref.edges;
           contents.select('g.vertices').selectAll('g.vertex').data(vertices, function(u) {
             return u.key;
@@ -343,6 +348,7 @@
         vertexScale: egm.vertexScale(),
         vertexText: egm.vertexText(),
         vertexVisibility: egm.vertexVisibility(),
+        enableZoom: egm.enableZoom(),
         zoom: zoom
       })).call(resize(egm.size()[0], egm.size()[1])).call(layout()).call(transition({
         vertexOpacity: egm.vertexOpacity(),
@@ -381,9 +387,7 @@
     if (options == null) {
       options = {};
     }
-    zoom = d3.behavior.zoom().on('zoom', function() {
-      return console.log(arguments, d3.event);
-    });
+    zoom = d3.behavior.zoom();
     egm = function(selection) {
       draw(egm, zoom)(selection);
     };
@@ -401,6 +405,7 @@
     };
     optionAttributes = {
       enableClickVertex: true,
+      enableZoom: true,
       vertexColor: function() {
         return '';
       },
@@ -420,6 +425,27 @@
     };
     egm.css = css;
     egm.resize = resize;
+    egm.center = function() {
+      return function(selection) {
+        var bottom, height, left, right, scale, top, vertices, width, _ref;
+        _ref = egm.size(), width = _ref[0], height = _ref[1];
+        vertices = selection.selectAll('g.vertex').data();
+        left = d3.min(vertices, function(vertex) {
+          return vertex.x - vertex.width / 2;
+        });
+        right = d3.max(vertices, function(vertex) {
+          return vertex.x + vertex.width / 2;
+        });
+        top = d3.min(vertices, function(vertex) {
+          return vertex.y - vertex.height / 2;
+        });
+        bottom = d3.max(vertices, function(vertex) {
+          return vertex.y + vertex.height / 2;
+        });
+        scale = Math.min(width / (right - left), height / (bottom - top));
+        return zoom.scale(scale).translate([(width - (right - left) * scale) / 2, (height - (bottom - top) * scale) / 2]).event(selection.select('g.contents'));
+      };
+    };
     egm.options = function(options) {
       var attr;
       for (attr in optionAttributes) {
