@@ -1,24 +1,25 @@
 {
   "name": "egrid-core",
   "main": "egrid-core.js",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "homepage": "https://github.com/likr/egrid-core",
   "authors": [
     "Yosuke ONOUE <onoue@likr-lab.com>"
   ],
+  "description": "Visual analysis library for the evaluation grid method.",
   "license": "MIT",
-  "private": true,
   "ignore": [
     "**/.*",
     "node_modules",
     "bower_components",
     "test",
-    "tests"
+    "tests",
+    "src",
+    "Gruntfile.js",
+    "package.json",
+    "tsd.json"
   ],
   "dependencies": {
-    "d3": "~3.4.6",
-    "bootstrap": "~3.1.1",
-    "angular": "~1.2.16",
-    "angular-ui-router": "~0.2.10"
+    "d3": "~3.4.6"
   }
 }
