@@ -17,7 +17,9 @@
     "src",
     "Gruntfile.js",
     "package.json",
-    "tsd.json"
+    "tsd.json",
+    "lib",
+    "examples"
   ],
   "dependencies": {
     "d3": "~3.4.6"
