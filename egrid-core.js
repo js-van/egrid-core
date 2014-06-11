@@ -318,12 +318,12 @@
             point = _ref[_k];
             e.points.push([point.x, point.y]);
           }
-          e.points.push([e.target.x, e.target.y]);
+          e.points.push(dagreRankDir === 'LR' ? [e.target.x - e.target.width / 2, e.target.y] : [e.target.x, e.target.y - e.target.height / 2]);
           _results.push((function() {
             var _l, _ref1, _results1;
             _results1 = [];
             for (i = _l = 1, _ref1 = edgePointsSize - e.points.length; 1 <= _ref1 ? _l <= _ref1 : _l >= _ref1; i = 1 <= _ref1 ? ++_l : --_l) {
-              _results1.push(e.points.push(dagreRankDir === 'LR' ? [e.target.x - e.target.width / 2, e.target.y] : [e.target.x, e.target.y - e.target.height / 2]));
+              _results1.push(e.points.push(e.points[e.points.length - 1]));
             }
             return _results1;
           })());
