@@ -213,6 +213,33 @@ var app = angular.module('egrid-core-example', ['ui.router'])
           draw();
         }
       })
+      .state('text-cutoff', {
+        url: '/text-cutoff',
+        templateUrl: 'partials/text-cutoff.html',
+        resolve: {
+          data: function($http) {
+            return $http.get('data/pen.json');
+          }
+        },
+        controller: function($scope, data) {
+          $scope.maxTextLength = 10;
+          var graph = egrid.core.graph.graph();
+          var grid = graph(data.data.nodes, data.data.links);
+          var egm = egrid.core.egm()
+            .enableZoom(false)
+            .size([600, 600]);
+          var selection = d3.select('svg.display')
+            .datum(grid)
+            .call(egm.css());
+
+          $scope.$watch('maxTextLength', function() {
+            egm.maxTextLength($scope.maxTextLength);
+            selection
+              .call(egm)
+              .call(egm.center());
+          });
+        }
+      })
       ;
   })
   ;

@@ -54,14 +54,14 @@ onClickVertex = (arg) ->
           lower: (v) -> descendants.has(v.key)
 
 
-calculateTextSize = (vertexText) ->
+calculateTextSize = () ->
   (selection) ->
     measure = d3
       .select 'body'
       .append 'svg'
     measureText = measure.append 'text'
     selection.each (u) ->
-      measureText.text vertexText u.data
+      measureText.text u.text
       bbox = measureText.node().getBBox()
       u.textWidth = bbox.width
       u.textHeight = bbox.height
@@ -84,7 +84,7 @@ createVertex = () ->
 updateVertices = (arg) ->
   r = 5
   strokeWidth = 1
-  {vertexScale, vertexText} = arg
+  {vertexScale} = arg
 
   (selection) ->
     selection
@@ -96,7 +96,7 @@ updateVertices = (arg) ->
       .exit()
       .remove()
     selection
-      .call calculateTextSize vertexText
+      .call calculateTextSize()
       .each (u) ->
         u.originalWidth = u.textWidth + 2 * r
         u.originalHeight = u.textHeight + 2 * r
@@ -105,7 +105,7 @@ updateVertices = (arg) ->
         u.height = (u.originalHeight + strokeWidth) * u.scale
     selection
       .select 'text'
-      .text (u) -> vertexText u.data
+      .text (u) -> u.text
       .attr 'y', (u) -> -u.textHeight / 2
     selection
       .select 'rect'
@@ -135,7 +135,8 @@ updateEdges = () ->
       .remove()
 
 
-makeGrid = (graph, pred, oldVertices) ->
+makeGrid = (graph, arg) ->
+  {pred, oldVertices, vertexText, maxTextLength} = arg
   oldVerticesMap = {}
   for u in oldVertices
     oldVerticesMap[u.key] = u
@@ -148,6 +149,8 @@ makeGrid = (graph, pred, oldVertices) ->
       else
         key: u
         data: graph.get u
+  for vertex in vertices
+    vertex.text = (vertexText vertex.data).slice 0, maxTextLength
   verticesMap = {}
   for u in vertices
     verticesMap[u.key] = u
@@ -195,7 +198,7 @@ initContainer = (zoom) ->
 
 
 update = (arg) ->
-  {vertexScale, vertexText, vertexVisibility, enableZoom, zoom} = arg
+  {vertexScale, vertexText, vertexVisibility, enableZoom, zoom, maxTextLength} = arg
 
   (selection) ->
     selection
@@ -213,9 +216,11 @@ update = (arg) ->
               .select 'rect.background'
               .on '.zoom', null
 
-          {vertices, edges} = makeGrid graph
-          , ((u) -> vertexVisibility (graph.get u), u)
-          , d3.selectAll('g.vertex').data()
+          {vertices, edges} = makeGrid graph,
+            pred: (u) -> vertexVisibility (graph.get u), u
+            oldVertices: d3.selectAll('g.vertex').data()
+            vertexText: vertexText
+            maxTextLength: maxTextLength
 
           contents
             .select 'g.vertices'
@@ -223,7 +228,6 @@ update = (arg) ->
             .data vertices, (u) -> u.key
             .call updateVertices
               vertexScale: vertexScale
-              vertexText: vertexText
             .on 'click', onClickVertex
               container: container
               graph: graph
@@ -238,7 +242,8 @@ update = (arg) ->
             .remove()
 
 
-layout = () ->
+layout = (arg) ->
+  {dagreEdgeSep, dagreNodeSep, dagreRankSep, dagreRankDir} = arg
   (selection) ->
     selection
       .each ->
@@ -256,21 +261,28 @@ layout = () ->
           .edges edges
           .lineUpTop true
           .lineUpBottom true
-          .rankDir 'LR'
-          .rankSep 200
-          .edgeSep 20
+          .rankDir dagreRankDir
+          .nodeSep dagreNodeSep
+          .rankSep dagreRankSep
+          .edgeSep dagreEdgeSep
           .run()
         for u in vertices
           u.x = u.dagre.x
           u.y = u.dagre.y
         for e in edges
           e.points = []
-          e.points.push [e.source.x, e.source.y]
+          e.points.push if dagreRankDir is 'LR'
+              [e.source.x + e.source.width / 2, e.source.y]
+            else
+              [e.source.x, e.source.y + e.source.height / 2]
           for point in e.dagre.points
             e.points.push [point.x, point.y]
           e.points.push [e.target.x, e.target.y]
           for i in [1..edgePointsSize - e.points.length]
-            e.points.push [e.target.x, e.target.y]
+            e.points.push if dagreRankDir is 'LR'
+                [e.target.x - e.target.width / 2, e.target.y]
+              else
+                [e.target.x, e.target.y - e.target.height / 2]
 
 
 transition = (arg) ->
@@ -301,8 +313,13 @@ draw = (egm, zoom) ->
         vertexVisibility: egm.vertexVisibility()
         enableZoom: egm.enableZoom()
         zoom: zoom
+        maxTextLength: egm.maxTextLength()
       .call resize egm.size()[0], egm.size()[1]
-      .call layout()
+      .call layout
+        dagreEdgeSep: egm.dagreEdgeSep()
+        dagreNodeSep: egm.dagreNodeSep()
+        dagreRankDir: egm.dagreRankDir()
+        dagreRankSep: egm.dagreRankSep()
       .call transition
         vertexOpacity: egm.vertexOpacity()
         vertexColor: egm.vertexColor()
@@ -375,8 +392,13 @@ resize = (width, height) ->
         val
 
   optionAttributes =
+    dagreEdgeSep: 10
+    dagreNodeSep: 20
+    dagreRankDir: 'LR'
+    dagreRankSep: 30
     enableClickVertex: true
     enableZoom: true
+    maxTextLength: Infinity
     vertexColor: -> ''
     vertexOpacity: -> 1
     vertexScale: -> 1
