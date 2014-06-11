@@ -277,12 +277,12 @@ layout = (arg) ->
               [e.source.x, e.source.y + e.source.height / 2]
           for point in e.dagre.points
             e.points.push [point.x, point.y]
-          e.points.push [e.target.x, e.target.y]
+          e.points.push if dagreRankDir is 'LR'
+              [e.target.x - e.target.width / 2, e.target.y]
+            else
+              [e.target.x, e.target.y - e.target.height / 2]
           for i in [1..edgePointsSize - e.points.length]
-            e.points.push if dagreRankDir is 'LR'
-                [e.target.x - e.target.width / 2, e.target.y]
-              else
-                [e.target.x, e.target.y - e.target.height / 2]
+            e.points.push e.points[e.points.length - 1]
 
 
 transition = (arg) ->
