@@ -377,6 +377,7 @@ resize = (width, height) ->
 
 @egrid.core.egm = (options={}) ->
   zoom = d3.behavior.zoom()
+    .scaleExtent [0, 1]
 
   egm = (selection) ->
     draw(egm, zoom) selection
@@ -408,7 +409,9 @@ resize = (width, height) ->
 
   egm.css = css
 
-  egm.resize = resize
+  egm.resize = (width, height) ->
+    egm.size([width, height])
+    resize width, height
 
   egm.center = () ->
     (selection) ->
