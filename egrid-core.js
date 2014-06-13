@@ -379,7 +379,7 @@
     if (options == null) {
       options = {};
     }
-    svgCss = "g.vertex > rect, rect.background {\n  fill: " + (options.backgroundColor || 'whitesmoke') + ";\n}\ng.edge > path {\n  fill: none;\n}\ng.vertex > rect, g.edge > path {\n  stroke: " + (options.strokeColor || 'black') + ";\n}\ng.vertex > text {\n  fill: " + (options.strokeColor || 'black') + ";\n}\ng.vertex.lower > rect, g.edge.lower > path {\n  stroke: " + (options.lowerStrokeColor || 'red') + ";\n}\ng.vertex.upper > rect, g.edge.upper > path {\n  stroke: " + (options.upperStrokeColor || 'blue') + ";\n}\ng.vertex.selected > rect {\n  stroke: " + (options.selectedStrokeColor || 'purple') + ";\n}";
+    svgCss = "g.vertex > rect, rect.background {\n  fill: " + (options.backgroundColor || 'whitesmoke') + ";\n}\ng.edge > path {\n  fill: none;\n}\ng.vertex > rect, g.edge > path {\n  stroke: " + (options.strokeColor || 'black') + ";\n}\ng.vertex > text {\n  fill: " + (options.strokeColor || 'black') + ";\n}\ng.vertex.lower > rect, g.edge.lower > path {\n  stroke: " + (options.lowerStrokeColor || 'red') + ";\n}\ng.vertex.upper > rect, g.edge.upper > path {\n  stroke: " + (options.upperStrokeColor || 'blue') + ";\n}\ng.vertex.selected > rect {\n  stroke: " + (options.selectedStrokeColor || 'purple') + ";\n}\nrect.background {\n  cursor: move;\n}\ng.vertex {\n  cursor: pointer;\n}";
     return function(selection) {
       selection.selectAll('defs.egrid-style').remove();
       selection.append('defs').classed('egrid-style', true).append('style').text(svgCss);

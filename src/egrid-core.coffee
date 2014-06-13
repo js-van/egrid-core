@@ -348,6 +348,12 @@ css = (options = {}) ->
   g.vertex.selected > rect {
     stroke: #{options.selectedStrokeColor || 'purple'};
   }
+  rect.background {
+    cursor: move;
+  }
+  g.vertex {
+    cursor: pointer;
+  }
   """
   (selection) ->
     selection
