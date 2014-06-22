@@ -1,8 +1,3 @@
-@egrid = @egrid || {}
-@egrid.core = @egrid.core || {}
-@egrid.core.svg = @egrid.core.svg || {}
-@egrid.core.svg.transform = transform = @egrid.core.svg.transform || {}
-
 class Translate
   constructor: (tx, ty=0) ->
     @tx = tx
@@ -19,13 +14,13 @@ class Scale
   toString: ->
     "scale(#{@sx},#{@sy})"
 
-transform.translate = (tx, ty) ->
-  new Translate tx, ty
-
-transform.scale = (sx, sy) ->
-  new Scale sx, sy
-
-transform.compose = (transforms...) ->
-  transforms
-    .map (t) -> t.toString()
-    .join ''
+module.exports =
+  transform:
+    translate: (tx, ty) ->
+      new Translate tx, ty
+    scale: (sx, sy) ->
+      new Scale sx, sy
+    compose: (transforms...) ->
+      transforms
+        .map (t) -> t.toString()
+        .join ''

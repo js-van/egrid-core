@@ -1,9 +1,4 @@
-@egrid = {} unless egrid
-@egrid.core = {} unless egrid.core
-@egrid.core.graph = {} unless egrid.core.graph
-graph = @egrid.core.graph
-
-graph.adjacencyList = (v, e) ->
+module.exports = (v, e) ->
   nextVertexId = 0
   vertices = {}
 

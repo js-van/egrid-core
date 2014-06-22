@@ -1,5 +1,4 @@
-@egrid = {} unless @egrid
-@egrid.core = {} unless @egrid.core
+svg = require './svg'
 
 
 edgeLine = d3.svg.line().interpolate('linear')
@@ -190,9 +189,9 @@ initContainer = (zoom) ->
         .classed 'vertices', true
       zoom.on 'zoom', ->
         e = d3.event
-        t = egrid.core.svg.transform.translate(e.translate[0], e.translate[1])
-        s = egrid.core.svg.transform.scale(e.scale)
-        contents.attr 'transform', egrid.core.svg.transform.compose(t, s)
+        t = svg.transform.translate(e.translate[0], e.translate[1])
+        s = svg.transform.scale(e.scale)
+        contents.attr 'transform', svg.transform.compose(t, s)
 
     return
 
@@ -293,7 +292,7 @@ transition = (arg) ->
     trans
       .selectAll 'g.vertices > g.vertex'
       .attr 'transform', (u) ->
-        egrid.core.svg.transform.compose (egrid.core.svg.transform.translate u.x, u.y), (egrid.core.svg.transform.scale u.scale)
+        svg.transform.compose (svg.transform.translate u.x, u.y), (svg.transform.scale u.scale)
       .style 'opacity', (u) -> vertexOpacity u.data
     trans
       .selectAll 'g.vertices > g.vertex > rect'
@@ -381,7 +380,7 @@ resize = (width, height) ->
     return
 
 
-@egrid.core.egm = (options={}) ->
+module.exports = (options={}) ->
   zoom = d3.behavior.zoom()
     .scaleExtent [0, 1]
 
