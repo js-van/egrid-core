@@ -1,4 +1,4 @@
-svg = require './svg'
+svg = require '../svg'
 
 
 edgeLine = d3.svg.line().interpolate('linear')
@@ -443,3 +443,4 @@ module.exports = (options={}) ->
     egm[attr] = accessor val
 
   egm.options options
+

@@ -2,7 +2,7 @@
 (function() {
   var calculateTextSize, createVertex, css, draw, edgeLine, edgePointsSize, initContainer, layout, makeGrid, onClickVertex, resize, svg, transition, update, updateEdges, updateVertices;
 
-  svg = require('./svg');
+  svg = require('../svg');
 
   edgeLine = d3.svg.line().interpolate('linear');
 
@@ -482,7 +482,7 @@
 
 }).call(this);
 
-},{"./svg":13}],2:[function(require,module,exports){
+},{"../svg":13}],2:[function(require,module,exports){
 (function() {
   module.exports = function(v, e) {
     var AdjacencyList, nextVertexId, vertices;
@@ -825,15 +825,15 @@
   global.window.egrid = {
     core: {
       egm: require('./egm'),
-      graph: require('./graph/index.js'),
-      network: require('./network/index.js')
+      graph: require('./graph'),
+      network: require('./network')
     }
   };
 
 }).call(this);
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./egm":1,"./graph/index.js":5,"./network/index.js":12}],8:[function(require,module,exports){
+},{"./egm":1,"./graph":5,"./network":12}],8:[function(require,module,exports){
 (function() {
   module.exports = function() {
     return function(graph) {
@@ -989,6 +989,14 @@
 
 },{"./centrality":11}],13:[function(require,module,exports){
 (function() {
+  module.exports = {
+    transform: require('./transform')
+  };
+
+}).call(this);
+
+},{"./transform":14}],14:[function(require,module,exports){
+(function() {
   var Scale, Translate,
     __slice = [].slice;
 
@@ -1024,20 +1032,18 @@
   })();
 
   module.exports = {
-    transform: {
-      translate: function(tx, ty) {
-        return new Translate(tx, ty);
-      },
-      scale: function(sx, sy) {
-        return new Scale(sx, sy);
-      },
-      compose: function() {
-        var transforms;
-        transforms = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-        return transforms.map(function(t) {
-          return t.toString();
-        }).join('');
-      }
+    translate: function(tx, ty) {
+      return new Translate(tx, ty);
+    },
+    scale: function(sx, sy) {
+      return new Scale(sx, sy);
+    },
+    compose: function() {
+      var transforms;
+      transforms = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      return transforms.map(function(t) {
+        return t.toString();
+      }).join('');
     }
   };
 

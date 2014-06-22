@@ -15,12 +15,11 @@ class Scale
     "scale(#{@sx},#{@sy})"
 
 module.exports =
-  transform:
-    translate: (tx, ty) ->
-      new Translate tx, ty
-    scale: (sx, sy) ->
-      new Scale sx, sy
-    compose: (transforms...) ->
-      transforms
-        .map (t) -> t.toString()
-        .join ''
+  translate: (tx, ty) ->
+    new Translate tx, ty
+  scale: (sx, sy) ->
+    new Scale sx, sy
+  compose: (transforms...) ->
+    transforms
+      .map (t) -> t.toString()
+      .join ''
