@@ -1,0 +1,4 @@
+.thumbnail > svg {
+  display: block;
+  max-width: 100%;
+}
