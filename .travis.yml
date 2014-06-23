@@ -4,3 +4,12 @@ node_js:
 before_install: npm install -g grunt-cli
 install: npm install
 before_script: grunt compile
+after_script:
+  - git checkout gh-pages
+  - git merge master
+  - grunt compile
+  - git commit -A -m 'update'
+  - '[ "$TRAVIS_BRANCH" == "master" ] && [ $GH_TOKEN ] && git push --quiet https://$GH_TOKEN@github.com/likr/egrid-core.git gh-pages 2> /dev/null'
+env:
+  global:
+    - secure: "GPR0OxeNTCI/y4/iXgDq+JNCd2C9u8lb8xGDVWCMkgYnt5AIaoDi8crtutJZ3qhydxZ9Cr7711zA/y2Kr5BXu3HQMYoQ7eujd323d5AWl9qZnfeNda7DwHhnfuhcWIXOZVK24qfq6mn910/oX6NMNBPGrWZdtIOfNjDyjNduQGw="
