@@ -30,6 +30,7 @@ module.exports = (grunt) ->
             dest: 'dist/'
           }
           {
+            expand: true
             cwd: 'lib'
             src: 'dagre.js'
             dest: 'dist/'
