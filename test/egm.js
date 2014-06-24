@@ -43,7 +43,7 @@ describe('test EGM', function() {
   });
 
   it('test change text', function() {
-    var egm = egrid.core.egm()
+    var egm = egrid.core.egm();
     var grid = makeGrid();
     var selection = d3.select('svg')
       .datum(grid)

@@ -20,7 +20,7 @@ module.exports = (grunt) ->
         tasks: ['compile'],
     mocha_phantomjs:
       options:
-        reporter: 'dot'
+        reporter: 'list'
       all: ['test/**/*.html']
     copy:
       dist:

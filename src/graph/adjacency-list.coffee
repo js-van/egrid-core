@@ -27,7 +27,8 @@ module.exports = (v, e) ->
 
     numVertices: -> Object.keys(vertices).length
 
-    numEdges: -> (@outDegree(i) for i in @vertices()).reduce (t, s) -> t + s
+    numEdges: ->
+      (@outDegree(i) for i in @vertices()).reduce ((t, s) -> t + s), 0
 
     vertex: (u) -> u
 
