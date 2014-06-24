@@ -1,6 +1,6 @@
 {
   "name": "egrid-core",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "",
   "main": "egrid-core.js",
   "scripts": {
@@ -23,7 +23,8 @@
     "grunt-contrib-coffee": "~0.10.1",
     "grunt-browserify": "~2.1.0",
     "grunt-contrib-copy": "~0.5.0",
-    "grunt-contrib-clean": "~0.5.0"
+    "grunt-contrib-clean": "~0.5.0",
+    "grunt-bump": "0.0.14"
   },
   "dependencies": {}
 }
