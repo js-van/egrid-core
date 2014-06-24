@@ -10,10 +10,12 @@ install:
 before_script:
   - grunt compile
 after_success:
-  - git checkout -b gh-pages
-  - grunt compile
+  - git clone --branch=gh-pages gh-pages
+  - grunt gh-pages
+  - pushd gh-pages
   - git commit -a -m 'update'
   - '[ "$TRAVIS_BRANCH" == "master" ] && [ $GH_TOKEN ] && git push --quiet https://$GH_TOKEN@github.com/likr/egrid-core.git gh-pages 2> /dev/null'
+  - popd
 env:
   global:
     - GIT_COMMITTER_NAME: 'Yosuke ONOUE'
