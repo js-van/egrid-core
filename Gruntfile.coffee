@@ -30,7 +30,8 @@ module.exports = (grunt) ->
             dest: 'dist/'
           }
           {
-            src: 'lib/dagre.js'
+            cwd: 'lib'
+            src: 'dagre.js'
             dest: 'dist/'
           }
         ]
@@ -62,6 +63,7 @@ module.exports = (grunt) ->
         files: ['package.json', 'bower.json']
         commit: false
         createTag: false
+        push: false
 
     grunt.loadNpmTasks 'grunt-browserify'
     grunt.loadNpmTasks 'grunt-bump'
