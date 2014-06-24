@@ -48,7 +48,6 @@ module.exports = (grunt) ->
       'js'
     ]
 
-
     grunt.loadNpmTasks 'grunt-contrib-clean'
     grunt.loadNpmTasks 'grunt-contrib-coffee'
     grunt.loadNpmTasks 'grunt-contrib-copy'

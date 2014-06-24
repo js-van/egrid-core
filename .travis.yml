@@ -1,9 +1,13 @@
 language: node_js
 node_js:
   - "0.10"
-before_install: npm install -g grunt-cli
-install: npm install
-before_script: grunt compile
+before_install:
+  - npm install -g grunt-cli
+install:
+  - npm install
+  - bower install
+before_script:
+  - grunt compile
 after_success:
   - git checkout -b gh-pages
   - grunt compile
