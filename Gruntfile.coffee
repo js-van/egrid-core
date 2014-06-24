@@ -40,6 +40,10 @@ module.exports = (grunt) ->
             src: 'egrid-core.js'
             dest: 'gh-pages/'
           }
+          {
+            src: 'lib/dagre.js'
+            dest: 'gh-pages/'
+          }
         ]
     clean: [
       'dist'
