@@ -1,13 +1,11 @@
-@egrid = @egrid || {}
-@egrid.core = @egrid.core || {}
-@egrid.core.graph = graph = @egrid.core.graph || {}
+adjacencyList = require './adjacency-list'
 
-graph.graph = ->
+module.exports = ->
   source = (e) -> e.source
   target = (e) -> e.target
 
   factory = (vertices, edges) ->
-    graph.adjacencyList vertices, edges
+    adjacencyList vertices, edges
 
   factory.source = (f) ->
     if f?

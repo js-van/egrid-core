@@ -1,10 +1,5 @@
-@egrid = @egrid || {}
-@egrid.core = @egrid.core || {}
-@egrid.core.network = @egrid.core.network || {}
-@egrid.core.network.centrality = centrality = @egrid.core.network.centrality || {}
-
-centrality.closeness = (weight) ->
-  warshallFloyd = egrid.core.graph.warshallFloyd().weight weight
+module.exports = (weight) ->
+  warshallFloyd = require '../../graph/warshall-floyd'
   (graph) ->
     result = {}
     distances = warshallFloyd graph

@@ -1,9 +1,4 @@
-@egrid = @egrid || {}
-@egrid.core = @egrid.core || {}
-@egrid.core.network = @egrid.core.network || {}
-@egrid.core.network.centrality = centrality = @egrid.core.network.centrality || {}
-
-centrality.betweenness = () ->
+module.exports = ->
   (graph) ->
     result = {}
     for v in graph.vertices()

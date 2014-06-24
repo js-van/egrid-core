@@ -1,9 +1,4 @@
-@egrid = {} unless egrid
-@egrid.core = {} unless egrid.core
-@egrid.core.graph = {} unless egrid.core.graph
-graph = @egrid.core.graph
-
-graph.warshallFloyd = ->
+module.exports = ->
   weight= (p) -> p.weight
 
   warshallFloyd = (graph) ->

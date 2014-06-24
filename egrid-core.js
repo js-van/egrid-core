@@ -1,13 +1,8 @@
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 (function() {
-  var calculateTextSize, createVertex, css, draw, edgeLine, edgePointsSize, initContainer, layout, makeGrid, onClickVertex, resize, transition, update, updateEdges, updateVertices;
+  var calculateTextSize, createVertex, css, draw, edgeLine, edgePointsSize, initContainer, layout, makeGrid, onClickVertex, resize, svg, transition, update, updateEdges, updateVertices;
 
-  if (!this.egrid) {
-    this.egrid = {};
-  }
-
-  if (!this.egrid.core) {
-    this.egrid.core = {};
-  }
+  svg = require('../svg');
 
   edgeLine = d3.svg.line().interpolate('linear');
 
@@ -236,9 +231,9 @@
         zoom.on('zoom', function() {
           var e, s, t;
           e = d3.event;
-          t = egrid.core.svg.transform.translate(e.translate[0], e.translate[1]);
-          s = egrid.core.svg.transform.scale(e.scale);
-          return contents.attr('transform', egrid.core.svg.transform.compose(t, s));
+          t = svg.transform.translate(e.translate[0], e.translate[1]);
+          s = svg.transform.scale(e.scale);
+          return contents.attr('transform', svg.transform.compose(t, s));
         });
       }
     };
@@ -340,7 +335,7 @@
       var trans;
       trans = selection.transition();
       trans.selectAll('g.vertices > g.vertex').attr('transform', function(u) {
-        return egrid.core.svg.transform.compose(egrid.core.svg.transform.translate(u.x, u.y), egrid.core.svg.transform.scale(u.scale));
+        return svg.transform.compose(svg.transform.translate(u.x, u.y), svg.transform.scale(u.scale));
       }).style('opacity', function(u) {
         return vertexOpacity(u.data);
       });
@@ -379,7 +374,7 @@
     if (options == null) {
       options = {};
     }
-    svgCss = "g.vertex > rect, rect.background {\n  fill: " + (options.backgroundColor || 'whitesmoke') + ";\n}\ng.edge > path {\n  fill: none;\n}\ng.vertex > rect, g.edge > path {\n  stroke: " + (options.strokeColor || 'black') + ";\n}\ng.vertex > text {\n  fill: " + (options.strokeColor || 'black') + ";\n}\ng.vertex.lower > rect, g.edge.lower > path {\n  stroke: " + (options.lowerStrokeColor || 'red') + ";\n}\ng.vertex.upper > rect, g.edge.upper > path {\n  stroke: " + (options.upperStrokeColor || 'blue') + ";\n}\ng.vertex.selected > rect {\n  stroke: " + (options.selectedStrokeColor || 'purple') + ";\n}";
+    svgCss = "g.vertex > rect, rect.background {\n  fill: " + (options.backgroundColor || 'whitesmoke') + ";\n}\ng.edge > path {\n  fill: none;\n}\ng.vertex > rect, g.edge > path {\n  stroke: " + (options.strokeColor || 'black') + ";\n}\ng.vertex > text {\n  fill: " + (options.strokeColor || 'black') + ";\n}\ng.vertex.lower > rect, g.edge.lower > path {\n  stroke: " + (options.lowerStrokeColor || 'red') + ";\n}\ng.vertex.upper > rect, g.edge.upper > path {\n  stroke: " + (options.upperStrokeColor || 'blue') + ";\n}\ng.vertex.selected > rect {\n  stroke: " + (options.selectedStrokeColor || 'purple') + ";\n}\nrect.background {\n  cursor: move;\n}\ng.vertex {\n  cursor: pointer;\n}";
     return function(selection) {
       selection.selectAll('defs.egrid-style').remove();
       selection.append('defs').classed('egrid-style', true).append('style').text(svgCss);
@@ -399,12 +394,12 @@
     };
   };
 
-  this.egrid.core.egm = function(options) {
+  module.exports = function(options) {
     var accessor, attr, egm, optionAttributes, val, zoom;
     if (options == null) {
       options = {};
     }
-    zoom = d3.behavior.zoom();
+    zoom = d3.behavior.zoom().scaleExtent([0, 1]);
     egm = function(selection) {
       draw(egm, zoom)(selection);
     };
@@ -446,7 +441,10 @@
       size: [1, 1]
     };
     egm.css = css;
-    egm.resize = resize;
+    egm.resize = function(width, height) {
+      egm.size([width, height]);
+      return resize(width, height);
+    };
     egm.center = function() {
       return function(selection) {
         var bottom, height, left, right, scale, top, vertices, width, _ref;
@@ -484,24 +482,9 @@
 
 }).call(this);
 
+},{"../svg":13}],2:[function(require,module,exports){
 (function() {
-  var graph;
-
-  if (!egrid) {
-    this.egrid = {};
-  }
-
-  if (!egrid.core) {
-    this.egrid.core = {};
-  }
-
-  if (!egrid.core.graph) {
-    this.egrid.core.graph = {};
-  }
-
-  graph = this.egrid.core.graph;
-
-  graph.adjacencyList = function(v, e) {
+  module.exports = function(v, e) {
     var AdjacencyList, nextVertexId, vertices;
     nextVertexId = 0;
     vertices = {};
@@ -672,24 +655,9 @@
 
 }).call(this);
 
+},{}],3:[function(require,module,exports){
 (function() {
-  var graph;
-
-  if (!egrid) {
-    this.egrid = {};
-  }
-
-  if (!egrid.core) {
-    this.egrid.core = {};
-  }
-
-  if (!egrid.core.graph) {
-    this.egrid.core.graph = {};
-  }
-
-  graph = this.egrid.core.graph;
-
-  graph.dijkstra = function() {
+  module.exports = function() {
     var dijkstra, inv, weight;
     weight = function(p) {
       return p.weight;
@@ -745,16 +713,13 @@
 
 }).call(this);
 
+},{}],4:[function(require,module,exports){
 (function() {
-  var graph;
+  var adjacencyList;
 
-  this.egrid = this.egrid || {};
+  adjacencyList = require('./adjacency-list');
 
-  this.egrid.core = this.egrid.core || {};
-
-  this.egrid.core.graph = graph = this.egrid.core.graph || {};
-
-  graph.graph = function() {
+  module.exports = function() {
     var factory, source, target;
     source = function(e) {
       return e.source;
@@ -763,7 +728,7 @@
       return e.target;
     };
     factory = function(vertices, edges) {
-      return graph.adjacencyList(vertices, edges);
+      return adjacencyList(vertices, edges);
     };
     factory.source = function(f) {
       if (f != null) {
@@ -786,24 +751,20 @@
 
 }).call(this);
 
+},{"./adjacency-list":2}],5:[function(require,module,exports){
 (function() {
-  var graph;
+  module.exports = {
+    graph: require('./graph'),
+    adjacencyList: require('./adjacency-list'),
+    dijkstra: require('./dijkstra'),
+    warshallFloyd: require('./warshall-floyd')
+  };
 
-  if (!egrid) {
-    this.egrid = {};
-  }
+}).call(this);
 
-  if (!egrid.core) {
-    this.egrid.core = {};
-  }
-
-  if (!egrid.core.graph) {
-    this.egrid.core.graph = {};
-  }
-
-  graph = this.egrid.core.graph;
-
-  graph.warshallFloyd = function() {
+},{"./adjacency-list":2,"./dijkstra":3,"./graph":4,"./warshall-floyd":6}],6:[function(require,module,exports){
+(function() {
+  module.exports = function() {
     var warshallFloyd, weight;
     weight = function(p) {
       return p.weight;
@@ -858,18 +819,23 @@
 
 }).call(this);
 
+},{}],7:[function(require,module,exports){
+(function (global){
 (function() {
-  var centrality;
+  global.window.egrid = {
+    core: {
+      egm: require('./egm'),
+      graph: require('./graph'),
+      network: require('./network')
+    }
+  };
 
-  this.egrid = this.egrid || {};
+}).call(this);
 
-  this.egrid.core = this.egrid.core || {};
-
-  this.egrid.core.network = this.egrid.core.network || {};
-
-  this.egrid.core.network.centrality = centrality = this.egrid.core.network.centrality || {};
-
-  centrality.betweenness = function() {
+}).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"./egm":1,"./graph":5,"./network":12}],8:[function(require,module,exports){
+(function() {
+  module.exports = function() {
     return function(graph) {
       var d, delta, paths, queue, result, s, sigma, stack, t, v, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4;
       result = {};
@@ -931,20 +897,11 @@
 
 }).call(this);
 
+},{}],9:[function(require,module,exports){
 (function() {
-  var centrality;
-
-  this.egrid = this.egrid || {};
-
-  this.egrid.core = this.egrid.core || {};
-
-  this.egrid.core.network = this.egrid.core.network || {};
-
-  this.egrid.core.network.centrality = centrality = this.egrid.core.network.centrality || {};
-
-  centrality.closeness = function(weight) {
+  module.exports = function(weight) {
     var warshallFloyd;
-    warshallFloyd = egrid.core.graph.warshallFloyd().weight(weight);
+    warshallFloyd = require('../../graph/warshall-floyd');
     return function(graph) {
       var distances, result, u, v, val, _i, _j, _len, _len1, _ref, _ref1;
       result = {};
@@ -969,63 +926,79 @@
 
 }).call(this);
 
+},{"../../graph/warshall-floyd":6}],10:[function(require,module,exports){
 (function() {
-  var centrality;
-
-  this.egrid = this.egrid || {};
-
-  this.egrid.core = this.egrid.core || {};
-
-  this.egrid.core.network = this.egrid.core.network || {};
-
-  this.egrid.core.network.centrality = centrality = this.egrid.core.network.centrality || {};
-
-  centrality.inDegree = function(graph) {
-    var result, u, _i, _len, _ref;
-    result = {};
-    _ref = graph.vertices();
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      u = _ref[_i];
-      result[u] = graph.inDegree(u);
+  module.exports = {
+    inDegree: function(graph) {
+      var result, u, _i, _len, _ref;
+      result = {};
+      _ref = graph.vertices();
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        u = _ref[_i];
+        result[u] = graph.inDegree(u);
+      }
+      return result;
+    },
+    outDegree: function(graph) {
+      var result, u, _i, _len, _ref;
+      result = {};
+      _ref = graph.vertices();
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        u = _ref[_i];
+        result[u] = graph.outDegree(u);
+      }
+      return result;
+    },
+    degree: function(graph) {
+      var result, u, _i, _len, _ref;
+      result = {};
+      _ref = graph.vertices();
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        u = _ref[_i];
+        result[u] = (graph.outDegree(u)) + (graph.inDegree(u));
+      }
+      return result;
     }
-    return result;
-  };
-
-  centrality.outDegree = function(graph) {
-    var result, u, _i, _len, _ref;
-    result = {};
-    _ref = graph.vertices();
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      u = _ref[_i];
-      result[u] = graph.outDegree(u);
-    }
-    return result;
-  };
-
-  centrality.degree = function(graph) {
-    var result, u, _i, _len, _ref;
-    result = {};
-    _ref = graph.vertices();
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      u = _ref[_i];
-      result[u] = (graph.outDegree(u)) + (graph.inDegree(u));
-    }
-    return result;
   };
 
 }).call(this);
 
+},{}],11:[function(require,module,exports){
 (function() {
-  var Scale, Translate, transform,
+  var degree;
+
+  degree = require('./degree');
+
+  module.exports = {
+    degree: degree.degree,
+    inDegree: degree.inDegree,
+    outDegree: degree.outDegree,
+    closeness: require('./closeness'),
+    betweenness: require('./betweenness')
+  };
+
+}).call(this);
+
+},{"./betweenness":8,"./closeness":9,"./degree":10}],12:[function(require,module,exports){
+(function() {
+  module.exports = {
+    centrality: require('./centrality')
+  };
+
+}).call(this);
+
+},{"./centrality":11}],13:[function(require,module,exports){
+(function() {
+  module.exports = {
+    transform: require('./transform')
+  };
+
+}).call(this);
+
+},{"./transform":14}],14:[function(require,module,exports){
+(function() {
+  var Scale, Translate,
     __slice = [].slice;
-
-  this.egrid = this.egrid || {};
-
-  this.egrid.core = this.egrid.core || {};
-
-  this.egrid.core.svg = this.egrid.core.svg || {};
-
-  this.egrid.core.svg.transform = transform = this.egrid.core.svg.transform || {};
 
   Translate = (function() {
     function Translate(tx, ty) {
@@ -1058,20 +1031,22 @@
 
   })();
 
-  transform.translate = function(tx, ty) {
-    return new Translate(tx, ty);
-  };
-
-  transform.scale = function(sx, sy) {
-    return new Scale(sx, sy);
-  };
-
-  transform.compose = function() {
-    var transforms;
-    transforms = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-    return transforms.map(function(t) {
-      return t.toString();
-    }).join('');
+  module.exports = {
+    translate: function(tx, ty) {
+      return new Translate(tx, ty);
+    },
+    scale: function(sx, sy) {
+      return new Scale(sx, sy);
+    },
+    compose: function() {
+      var transforms;
+      transforms = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      return transforms.map(function(t) {
+        return t.toString();
+      }).join('');
+    }
   };
 
 }).call(this);
+
+},{}]},{},[7])
