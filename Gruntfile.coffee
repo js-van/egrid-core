@@ -61,6 +61,7 @@ module.exports = (grunt) ->
       options:
         files: ['package.json', 'bower.json']
         commit: false
+        createTag: false
 
     grunt.loadNpmTasks 'grunt-browserify'
     grunt.loadNpmTasks 'grunt-bump'
