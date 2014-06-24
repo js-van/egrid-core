@@ -25,8 +25,16 @@ module.exports = (grunt) ->
     copy:
       dist:
         files: [
-          src: 'egrid-core.js'
-          dest: 'dist/'
+          {
+            src: 'egrid-core.js'
+            dest: 'dist/'
+          }
+          {
+            expand: true
+            cwd: 'lib'
+            src: 'dagre.js'
+            dest: 'dist/'
+          }
         ]
       ghPages:
         files: [
@@ -55,6 +63,8 @@ module.exports = (grunt) ->
       options:
         files: ['package.json', 'bower.json']
         commit: false
+        createTag: false
+        push: false
 
     grunt.loadNpmTasks 'grunt-browserify'
     grunt.loadNpmTasks 'grunt-bump'
