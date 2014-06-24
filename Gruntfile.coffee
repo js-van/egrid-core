@@ -51,16 +51,22 @@ module.exports = (grunt) ->
       'gh-pages'
       'js'
     ]
+    bump:
+      options:
+        files: ['package.json', 'bower.json']
+        commit: false
 
+    grunt.loadNpmTasks 'grunt-browserify'
+    grunt.loadNpmTasks 'grunt-bump'
     grunt.loadNpmTasks 'grunt-contrib-clean'
     grunt.loadNpmTasks 'grunt-contrib-coffee'
     grunt.loadNpmTasks 'grunt-contrib-copy'
     grunt.loadNpmTasks 'grunt-contrib-watch'
-    grunt.loadNpmTasks 'grunt-browserify'
     grunt.loadNpmTasks 'grunt-mocha-phantomjs'
 
     grunt.registerTask 'compile', ['coffee', 'browserify']
     grunt.registerTask 'default', ['watch']
     grunt.registerTask 'dist', ['compile', 'copy:dist']
     grunt.registerTask 'gh-pages', ['compile', 'copy:ghPages']
+    grunt.registerTask 'release', ['dist', 'bump']
     grunt.registerTask 'test', ['mocha_phantomjs']
