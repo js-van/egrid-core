@@ -13,11 +13,9 @@
     "node_modules",
     "bower_components",
     "test",
-    "tests",
     "src",
     "Gruntfile.js",
     "package.json",
-    "tsd.json",
     "lib",
     "examples"
   ],
