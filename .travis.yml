@@ -1,16 +1,25 @@
 language: node_js
 node_js:
   - "0.10"
-before_install: npm install -g grunt-cli
-install: npm install
-before_script: grunt compile
+before_install:
+  - npm install -g grunt-cli
+  - npm install -g bower
+install:
+  - npm install
+  - bower install
+before_script:
+  - grunt compile
 after_success:
-  - git checkout -b gh-pages
+  - git clone https://github.com/likr/egrid-core.git --branch=gh-pages gh-pages
+  - grunt gh-pages
+  - pushd gh-pages
+  - git commit -a -m 'update'
   - '[ "$TRAVIS_BRANCH" == "master" ] && [ $GH_TOKEN ] && git push --quiet https://$GH_TOKEN@github.com/likr/egrid-core.git gh-pages 2> /dev/null'
+  - popd
 env:
   global:
-    - GIT_COMMITTER_NAME: "Yosuke ONOUE"
-    - GIT_COMMITTER_EMAIL: "onoue@likr-lab.com"
-    - GIT_AUTHOR_NAME: "Yosuke ONOUE"
-    - GIT_AUTHOR_EMAIL: "onoue@likr-lab.com"
+    - GIT_COMMITTER_NAME: 'Yosuke ONOUE'
+    - GIT_COMMITTER_EMAIL: 'onoue@likr-lab.com'
+    - GIT_AUTHOR_NAME: 'Yosuke ONOUE'
+    - GIT_AUTHOR_EMAIL: 'onoue@likr-lab.com'
     - secure: "GPR0OxeNTCI/y4/iXgDq+JNCd2C9u8lb8xGDVWCMkgYnt5AIaoDi8crtutJZ3qhydxZ9Cr7711zA/y2Kr5BXu3HQMYoQ7eujd323d5AWl9qZnfeNda7DwHhnfuhcWIXOZVK24qfq6mn910/oX6NMNBPGrWZdtIOfNjDyjNduQGw="
