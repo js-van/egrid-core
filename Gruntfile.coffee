@@ -25,8 +25,14 @@ module.exports = (grunt) ->
     copy:
       dist:
         files: [
-          src: 'egrid-core.js'
-          dest: 'dist/'
+          {
+            src: 'egrid-core.js'
+            dest: 'dist/'
+          }
+          {
+            src: 'lib/dagre.js'
+            dest: 'dist/'
+          }
         ]
       ghPages:
         files: [
