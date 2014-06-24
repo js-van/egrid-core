@@ -42,8 +42,10 @@ onClickVertex = (arg) ->
       container
         .selectAll 'g.edge'
         .classed
-          upper: ({source, target}) -> ancestors.has(source.key) and ancestors.has(target.key)
-          lower: ({source, target}) -> descendants.has(source.key) and descendants.has(target.key)
+          upper: ({source, target}) ->
+            ancestors.has(source.key) and ancestors.has(target.key)
+          lower: ({source, target}) ->
+            descendants.has(source.key) and descendants.has(target.key)
       ancestors.remove(u)
       descendants.remove(u)
       container
@@ -197,7 +199,8 @@ initContainer = (zoom) ->
 
 
 update = (arg) ->
-  {vertexScale, vertexText, vertexVisibility, enableZoom, zoom, maxTextLength} = arg
+  {vertexScale, vertexText, vertexVisibility,
+   enableZoom, zoom, maxTextLength} = arg
 
   (selection) ->
     selection
@@ -254,7 +257,8 @@ layout = (arg) ->
           .selectAll 'g.edge'
           .data()
         vertices.sort (u, v) -> d3.ascending(u.key, v.key)
-        edges.sort (e1, e2) -> d3.ascending([e1.source.key, e1.target.key], [e2.source.key, e2.target.key])
+        edges.sort (e1, e2) -> d3.ascending([e1.source.key, e1.target.key],
+                                            [e2.source.key, e2.target.key])
         dagre.layout()
           .nodes vertices
           .edges edges
@@ -271,15 +275,15 @@ layout = (arg) ->
         for e in edges
           e.points = []
           e.points.push if dagreRankDir is 'LR'
-              [e.source.x + e.source.width / 2, e.source.y]
-            else
-              [e.source.x, e.source.y + e.source.height / 2]
+            [e.source.x + e.source.width / 2, e.source.y]
+          else
+            [e.source.x, e.source.y + e.source.height / 2]
           for point in e.dagre.points
             e.points.push [point.x, point.y]
           e.points.push if dagreRankDir is 'LR'
-              [e.target.x - e.target.width / 2, e.target.y]
-            else
-              [e.target.x, e.target.y - e.target.height / 2]
+            [e.target.x - e.target.width / 2, e.target.y]
+          else
+            [e.target.x, e.target.y - e.target.height / 2]
           for i in [1..edgePointsSize - e.points.length]
             e.points.push e.points[e.points.length - 1]
 
@@ -292,7 +296,8 @@ transition = (arg) ->
     trans
       .selectAll 'g.vertices > g.vertex'
       .attr 'transform', (u) ->
-        svg.transform.compose (svg.transform.translate u.x, u.y), (svg.transform.scale u.scale)
+        svg.transform.compose((svg.transform.translate u.x, u.y),
+                              (svg.transform.scale u.scale))
       .style 'opacity', (u) -> vertexOpacity u.data
     trans
       .selectAll 'g.vertices > g.vertex > rect'
@@ -431,7 +436,8 @@ module.exports = (options={}) ->
       scale = Math.min width / (right - left), height / (bottom - top)
       zoom
         .scale scale
-        .translate [(width - (right - left) * scale) / 2, (height - (bottom - top) * scale) / 2]
+        .translate [(width - (right - left) * scale) / 2,
+                    (height - (bottom - top) * scale) / 2]
         .event selection.select 'g.contents'
 
   egm.options = (options) ->
