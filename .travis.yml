@@ -10,7 +10,7 @@ install:
 before_script:
   - grunt compile
 after_success:
-    - git clone https://github.com/likr/egrid-core.git --branch=gh-pages gh-pages
+  - git clone https://github.com/likr/egrid-core.git --branch=gh-pages gh-pages
   - grunt gh-pages
   - pushd gh-pages
   - git commit -a -m 'update'
