@@ -151,6 +151,10 @@ module.exports = (options={}) ->
     }
     g.vertex > text {
       fill: #{options.strokeColor || 'black'};
+      user-select: none;
+      -moz-user-select: none;
+      -webkit-user-select: none;
+      -ms-user-select: none;
     }
     g.vertex.lower > rect, g.edge.lower > path {
       stroke: #{options.lowerStrokeColor || 'red'};
