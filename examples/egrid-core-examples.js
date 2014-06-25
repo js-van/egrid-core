@@ -240,6 +240,54 @@ var app = angular.module('egrid-core-example', ['ui.router'])
           });
         }
       })
+      .state('ui', {
+        url: '/ui',
+        templateUrl: 'partials/ui.html',
+        controller: function($scope) {
+          var grid = egrid.core.graph.adjacencyList();
+          var gridWrapper = egrid.core.egmGraph(grid);
+          var egm = egrid.core.egm()
+            .size([600, 600])
+            .vertexButtons([
+              egrid.core.ui.ladderUpButton(gridWrapper, function() {
+                selection.call(egm);
+              }),
+              egrid.core.ui.removeButton(gridWrapper, function() {
+                selection.call(egm);
+              }),
+              egrid.core.ui.editButton(gridWrapper, function() {
+                selection.call(egm);
+              }),
+              egrid.core.ui.ladderDownButton(gridWrapper, function() {
+                selection.call(egm);
+              })
+            ]);
+          var selection = d3.select('svg.display')
+            .datum(grid)
+            .call(egm.css())
+            .call(egm);
+
+          $scope.undo = function() {
+            gridWrapper.undo();
+            selection.call(egm);
+          };
+
+          $scope.redo = function() {
+            gridWrapper.redo();
+            selection.call(egm);
+          };
+
+          $scope.addConstruct = function() {
+            var text = prompt();
+            if (text) {
+              gridWrapper.addConstruct({
+                text: text
+              });
+              selection.call(egm);
+            }
+          };
+        }
+      })
       ;
   })
   ;

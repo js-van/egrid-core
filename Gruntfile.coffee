@@ -16,8 +16,14 @@ module.exports = (grunt) ->
           'egrid-core.js': ['js/index.js']
     watch:
       scripts:
-        files: ['src/**/*.coffee'],
-        tasks: ['compile'],
+        files: ['src/**/*.coffee']
+        tasks: ['compile']
+      test:
+        files: ['src/**/*.coffee']
+        tasks: ['compile', 'test']
+      ghPages:
+        files: ['src/**/*.coffee', 'examples/**/*']
+        tasks: ['gh-pages']
     mocha_phantomjs:
       options:
         reporter: 'list'
@@ -75,7 +81,7 @@ module.exports = (grunt) ->
     grunt.loadNpmTasks 'grunt-mocha-phantomjs'
 
     grunt.registerTask 'compile', ['coffee', 'browserify']
-    grunt.registerTask 'default', ['watch']
+    grunt.registerTask 'default', ['watch:scripts']
     grunt.registerTask 'dist', ['compile', 'copy:dist']
     grunt.registerTask 'gh-pages', ['compile', 'copy:ghPages']
     grunt.registerTask 'release', ['dist', 'bump']

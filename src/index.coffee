@@ -4,3 +4,4 @@ global.window.egrid =
     egmGraph: require './egm-graph'
     graph: require './graph'
     network: require './network'
+    ui: require './ui'

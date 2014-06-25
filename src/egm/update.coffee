@@ -1,51 +1,10 @@
-onClickVertex = (arg) ->
-  {container, graph} = arg
+svg = require '../svg'
+select = require './select'
+
+
+onClickVertex = ({container, vertexButtons}) ->
   (u) ->
-    alreadySelected = d3
-      .select @
-      .classed 'selected'
-    container
-      .selectAll 'g.vertex'
-      .classed
-        selected: false
-        lower: false
-        upper: false
-    container
-      .selectAll 'g.edge'
-      .classed
-        lower: false
-        upper: false
-
-    if not alreadySelected
-      dijkstra = egrid.core.graph.dijkstra()
-        .weight -> 1
-      descendants = d3.set()
-      for v, dist of dijkstra graph, u.key
-        if dist < Infinity
-          descendants.add(v)
-      dijkstra.inv true
-      ancestors = d3.set()
-      for v, dist of dijkstra graph, u.key
-        if dist < Infinity
-          ancestors.add(v)
-
-      d3
-        .select @
-        .classed 'selected', true
-      container
-        .selectAll 'g.edge'
-        .classed
-          upper: ({source, target}) ->
-            ancestors.has(source.key) and ancestors.has(target.key)
-          lower: ({source, target}) ->
-            descendants.has(source.key) and descendants.has(target.key)
-      ancestors.remove(u)
-      descendants.remove(u)
-      container
-        .selectAll 'g.vertex'
-        .classed
-          upper: (v) -> ancestors.has(v.key)
-          lower: (v) -> descendants.has(v.key)
+    select.selectVertex container, u, vertexButtons
 
 
 calculateTextSize = () ->
@@ -194,7 +153,8 @@ initContainer = (zoom) ->
 module.exports = (arg) ->
   {vertexScale, vertexText, vertexVisibility,
    enableZoom, zoom, maxTextLength,
-   edgePointsSize, edgeLine} = arg
+   edgePointsSize, edgeLine,
+   vertexButtons} = arg
 
   (selection) ->
     selection
@@ -214,7 +174,7 @@ module.exports = (arg) ->
 
           {vertices, edges} = makeGrid graph,
             pred: (u) -> vertexVisibility (graph.get u), u
-            oldVertices: d3.selectAll('g.vertex').data()
+            oldVertices: container.selectAll('g.vertex').data()
             vertexText: vertexText
             maxTextLength: maxTextLength
 
@@ -227,6 +187,7 @@ module.exports = (arg) ->
             .on 'click', onClickVertex
               container: container
               graph: graph
+              vertexButtons: vertexButtons
           contents
             .select 'g.edges'
             .selectAll 'g.edge'
@@ -234,7 +195,6 @@ module.exports = (arg) ->
             .call updateEdges
               edgePointsSize: edgePointsSize
               edgeLine: edgeLine
-
         else
           container
             .select 'g.contents'

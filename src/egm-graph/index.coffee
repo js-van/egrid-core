@@ -2,6 +2,8 @@ graph = require '../graph'
 
 
 module.exports = (graph) ->
+  if graph is null
+    graph = graph.graph()
   undoStack = []
   redoStack = []
   execute = (transaction) ->

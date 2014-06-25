@@ -1,5 +1,6 @@
 svg = require '../svg'
 update = require './update'
+select = require './select'
 
 
 edgeLine = d3.svg.line().interpolate('linear')
@@ -93,6 +94,7 @@ module.exports = (options={}) ->
       .call update
         edgePointsSize: edgePointsSize
         edgeLine: edgeLine
+        vertexButtons: egm.vertexButtons()
         vertexScale: egm.vertexScale()
         vertexText: egm.vertexText()
         vertexVisibility: egm.vertexVisibility()
@@ -108,6 +110,7 @@ module.exports = (options={}) ->
       .call transition
         vertexOpacity: egm.vertexOpacity()
         vertexColor: egm.vertexColor()
+    select.reset selection, egm.vertexButtons()
     return
 
   accessor = (defaultVal) ->
@@ -127,6 +130,7 @@ module.exports = (options={}) ->
     enableClickVertex: true
     enableZoom: true
     maxTextLength: Infinity
+    vertexButtons: -> []
     vertexColor: -> ''
     vertexOpacity: -> 1
     vertexScale: -> 1
@@ -162,6 +166,16 @@ module.exports = (options={}) ->
     }
     g.vertex {
       cursor: pointer;
+    }
+    g.vertex-button {
+      cursor: pointer;
+    }
+    g.vertex-button>rect {
+      fill: #fff;
+      stroke: #adadad
+    }
+    g.vertex-button.hover>rect {
+      fill: #ebebeb;
     }
     """
     (selection) ->
