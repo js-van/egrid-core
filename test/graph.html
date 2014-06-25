@@ -25,6 +25,32 @@ describe('AdjacencyList', function() {
     });
   });
 
+  describe('inEdges(u)', function() {
+    it('should return edges to u', function() {
+      var graph = egrid.core.graph.adjacencyList();
+      var a = graph.addVertex();
+      var b = graph.addVertex();
+      var c = graph.addVertex();
+      var e1 = graph.addEdge(a, b);
+      var e2 = graph.addEdge(c, a);
+      expect(graph.inEdges(a)).to.have.length(1);
+      expect(graph.inEdges(a)[0]).to.eql(e2);
+    });
+  });
+
+  describe('outEdges(u)', function() {
+    it('should return edges from u', function() {
+      var graph = egrid.core.graph.adjacencyList();
+      var a = graph.addVertex();
+      var b = graph.addVertex();
+      var c = graph.addVertex();
+      var e1 = graph.addEdge(a, b);
+      var e2 = graph.addEdge(c, a);
+      expect(graph.outEdges(a)).to.have.length(1);
+      expect(graph.outEdges(a)[0]).to.eql(e1);
+    });
+  });
+
   describe('numVertices()', function() {
     it('should return number of vertices of graph', function() {
       var graph = egrid.core.graph.adjacencyList();
@@ -76,6 +102,20 @@ describe('AdjacencyList', function() {
       graph.addEdge(b, c);
       expect(graph.numVertices()).to.be(3);
       expect(graph.numEdges()).to.be(3);
+    });
+  });
+
+  describe('clearVertex()', function() {
+    it('should remove all edges to and from vertex', function() {
+      var graph = egrid.core.graph.adjacencyList();
+      var a = graph.addVertex();
+      var b = graph.addVertex();
+      var c = graph.addVertex();
+      graph.addEdge(a, b);
+      graph.addEdge(c, a);
+      graph.clearVertex(a);
+      expect(graph.numVertices()).to.be(3);
+      expect(graph.numEdges()).to.be(0);
     });
   });
 });

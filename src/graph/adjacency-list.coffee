@@ -9,17 +9,22 @@ module.exports = (v, e) ->
       for {source, target} in edges
         @addEdge source, target
 
-    vertices: -> u for u of vertices
+    vertices: ->
+      +u for u of vertices
 
     edges: -> [].concat (@outEdges u for u in @vertices())...
 
-    adjacentVertices: (u) -> v for v of vertices[u].outAdjacencies
+    adjacentVertices: (u) ->
+      +v for v of vertices[u].outAdjacencies
 
-    invAdjacentVertices: (u) -> v for v of vertices[u].inAdjacencies
+    invAdjacentVertices: (u) ->
+      +v for v of vertices[u].inAdjacencies
 
-    outEdges: (u) -> [u, v] for v of vertices[u].outAdjacencies
+    outEdges: (u) ->
+      [u, +v] for v of vertices[u].outAdjacencies
 
-    inEdges: (u) -> [v, u] for v in vertices[u].inAdjacencies
+    inEdges: (u) ->
+      [+v, u] for v of vertices[u].inAdjacencies
 
     outDegree: (u) -> Object.keys(vertices[u].outAdjacencies).length
 
@@ -44,18 +49,19 @@ module.exports = (v, e) ->
       delete vertices[v].inAdjacencies[u]
       return
 
-    addVertex: (prop) ->
-      vertices[nextVertexId] =
+    addVertex: (prop, u) ->
+      vertexId = if u? then u else nextVertexId++
+      vertices[vertexId] =
         outAdjacencies: {}
         inAdjacencies: {}
         property: prop
-      nextVertexId++
+      vertexId
 
     clearVertex: (u) ->
-      vertices[u].outAdjacencies = {}
-      outAdjacencies[i] = {}
-      for v of vertices[u].inAdjacencies
-        delete vertices[v].inAdjacencies[u]
+      for [v, w] in @inEdges u
+        @removeEdge v, w
+      for [v, w] in @outEdges u
+        @removeEdge v, w
       return
 
     removeVertex: (u) ->
