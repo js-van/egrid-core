@@ -1,7 +1,7 @@
 global.window.egrid =
   core:
     egm: require './egm'
-    egmGraph: require './egm-graph'
+    grid: require './grid'
     graph: require './graph'
     network: require './network'
     ui: require './ui'

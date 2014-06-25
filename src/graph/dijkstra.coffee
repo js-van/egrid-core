@@ -9,7 +9,7 @@ module.exports = ->
       else
         (u) -> graph.adjacentVertices u
     distances = {}
-    for j of graph.vertices()
+    for j in graph.vertices()
       distances[j] = Infinity
     distances[i] = 0
     queue = [i]

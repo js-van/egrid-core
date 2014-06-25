@@ -244,45 +244,54 @@ var app = angular.module('egrid-core-example', ['ui.router'])
         url: '/ui',
         templateUrl: 'partials/ui.html',
         controller: function($scope) {
-          var grid = egrid.core.graph.adjacencyList();
-          var gridWrapper = egrid.core.egmGraph(grid);
+          var grid = egrid.core.grid();
           var egm = egrid.core.egm()
             .size([600, 600])
             .vertexButtons([
-              egrid.core.ui.ladderUpButton(gridWrapper, function() {
+              egrid.core.ui.ladderUpButton(grid, function() {
                 selection.call(egm);
+                $scope.$apply();
               }),
-              egrid.core.ui.removeButton(gridWrapper, function() {
+              egrid.core.ui.removeButton(grid, function() {
                 selection.call(egm);
+                $scope.$apply();
               }),
-              egrid.core.ui.editButton(gridWrapper, function() {
+              egrid.core.ui.editButton(grid, function() {
                 selection.call(egm);
+                $scope.$apply();
               }),
-              egrid.core.ui.ladderDownButton(gridWrapper, function() {
+              egrid.core.ui.ladderDownButton(grid, function() {
                 selection.call(egm);
+                $scope.$apply();
               })
             ]);
           var selection = d3.select('svg.display')
-            .datum(grid)
+            .datum(grid.graph())
             .call(egm.css())
             .call(egm);
 
+          $scope.undoDisabled = function() {
+            return !grid.canUndo();
+          };
+
+          $scope.redoDisabled = function() {
+            return !grid.canRedo();
+          };
+
           $scope.undo = function() {
-            gridWrapper.undo();
+            grid.undo();
             selection.call(egm);
           };
 
           $scope.redo = function() {
-            gridWrapper.redo();
+            grid.redo();
             selection.call(egm);
           };
 
           $scope.addConstruct = function() {
             var text = prompt();
             if (text) {
-              gridWrapper.addConstruct({
-                text: text
-              });
+              grid.addConstruct(text);
               selection.call(egm);
             }
           };

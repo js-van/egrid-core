@@ -16,14 +16,12 @@ module.exports =
     onClick: (d, u) ->
       text = prompt()
       if text?
-        grid.ladderUp u,
-          text: text
+        grid.ladderUp u, text
         callback()
   ladderDownButton: (grid, callback) ->
     icon: 'images/glyphicons_211_right_arrow.png'
     onClick: (d, u) ->
       text = prompt()
       if text?
-        grid.ladderDown u,
-          text: text
+        grid.ladderDown u, text
         callback()

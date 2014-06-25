@@ -19,7 +19,7 @@ module.exports = (grunt) ->
         files: ['src/**/*.coffee']
         tasks: ['compile']
       test:
-        files: ['src/**/*.coffee']
+        files: ['src/**/*.coffee', 'test/**/*']
         tasks: ['compile', 'test']
       ghPages:
         files: ['src/**/*.coffee', 'examples/**/*']

@@ -76,8 +76,8 @@ selectVertex = (container, u, vertexButtons=[]) ->
         ancestors.has(source.key) and ancestors.has(target.key)
       lower: ({source, target}) ->
         descendants.has(source.key) and descendants.has(target.key)
-  ancestors.remove u
-  descendants.remove u
+  ancestors.remove u.key
+  descendants.remove u.key
   container
     .selectAll 'g.vertex'
     .classed

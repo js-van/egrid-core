@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../bower_components/mocha/mocha.css" />
+</head>
+<body>
+<div id="mocha"></div>
+<script src="../bower_components/mocha/mocha.js"></script>
+<script src="../bower_components/expect/index.js"></script>
+<script src="../bower_components/sinon/lib/sinon.js"></script>
+<script src="../bower_components/d3/d3.min.js"></script>
+<script src="../lib/dagre.js"></script>
+<script src="../egrid-core.js"></script>
+<script>
+mocha.ui('bdd');
+mocha.reporter('html');
+
+describe('Grid', function() {
+  it('should create empty grid with no argument', function() {
+    var grid = egrid.core.grid();
+    expect(grid.graph().numVertices()).to.be(0);
+    expect(grid.graph().numEdges()).to.be(0);
+  });
+
+  it('should create grid with one argument', function() {
+    var graph = egrid.core.graph.adjacencyList();
+    var a = graph.addVertex();
+    var b = graph.addVertex();
+    var c = graph.addVertex();
+    graph.addEdge(a, b);
+    graph.addEdge(b, c);
+    var grid = egrid.core.grid(graph);
+    expect(grid.graph().numVertices()).to.be(3);
+    expect(grid.graph().numEdges()).to.be(2);
+  });
+
+  it('should create grid with two arguments', function() {
+    var vertices = [
+      {text: 'a'},
+      {text: 'b'},
+      {text: 'c'}
+    ];
+    var edges = [
+      {source: 0, target: 1},
+      {source: 1, target: 2}
+    ];
+    var grid = egrid.core.grid(vertices, edges);
+    expect(grid.graph().numVertices()).to.be(3);
+    expect(grid.graph().numEdges()).to.be(2);
+  });
+
+  describe('addConstruct', function() {
+    it('should add vertex', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      expect(grid.graph().numVertices()).to.be(1);
+      expect(grid.graph().numEdges()).to.be(0);
+      expect(grid.graph().get(u).text).to.be('original construct');
+    });
+
+    it('should not add duplicate construct', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      var v = grid.addConstruct('original construct');
+      expect(grid.graph().numVertices()).to.be(1);
+      expect(grid.graph().numEdges()).to.be(0);
+      expect(u).to.be(v);
+    });
+
+    it('should add vertex after remove', function() {
+      var grid = egrid.core.grid();
+      grid.addConstruct('1st construct');
+      var u = grid.addConstruct('2nd construct');
+      grid.addConstruct('3rd construct');
+      grid.removeConstruct(u);
+      grid.addConstruct('4th construct');
+      expect(grid.graph().numVertices()).to.be(3);
+    });
+  });
+
+  describe('removeConstruct', function() {
+    it('should remove vertex', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      grid.removeConstruct(u);
+      expect(grid.graph().numVertices()).to.be(0);
+      expect(grid.graph().numEdges()).to.be(0);
+    });
+
+    it('should remove connected edge', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      grid.ladderUp(u, 'upper construct');
+      grid.ladderDown(u, 'lower construct');
+      grid.removeConstruct(u);
+      expect(grid.graph().numVertices()).to.be(2);
+      expect(grid.graph().numEdges()).to.be(0);
+    });
+  });
+
+  describe('updateConstruct', function() {
+    it('should change property of construct', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      grid.updateConstruct(u, 'text', 'updated');
+      expect(grid.graph().get(u).text).to.be('updated');
+    });
+  });
+
+  describe('ladderUp', function() {
+    it('should add vertex and edge', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      var v = grid.ladderUp(u, 'upper construct');
+      expect(grid.graph().numVertices()).to.be(2);
+      expect(grid.graph().numEdges()).to.be(1);
+      expect(grid.graph().get(v).text).to.be('upper construct');
+    });
+
+    it('should add edge if value is duplicated', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      var v = grid.addConstruct('upper construct');
+      var w = grid.ladderUp(u, 'upper construct');
+      expect(grid.graph().numVertices()).to.be(2);
+      expect(grid.graph().numEdges()).to.be(1);
+      expect(v).to.be(w);
+    });
+
+    it('should run after remove', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('1st construct');
+      var v = grid.addConstruct('2nd construct');
+      grid.addConstruct('3rd construct');
+      grid.removeConstruct(v);
+      grid.ladderUp(u, 'upper construct');
+      expect(grid.graph().numVertices()).to.be(3);
+      expect(grid.graph().numEdges()).to.be(1);
+    });
+  });
+
+  describe('ladderDown', function() {
+    it('should add vertex and edge', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      var v = grid.ladderDown(u, 'lower construct');
+      expect(grid.graph().numVertices()).to.be(2);
+      expect(grid.graph().numEdges()).to.be(1);
+      expect(grid.graph().get(v).text).to.be('lower construct');
+    });
+
+    it('should add edge if value is duplicated', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      var v = grid.addConstruct('lower construct');
+      var w = grid.ladderDown(u, 'lower construct');
+      expect(grid.graph().numVertices()).to.be(2);
+      expect(grid.graph().numEdges()).to.be(1);
+      expect(v).to.be(w);
+    });
+
+    it('should run after remove', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('1st construct');
+      var v = grid.addConstruct('2nd construct');
+      grid.addConstruct('3rd construct');
+      grid.removeConstruct(v);
+      grid.ladderDown(u, 'lower construct');
+      expect(grid.graph().numVertices()).to.be(3);
+      expect(grid.graph().numEdges()).to.be(1);
+    });
+  });
+
+  describe('canUndo', function() {
+    it('should return true after transaction', function() {
+      var grid = egrid.core.grid();
+      grid.addConstruct('original construct');
+      expect(grid.canUndo()).to.be.ok();
+    });
+
+    it('should return false before transaction', function() {
+      var grid = egrid.core.grid();
+      expect(grid.canUndo()).not.to.be.ok();
+    });
+  });
+
+  describe('canRedo', function() {
+    it('should return true after undo', function() {
+      var grid = egrid.core.grid();
+      grid.addConstruct('original construct');
+      grid.undo();
+      expect(grid.canRedo()).to.be.ok();
+    });
+
+    it('should return false before undo', function() {
+      var grid = egrid.core.grid();
+      grid.addConstruct('original construct');
+      expect(grid.canRedo()).not.to.be.ok();
+    });
+  });
+
+  describe('undo', function() {
+    it('should throw error if !canUndo()', function() {
+      var grid = egrid.core.grid();
+      expect(grid.undo).to.throwError();
+    });
+
+    it('should revert addConstruct', function() {
+      var grid = egrid.core.grid();
+      grid.addConstruct('original construct');
+      grid.undo();
+      expect(grid.graph().numVertices()).to.be(0);
+      expect(grid.graph().numEdges()).to.be(0);
+    });
+
+    it('should revert removeConstruct', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      grid.removeConstruct(u);
+      grid.undo();
+      expect(grid.graph().numVertices()).to.be(1);
+      expect(grid.graph().numEdges()).to.be(0);
+    });
+
+    it('should revert updateConstruct', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      grid.updateConstruct(u, 'text', 'updated');
+      grid.undo();
+      expect(grid.graph().get(u).text).to.be('original construct');
+    });
+
+    it('should revert ladderUp', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      grid.ladderUp(u, 'upper construct');
+      grid.undo();
+      expect(grid.graph().numVertices()).to.be(1);
+      expect(grid.graph().numEdges()).to.be(0);
+    });
+
+    it('should revert ladderUp with duplicated text', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      grid.addConstruct('upper construct');
+      grid.ladderUp(u, 'upper construct');
+      grid.undo();
+      expect(grid.graph().numVertices()).to.be(2);
+      expect(grid.graph().numEdges()).to.be(0);
+    });
+
+    it('should revert ladderDown', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      grid.ladderUp(u, 'lower construct');
+      grid.undo();
+      expect(grid.graph().numVertices()).to.be(1);
+      expect(grid.graph().numEdges()).to.be(0);
+    });
+
+    it('should revert ladderDown with duplicated text', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      grid.addConstruct('lower construct');
+      grid.ladderDown(u, 'lower construct');
+      grid.undo();
+      expect(grid.graph().numVertices()).to.be(2);
+      expect(grid.graph().numEdges()).to.be(0);
+    });
+  });
+
+  describe('redo', function() {
+    it('should throw error if !canRedo()', function() {
+      var grid = egrid.core.grid();
+      expect(grid.redo).to.throwError();
+    });
+
+    it('should re-execute addConstruct', function() {
+      var grid = egrid.core.grid();
+      grid.addConstruct('original construct');
+      grid.undo();
+      grid.redo();
+      expect(grid.graph().numVertices()).to.be(1);
+      expect(grid.graph().numEdges()).to.be(0);
+    });
+
+    it('should re-execute removeConstruct', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      grid.removeConstruct(u);
+      grid.undo();
+      grid.redo();
+      expect(grid.graph().numVertices()).to.be(0);
+      expect(grid.graph().numEdges()).to.be(0);
+    });
+
+    it('should re-execute updateConstruct', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      grid.updateConstruct(u, 'text', 'updated');
+      grid.undo();
+      grid.redo();
+      expect(grid.graph().get(u).text).to.be('updated');
+    });
+
+    it('should re-execute ladderUp', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      grid.ladderUp(u, 'upper construct');
+      grid.undo();
+      grid.redo();
+      expect(grid.graph().numVertices()).to.be(2);
+      expect(grid.graph().numEdges()).to.be(1);
+    });
+
+    it('should re-execute ladderUp with duplicated text', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      grid.addConstruct('upper construct');
+      grid.ladderUp(u, 'upper construct');
+      grid.undo();
+      grid.redo();
+      expect(grid.graph().numVertices()).to.be(2);
+      expect(grid.graph().numEdges()).to.be(1);
+    });
+
+    it('should re-execute ladderDown', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      grid.ladderUp(u, 'lower construct');
+      grid.undo();
+      grid.redo();
+      expect(grid.graph().numVertices()).to.be(2);
+      expect(grid.graph().numEdges()).to.be(1);
+    });
+
+    it('should re-execute ladderDown with duplicated text', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('original construct');
+      grid.addConstruct('lower construct');
+      grid.ladderDown(u, 'lower construct');
+      grid.undo();
+      grid.redo();
+      expect(grid.graph().numVertices()).to.be(2);
+      expect(grid.graph().numEdges()).to.be(1);
+    });
+  });
+});
+
+if (window.mochaPhantomJS) {
+  mochaPhantomJS.run();
+} else {
+  mocha.run();
+}
+</script>
+</body>
+</html>
