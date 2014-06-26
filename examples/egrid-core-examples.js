@@ -296,6 +296,22 @@ var app = angular.module('egrid-core-example', ['ui.router'])
               selection.call(egm);
             }
           };
+
+          $scope.mergeConstructs = function() {
+            var vertices = selection
+              .selectAll('g.vertex')
+              .filter(function(vertex) {
+                return vertex.selected;
+              })
+              .data()
+              .map(function(vertex) {
+                return vertex.key;
+              });
+            if (vertices.length == 2) {
+              grid.merge(vertices[0], vertices[1]);
+              selection.call(egm);
+            }
+          };
         }
       })
       ;
