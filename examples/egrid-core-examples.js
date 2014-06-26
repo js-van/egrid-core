@@ -247,6 +247,7 @@ var app = angular.module('egrid-core-example', ['ui.router'])
           var grid = egrid.core.grid();
           var egm = egrid.core.egm()
             .size([600, 600])
+            .maxTextLength(10)
             .vertexButtons([
               egrid.core.ui.ladderUpButton(grid, function() {
                 selection.call(egm);

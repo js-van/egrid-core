@@ -3,8 +3,24 @@ select = require './select'
 
 
 onClickVertex = ({container, vertexButtons}) ->
-  (u) ->
-    select.selectVertex container, u, vertexButtons
+  (vertex) ->
+    select.selectVertex container, vertex, vertexButtons
+
+
+onMouseEnterVertex = (vertexText) ->
+  (vertex) ->
+    d3.select @
+      .select 'text'
+      .text vertexText vertex.data
+
+
+onMouseLeaveVertex = ->
+  (vertex) ->
+    d3.select @
+      .select 'text'
+      .transition()
+      .delay 1000
+      .text vertex.text
 
 
 calculateTextSize = () ->
@@ -30,7 +46,7 @@ createVertex = () ->
         u.x = 0
         u.y = 0
       .attr
-        'text-anchor': 'middle'
+        'text-anchor': 'left'
         'dominant-baseline': 'text-before-edge'
 
 
@@ -59,7 +75,9 @@ updateVertices = (arg) ->
     selection
       .select 'text'
       .text (u) -> u.text
-      .attr 'y', (u) -> -u.textHeight / 2
+      .attr
+        x: (u) -> -u.textWidth / 2
+        y: (u) -> -u.textHeight / 2
     selection
       .select 'rect'
       .attr
@@ -104,7 +122,11 @@ makeGrid = (graph, arg) ->
         key: u
         data: graph.get u
   for vertex in vertices
-    vertex.text = (vertexText vertex.data).slice 0, maxTextLength
+    text = vertexText vertex.data
+    if text.length > maxTextLength
+      vertex.text = "#{text.slice 0, maxTextLength}..."
+    else
+      vertex.text = text
   verticesMap = {}
   for u in vertices
     verticesMap[u.key] = u
@@ -188,6 +210,8 @@ module.exports = (arg) ->
               container: container
               graph: graph
               vertexButtons: vertexButtons
+            .on 'mouseenter', onMouseEnterVertex vertexText
+            .on 'mouseleave', onMouseLeaveVertex()
           contents
             .select 'g.edges'
             .selectAll 'g.edge'
