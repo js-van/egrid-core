@@ -4,7 +4,9 @@ select = require './select'
 
 onClickVertex = ({container, vertexButtons}) ->
   (vertex) ->
-    select.selectVertex container, vertex, vertexButtons
+    vertex.selected = not vertex.selected
+    container.call select vertexButtons
+    return
 
 
 onMouseEnterVertex = (vertexText) ->
@@ -45,6 +47,7 @@ createVertex = () ->
       .each (u) ->
         u.x = 0
         u.y = 0
+        u.selected = false
       .attr
         'text-anchor': 'left'
         'dominant-baseline': 'text-before-edge'
@@ -208,7 +211,6 @@ module.exports = (arg) ->
               vertexScale: vertexScale
             .on 'click', onClickVertex
               container: container
-              graph: graph
               vertexButtons: vertexButtons
             .on 'mouseenter', onMouseEnterVertex vertexText
             .on 'mouseleave', onMouseLeaveVertex()
