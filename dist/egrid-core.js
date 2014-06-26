@@ -116,8 +116,7 @@
       })).call(transition({
         vertexOpacity: egm.vertexOpacity(),
         vertexColor: egm.vertexColor()
-      }));
-      select.reset(selection, egm.vertexButtons());
+      })).call(select(egm.vertexButtons()));
     };
     accessor = function(defaultVal) {
       var val;
@@ -164,7 +163,7 @@
       if (options == null) {
         options = {};
       }
-      svgCss = "g.vertex > rect, rect.background {\n  fill: " + (options.backgroundColor || 'whitesmoke') + ";\n}\ng.edge > path {\n  fill: none;\n}\ng.vertex > rect, g.edge > path {\n  stroke: " + (options.strokeColor || 'black') + ";\n}\ng.vertex > text {\n  fill: " + (options.strokeColor || 'black') + ";\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex.lower > rect, g.edge.lower > path {\n  stroke: " + (options.lowerStrokeColor || 'red') + ";\n}\ng.vertex.upper > rect, g.edge.upper > path {\n  stroke: " + (options.upperStrokeColor || 'blue') + ";\n}\ng.vertex.selected > rect {\n  stroke: " + (options.selectedStrokeColor || 'purple') + ";\n}\nrect.background {\n  cursor: move;\n}\ng.vertex {\n  cursor: pointer;\n}\ng.vertex-button {\n  cursor: pointer;\n}\ng.vertex-button>rect {\n  fill: #fff;\n  stroke: #adadad\n}\ng.vertex-button.hover>rect {\n  fill: #ebebeb;\n}";
+      svgCss = "g.vertex > rect, rect.background {\n  fill: " + (options.backgroundColor || 'whitesmoke') + ";\n}\ng.edge > path {\n  fill: none;\n}\ng.vertex > rect, g.edge > path {\n  stroke: " + (options.strokeColor || 'black') + ";\n}\ng.vertex > text {\n  fill: " + (options.strokeColor || 'black') + ";\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex.lower > rect, g.edge.lower > path {\n  stroke: " + (options.lowerStrokeColor || 'red') + ";\n}\ng.vertex.upper > rect, g.edge.upper > path {\n  stroke: " + (options.upperStrokeColor || 'blue') + ";\n}\ng.vertex.upper.lower>rect, g.edge.upper.lower>path {\n  stroke: " + (options.selectedStrokeColor || 'purple') + ";\n}\nrect.background {\n  cursor: move;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex {\n  cursor: pointer;\n}\ng.vertex-buttons {\n  opacity: 0.7;\n}\ng.vertex-button {\n  cursor: pointer;\n}\ng.vertex-button>rect {\n  fill: #fff;\n  stroke: #adadad\n}\ng.vertex-button.hover>rect {\n  fill: #ebebeb;\n}";
       return function(selection) {
         selection.selectAll('defs.egrid-style').remove();
         return selection.append('defs').classed('egrid-style', true).append('style').text(svgCss);
@@ -213,151 +212,135 @@
 
 },{"../svg":16,"./select":2,"./update":3}],2:[function(require,module,exports){
 (function() {
-  var createVertexButtons, dijkstra, selectVertex, selectedVertex, svg, unselectVertex;
+  var dijkstra, svg, updateButtons, updateSelectedVertex;
 
   svg = require('../svg');
 
   dijkstra = require('../graph/dijkstra');
 
-  createVertexButtons = function(vertex, vertexButtons) {
+  updateButtons = function(vertexButtons) {
     var vertexButtonHeight, vertexButtonMargin, vertexButtonWidth;
     vertexButtonWidth = 30;
     vertexButtonHeight = 20;
     vertexButtonMargin = 5;
-    return function(selection) {
-      var button;
-      button = selection.select('g.contents').append('g').classed('vertex-buttons', true).attr({
-        transform: function() {
+    return function(container) {
+      var selection, vertices;
+      vertices = container.selectAll('g.vertex').filter(function(vertex) {
+        return vertex.selected;
+      }).data();
+      selection = container.select('g.contents').selectAll('g.vertex-buttons').data(vertices, function(vertex) {
+        return vertex.key;
+      });
+      selection.enter().append('g').each(function(vertex) {
+        var button;
+        button = d3.select(this).classed('vertex-buttons', true).selectAll('g.vertex-button').data(vertexButtons).enter().append('g').classed('vertex-button', true).attr({
+          transform: function(d, i) {
+            return svg.transform.translate(vertexButtonWidth * i, 0);
+          }
+        }).on('mouseenter', function() {
+          return d3.select(this).classed('hover', true);
+        }).on('mouseleave', function() {
+          return d3.select(this).classed('hover', false);
+        }).on('click', function(d) {
+          return d.onClick(vertex.data, vertex.key);
+        });
+        button.append('rect').attr({
+          width: vertexButtonWidth,
+          height: vertexButtonHeight
+        });
+        return button.filter(function(d) {
+          return d.icon != null;
+        }).append('image').attr({
+          x: vertexButtonWidth / 2 - 8,
+          y: vertexButtonHeight / 2 - 8,
+          width: '16px',
+          height: '16px',
+          'xlink:href': function(d) {
+            return d.icon;
+          }
+        });
+      });
+      selection.exit().remove();
+      container.selectAll('g.vertex-buttons').attr({
+        transform: function(vertex) {
           var x, y;
           x = vertex.x - vertexButtonWidth * vertexButtons.length / 2;
           y = vertex.y + vertex.height / 2 + vertexButtonMargin;
           return svg.transform.translate(x, y);
         }
-      }).selectAll('g.vertex-button').data(vertexButtons).enter().append('g').classed('vertex-button', true).attr({
-        transform: function(d, i) {
-          return svg.transform.translate(vertexButtonWidth * i, 0);
+      });
+    };
+  };
+
+  updateSelectedVertex = function() {
+    return function(container) {
+      var ancestors, descendants, graph, spf, vertex, verticesSelection, _i, _len, _ref;
+      graph = container.datum();
+      spf = dijkstra().weight(function() {
+        return 1;
+      });
+      verticesSelection = container.selectAll('g.vertex').each(function(vertex) {
+        return vertex.upper = vertex.lower = false;
+      });
+      descendants = d3.set();
+      ancestors = d3.set();
+      verticesSelection.filter(function(vertex) {
+        return vertex.selected;
+      }).each(function(vertex) {
+        var dist, v, _ref, _ref1;
+        spf.inv(false);
+        _ref = spf(graph, vertex.key);
+        for (v in _ref) {
+          dist = _ref[v];
+          if (dist < Infinity) {
+            descendants.add(v);
+          }
         }
-      }).on('mouseenter', function() {
-        return d3.select(this).classed('hover', true);
-      }).on('mouseleave', function() {
-        return d3.select(this).classed('hover', false);
-      }).on('click', function(d) {
-        return d.onClick(vertex.data, vertex.key);
+        spf.inv(true);
+        _ref1 = spf(graph, vertex.key);
+        for (v in _ref1) {
+          dist = _ref1[v];
+          if (dist < Infinity) {
+            ancestors.add(v);
+          }
+        }
       });
-      button.append('rect').attr({
-        width: vertexButtonWidth,
-        height: vertexButtonHeight
+      _ref = verticesSelection.data();
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        vertex = _ref[_i];
+        vertex.upper = ancestors.has(vertex.key);
+        vertex.lower = descendants.has(vertex.key);
+      }
+      verticesSelection.classed({
+        selected: function(vertex) {
+          return vertex.selected;
+        },
+        upper: function(vertex) {
+          return vertex.upper;
+        },
+        lower: function(vertex) {
+          return vertex.lower;
+        }
       });
-      return button.filter(function(d) {
-        return d.icon != null;
-      }).append('image').attr({
-        x: vertexButtonWidth / 2 - 8,
-        y: vertexButtonHeight / 2 - 8,
-        width: '16px',
-        height: '16px',
-        'xlink:href': function(d) {
-          return d.icon;
+      container.selectAll('g.edge').classed({
+        upper: function(_arg) {
+          var source, target;
+          source = _arg.source, target = _arg.target;
+          return source.upper && target.upper;
+        },
+        lower: function(_arg) {
+          var source, target;
+          source = _arg.source, target = _arg.target;
+          return source.lower && target.lower;
         }
       });
     };
   };
 
-  selectVertex = function(container, u, vertexButtons) {
-    var ancestors, descendants, dist, graph, spf, v, _ref, _ref1;
-    if (vertexButtons == null) {
-      vertexButtons = [];
-    }
-    graph = container.datum();
-    spf = dijkstra().weight(function() {
-      return 1;
-    });
-    descendants = d3.set();
-    _ref = spf(graph, u.key);
-    for (v in _ref) {
-      dist = _ref[v];
-      if (dist < Infinity) {
-        descendants.add(v);
-      }
-    }
-    spf.inv(true);
-    ancestors = d3.set();
-    _ref1 = spf(graph, u.key);
-    for (v in _ref1) {
-      dist = _ref1[v];
-      if (dist < Infinity) {
-        ancestors.add(v);
-      }
-    }
-    container.selectAll('g.vertex').filter(function(d) {
-      return d.key === u.key;
-    }).classed('selected', true);
-    if (vertexButtons.length > 0) {
-      container.call(createVertexButtons(u, vertexButtons));
-    }
-    container.selectAll('g.edge').classed({
-      upper: function(_arg) {
-        var source, target;
-        source = _arg.source, target = _arg.target;
-        return ancestors.has(source.key) && ancestors.has(target.key);
-      },
-      lower: function(_arg) {
-        var source, target;
-        source = _arg.source, target = _arg.target;
-        return descendants.has(source.key) && descendants.has(target.key);
-      }
-    });
-    ancestors.remove(u.key);
-    descendants.remove(u.key);
-    return container.selectAll('g.vertex').classed({
-      upper: function(v) {
-        return ancestors.has(v.key);
-      },
-      lower: function(v) {
-        return descendants.has(v.key);
-      }
-    });
-  };
-
-  unselectVertex = function(container) {
-    container.selectAll('g.vertex').classed({
-      selected: false,
-      lower: false,
-      upper: false
-    });
-    container.selectAll('g.edge').classed({
-      lower: false,
-      upper: false
-    });
-    return container.selectAll('g.vertex-buttons').remove();
-  };
-
-  selectedVertex = function(container) {
-    return container.selectAll('g.vertex.selected');
-  };
-
-  module.exports = {
-    selectVertex: function(container, u, vertexButtons) {
-      var selection;
-      if (vertexButtons == null) {
-        vertexButtons = [];
-      }
-      selection = selectedVertex(container);
-      unselectVertex(container);
-      if (selection.empty() || selection.datum().key !== u.key) {
-        return selectVertex(container, u, vertexButtons);
-      }
-    },
-    reset: function(container, vertexButtons) {
-      var selection;
-      if (vertexButtons == null) {
-        vertexButtons = [];
-      }
-      selection = selectedVertex(container);
-      unselectVertex(container);
-      if (!selection.empty()) {
-        return selectVertex(container, selection.datum(), vertexButtons);
-      }
-    }
+  module.exports = function(vertexButtons) {
+    return function(container) {
+      container.call(updateSelectedVertex()).call(updateButtons(vertexButtons));
+    };
   };
 
 }).call(this);
@@ -374,7 +357,8 @@
     var container, vertexButtons;
     container = _arg.container, vertexButtons = _arg.vertexButtons;
     return function(vertex) {
-      return select.selectVertex(container, vertex, vertexButtons);
+      vertex.selected = !vertex.selected;
+      container.call(select(vertexButtons));
     };
   };
 
@@ -411,7 +395,8 @@
       selection.append('rect');
       return selection.append('text').each(function(u) {
         u.x = 0;
-        return u.y = 0;
+        u.y = 0;
+        return u.selected = false;
       }).attr({
         'text-anchor': 'left',
         'dominant-baseline': 'text-before-edge'
@@ -599,9 +584,10 @@
             vertexScale: vertexScale
           })).on('click', onClickVertex({
             container: container,
-            graph: graph,
             vertexButtons: vertexButtons
-          })).on('mouseenter', onMouseEnterVertex(vertexText)).on('mouseleave', onMouseLeaveVertex());
+          })).on('mouseenter', onMouseEnterVertex(vertexText)).on('mouseleave', onMouseLeaveVertex()).on('touchstart', onMouseEnterVertex(vertexText)).on('touchmove', function() {
+            return d3.event.preventDefault();
+          }).on('touchend', onMouseLeaveVertex());
           return contents.select('g.edges').selectAll('g.edge').data(edges, function(_arg) {
             var source, target;
             source = _arg.source, target = _arg.target;
@@ -1196,6 +1182,7 @@
           revert: function() {
             var w, _i, _j, _k, _l, _len, _len1, _len2, _len3;
             graph.clearVertex(u);
+            graph.addVertex(vValue, v);
             for (_i = 0, _len = uAdjacentVertices.length; _i < _len; _i++) {
               w = uAdjacentVertices[_i];
               graph.addEdge(u, w);
@@ -1204,7 +1191,6 @@
               w = uInvAdjacentVertices[_j];
               graph.addEdge(w, u);
             }
-            graph.addVertex(vValue, v);
             for (_k = 0, _len2 = vAdjacentVertices.length; _k < _len2; _k++) {
               w = vAdjacentVertices[_k];
               graph.addEdge(v, w);

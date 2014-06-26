@@ -314,6 +314,16 @@ describe('Grid', function() {
       expect(grid.graph().adjacentVertices(d)).to.be.eql([f]);
       expect(grid.graph().invAdjacentVertices(d)).to.be.eql([e]);
     });
+
+    it('should revert merge', function() {
+        var grid = egrid.core.grid();
+        var a = grid.addConstruct('a');
+        var b = grid.ladderDown(a, 'b');
+        grid.merge(a, b);
+        grid.undo();
+        expect(grid.graph().numVertices()).to.be(2);
+        expect(grid.graph().numEdges()).to.be(1);
+    });
   });
 
   describe('redo', function() {

@@ -2,119 +2,110 @@ svg = require '../svg'
 dijkstra = require '../graph/dijkstra'
 
 
-createVertexButtons = (vertex, vertexButtons) ->
+updateButtons = (vertexButtons) ->
   vertexButtonWidth = 30
   vertexButtonHeight = 20
   vertexButtonMargin = 5
 
-  (selection) ->
-    button = selection
+  (container) ->
+    vertices = container
+      .selectAll 'g.vertex'
+      .filter (vertex) -> vertex.selected
+      .data()
+    selection = container
       .select 'g.contents'
+      .selectAll 'g.vertex-buttons'
+      .data vertices, (vertex) -> vertex.key
+    selection
+      .enter()
       .append 'g'
-      .classed 'vertex-buttons', true
+      .each (vertex) ->
+        button = d3.select @
+          .classed 'vertex-buttons', true
+          .selectAll 'g.vertex-button'
+          .data vertexButtons
+          .enter()
+          .append 'g'
+          .classed 'vertex-button', true
+          .attr
+            transform: (d, i) ->
+              svg.transform.translate vertexButtonWidth * i, 0
+          .on 'mouseenter', ->
+            d3.select @
+              .classed 'hover', true
+          .on 'mouseleave', ->
+            d3.select @
+              .classed 'hover', false
+          .on 'click', (d) ->
+            d.onClick vertex.data, vertex.key
+        button
+          .append 'rect'
+          .attr
+            width: vertexButtonWidth
+            height: vertexButtonHeight
+        button
+          .filter (d) -> d.icon?
+          .append 'image'
+          .attr
+            x: vertexButtonWidth / 2 - 8
+            y: vertexButtonHeight / 2 - 8
+            width: '16px'
+            height: '16px'
+            'xlink:href': (d) -> d.icon
+    selection
+      .exit()
+      .remove()
+    container
+      .selectAll 'g.vertex-buttons'
       .attr
-        transform: ->
+        transform: (vertex) ->
           x = vertex.x - vertexButtonWidth * vertexButtons.length / 2
           y = vertex.y + vertex.height / 2 + vertexButtonMargin
           svg.transform.translate x, y
-      .selectAll 'g.vertex-button'
-      .data vertexButtons
-      .enter()
-      .append 'g'
-      .classed 'vertex-button', true
-      .attr
-        transform: (d, i) ->
-          svg.transform.translate vertexButtonWidth * i, 0
-      .on 'mouseenter', ->
-        d3.select @
-          .classed 'hover', true
-      .on 'mouseleave', ->
-        d3.select @
-          .classed 'hover', false
-      .on 'click', (d) ->
-        d.onClick vertex.data, vertex.key
-    button
-      .append 'rect'
-      .attr
-        width: vertexButtonWidth
-        height: vertexButtonHeight
-    button
-      .filter (d) -> d.icon?
-      .append 'image'
-      .attr
-        x: vertexButtonWidth / 2 - 8
-        y: vertexButtonHeight / 2 - 8
-        width: '16px'
-        height: '16px'
-        'xlink:href': (d) -> d.icon
+    return
 
 
-selectVertex = (container, u, vertexButtons=[]) ->
-  graph = container.datum()
-  spf = dijkstra()
-    .weight -> 1
-  descendants = d3.set()
-  for v, dist of spf graph, u.key
-    if dist < Infinity
-      descendants.add v
-  spf.inv true
-  ancestors = d3.set()
-  for v, dist of spf graph, u.key
-    if dist < Infinity
-      ancestors.add v
+updateSelectedVertex = ->
+  (container) ->
+    graph = container.datum()
+    spf = dijkstra()
+      .weight -> 1
 
-  container
-    .selectAll 'g.vertex'
-    .filter (d) -> d.key is u.key
-    .classed 'selected', true
-  if vertexButtons.length > 0
-    container.call createVertexButtons(u, vertexButtons)
-  container
-    .selectAll 'g.edge'
-    .classed
-      upper: ({source, target}) ->
-        ancestors.has(source.key) and ancestors.has(target.key)
-      lower: ({source, target}) ->
-        descendants.has(source.key) and descendants.has(target.key)
-  ancestors.remove u.key
-  descendants.remove u.key
-  container
-    .selectAll 'g.vertex'
-    .classed
-      upper: (v) -> ancestors.has v.key
-      lower: (v) -> descendants.has v.key
-
-
-unselectVertex = (container) ->
-  container
-    .selectAll 'g.vertex'
-    .classed
-      selected: false
-      lower: false
-      upper: false
-  container
-    .selectAll 'g.edge'
-    .classed
-      lower: false
-      upper: false
-  container
-    .selectAll 'g.vertex-buttons'
-    .remove()
+    verticesSelection = container
+      .selectAll 'g.vertex'
+      .each (vertex) -> vertex.upper = vertex.lower = false
+    descendants = d3.set()
+    ancestors = d3.set()
+    verticesSelection
+      .filter (vertex) -> vertex.selected
+      .each (vertex) ->
+        spf.inv false
+        for v, dist of spf graph, vertex.key
+          if dist < Infinity
+            descendants.add v
+        spf.inv true
+        for v, dist of spf graph, vertex.key
+          if dist < Infinity
+            ancestors.add v
+        return
+    for vertex in verticesSelection.data()
+      vertex.upper = ancestors.has vertex.key
+      vertex.lower = descendants.has vertex.key
+    verticesSelection
+      .classed
+        selected: (vertex) -> vertex.selected
+        upper: (vertex) -> vertex.upper
+        lower: (vertex) -> vertex.lower
+    container.selectAll 'g.edge'
+      .classed
+        upper: ({source, target}) -> source.upper and target.upper
+        lower: ({source, target}) -> source.lower and target.lower
+    return
 
 
-selectedVertex = (container) ->
-  container.selectAll 'g.vertex.selected'
-
-
-module.exports =
-  selectVertex: (container, u, vertexButtons=[]) ->
-    selection = selectedVertex container
-    unselectVertex container
-    if selection.empty() or selection.datum().key isnt u.key
-      selectVertex container, u, vertexButtons
-
-  reset: (container, vertexButtons=[]) ->
-    selection = selectedVertex container
-    unselectVertex container
-    unless selection.empty()
-      selectVertex container, selection.datum(), vertexButtons
+module.exports = (vertexButtons) ->
+  (container) ->
+    container
+      .call updateSelectedVertex()
+      .call updateButtons vertexButtons
+    return
