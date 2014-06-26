@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../bower_components/mocha/mocha.css" />
+</head>
+<body>
+<div id="mocha"></div>
+<script src="../bower_components/mocha/mocha.js"></script>
+<script src="../bower_components/expect/index.js"></script>
+<script src="../bower_components/sinon/lib/sinon.js"></script>
+<script src="../bower_components/d3/d3.min.js"></script>
+<script src="../lib/dagre.js"></script>
+<script src="../egrid-core.js"></script>
+<script>
+mocha.ui('bdd');
+mocha.reporter('html');
+
+describe('AdjacencyList', function() {
+  describe('constructor', function() {
+    it('should make empty graph', function() {
+      var graph = egrid.core.graph.adjacencyList();
+      expect(graph.numVertices()).to.be(0);
+      expect(graph.numEdges()).to.be(0);
+    });
+  });
+
+  describe('inEdges(u)', function() {
+    it('should return edges to u', function() {
+      var graph = egrid.core.graph.adjacencyList();
+      var a = graph.addVertex();
+      var b = graph.addVertex();
+      var c = graph.addVertex();
+      var e1 = graph.addEdge(a, b);
+      var e2 = graph.addEdge(c, a);
+      expect(graph.inEdges(a)).to.have.length(1);
+      expect(graph.inEdges(a)[0]).to.eql(e2);
+    });
+  });
+
+  describe('outEdges(u)', function() {
+    it('should return edges from u', function() {
+      var graph = egrid.core.graph.adjacencyList();
+      var a = graph.addVertex();
+      var b = graph.addVertex();
+      var c = graph.addVertex();
+      var e1 = graph.addEdge(a, b);
+      var e2 = graph.addEdge(c, a);
+      expect(graph.outEdges(a)).to.have.length(1);
+      expect(graph.outEdges(a)[0]).to.eql(e1);
+    });
+  });
+
+  describe('numVertices()', function() {
+    it('should return number of vertices of graph', function() {
+      var graph = egrid.core.graph.adjacencyList();
+      expect(graph.numVertices()).to.be(0);
+      graph.addVertex();
+      expect(graph.numVertices()).to.be(1);
+      graph.addVertex();
+      expect(graph.numVertices()).to.be(2);
+      graph.addVertex();
+      expect(graph.numVertices()).to.be(3);
+    });
+  })
+
+  describe('numEdges()', function() {
+    it('should return number of edges of graph', function() {
+      var graph = egrid.core.graph.adjacencyList();
+      var a = graph.addVertex();
+      var b = graph.addVertex();
+      var c = graph.addVertex();
+      expect(graph.numEdges()).to.be(0);
+      graph.addEdge(a, b);
+      expect(graph.numEdges()).to.be(1);
+      graph.addEdge(a, c);
+      expect(graph.numEdges()).to.be(2);
+      graph.addEdge(b, c);
+      expect(graph.numEdges()).to.be(3);
+    });
+  })
+
+  describe('addVertex()', function() {
+    it('should add vertex to graph', function() {
+      var graph = egrid.core.graph.adjacencyList();
+      graph.addVertex();
+      graph.addVertex();
+      graph.addVertex();
+      expect(graph.numVertices()).to.be(3);
+      expect(graph.numEdges()).to.be(0);
+    });
+  });
+
+  describe('addEdge()', function() {
+    it('should add edge to graph', function() {
+      var graph = egrid.core.graph.adjacencyList();
+      var a = graph.addVertex();
+      var b = graph.addVertex();
+      var c = graph.addVertex();
+      graph.addEdge(a, b);
+      graph.addEdge(a, c);
+      graph.addEdge(b, c);
+      expect(graph.numVertices()).to.be(3);
+      expect(graph.numEdges()).to.be(3);
+    });
+  });
+
+  describe('clearVertex()', function() {
+    it('should remove all edges to and from vertex', function() {
+      var graph = egrid.core.graph.adjacencyList();
+      var a = graph.addVertex();
+      var b = graph.addVertex();
+      var c = graph.addVertex();
+      graph.addEdge(a, b);
+      graph.addEdge(c, a);
+      graph.clearVertex(a);
+      expect(graph.numVertices()).to.be(3);
+      expect(graph.numEdges()).to.be(0);
+    });
+  });
+});
+
+if (window.mochaPhantomJS) {
+  mochaPhantomJS.run();
+} else {
+  mocha.run();
+}
+</script>
+</body>
+</html>

@@ -240,6 +240,64 @@ var app = angular.module('egrid-core-example', ['ui.router'])
           });
         }
       })
+      .state('ui', {
+        url: '/ui',
+        templateUrl: 'partials/ui.html',
+        controller: function($scope) {
+          var grid = egrid.core.grid();
+          var egm = egrid.core.egm()
+            .size([600, 600])
+            .maxTextLength(10)
+            .vertexButtons([
+              egrid.core.ui.ladderUpButton(grid, function() {
+                selection.call(egm);
+                $scope.$apply();
+              }),
+              egrid.core.ui.removeButton(grid, function() {
+                selection.call(egm);
+                $scope.$apply();
+              }),
+              egrid.core.ui.editButton(grid, function() {
+                selection.call(egm);
+                $scope.$apply();
+              }),
+              egrid.core.ui.ladderDownButton(grid, function() {
+                selection.call(egm);
+                $scope.$apply();
+              })
+            ]);
+          var selection = d3.select('svg.display')
+            .datum(grid.graph())
+            .call(egm.css())
+            .call(egm);
+
+          $scope.undoDisabled = function() {
+            return !grid.canUndo();
+          };
+
+          $scope.redoDisabled = function() {
+            return !grid.canRedo();
+          };
+
+          $scope.undo = function() {
+            grid.undo();
+            selection.call(egm);
+          };
+
+          $scope.redo = function() {
+            grid.redo();
+            selection.call(egm);
+          };
+
+          $scope.addConstruct = function() {
+            var text = prompt();
+            if (text) {
+              grid.addConstruct(text);
+              selection.call(egm);
+            }
+          };
+        }
+      })
       ;
   })
   ;
