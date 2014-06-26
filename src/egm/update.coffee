@@ -212,6 +212,9 @@ module.exports = (arg) ->
               vertexButtons: vertexButtons
             .on 'mouseenter', onMouseEnterVertex vertexText
             .on 'mouseleave', onMouseLeaveVertex()
+            .on 'touchstart', onMouseEnterVertex vertexText
+            .on 'touchmove', -> d3.event.preventDefault()
+            .on 'touchend', onMouseLeaveVertex()
           contents
             .select 'g.edges'
             .selectAll 'g.edge'
