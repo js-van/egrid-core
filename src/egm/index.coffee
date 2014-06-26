@@ -110,7 +110,7 @@ module.exports = (options={}) ->
       .call transition
         vertexOpacity: egm.vertexOpacity()
         vertexColor: egm.vertexColor()
-    select.reset selection, egm.vertexButtons()
+      .call select egm.vertexButtons()
     return
 
   accessor = (defaultVal) ->
@@ -162,7 +162,7 @@ module.exports = (options={}) ->
     g.vertex.upper > rect, g.edge.upper > path {
       stroke: #{options.upperStrokeColor || 'blue'};
     }
-    g.vertex.selected > rect {
+    g.vertex.upper.lower>rect, g.edge.upper.lower>path {
       stroke: #{options.selectedStrokeColor || 'purple'};
     }
     rect.background {
@@ -174,6 +174,9 @@ module.exports = (options={}) ->
     }
     g.vertex {
       cursor: pointer;
+    }
+    g.vertex-buttons {
+      opacity: 0.7;
     }
     g.vertex-button {
       cursor: pointer;

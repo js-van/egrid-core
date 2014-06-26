@@ -144,11 +144,11 @@ module.exports = (vertices, edges) ->
             graph.addEdge w, u
         revert: ->
           graph.clearVertex u
+          graph.addVertex vValue, v
           for w in uAdjacentVertices
             graph.addEdge u, w
           for w in uInvAdjacentVertices
             graph.addEdge w, u
-          graph.addVertex vValue, v
           for w in vAdjacentVertices
             graph.addEdge v, w
           for w in vInvAdjacentVertices
