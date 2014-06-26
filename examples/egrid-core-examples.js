@@ -244,25 +244,29 @@ var app = angular.module('egrid-core-example', ['ui.router'])
         url: '/ui',
         templateUrl: 'partials/ui.html',
         controller: function($scope) {
-          var grid = egrid.core.grid();
+          var grid = (function() {
+            var vertices = JSON.parse(localStorage.getItem('ui.vertices')) || [];
+            var edges = JSON.parse(localStorage.getItem('ui.edges')) || [];
+            return egrid.core.grid(vertices, edges);
+          })();
           var egm = egrid.core.egm()
-            .size([600, 600])
+            .size([$('div.display-container').width(), 600])
             .maxTextLength(10)
             .vertexButtons([
               egrid.core.ui.ladderUpButton(grid, function() {
-                selection.call(egm);
+                render();
                 $scope.$apply();
               }),
               egrid.core.ui.removeButton(grid, function() {
-                selection.call(egm);
+                render();
                 $scope.$apply();
               }),
               egrid.core.ui.editButton(grid, function() {
-                selection.call(egm);
+                render();
                 $scope.$apply();
               }),
               egrid.core.ui.ladderDownButton(grid, function() {
-                selection.call(egm);
+                render();
                 $scope.$apply();
               })
             ]);
@@ -270,6 +274,24 @@ var app = angular.module('egrid-core-example', ['ui.router'])
             .datum(grid.graph())
             .call(egm.css())
             .call(egm);
+
+          var render = function() {
+            selection.call(egm);
+            var graph = grid.graph();
+            var vertexMap = {};
+            var vertices = graph.vertices().map(function(u, i) {
+              vertexMap[u] = i;
+              return graph.get(u);
+            });
+            var edges = graph.edges().map(function(edge) {
+              return {
+                source: vertexMap[edge[0]],
+                target: vertexMap[edge[1]]
+              };
+            });
+            localStorage.setItem('ui.vertices', JSON.stringify(vertices));
+            localStorage.setItem('ui.edges', JSON.stringify(edges));
+          };
 
           $scope.undoDisabled = function() {
             return !grid.canUndo();
@@ -281,19 +303,19 @@ var app = angular.module('egrid-core-example', ['ui.router'])
 
           $scope.undo = function() {
             grid.undo();
-            selection.call(egm);
+            render();
           };
 
           $scope.redo = function() {
             grid.redo();
-            selection.call(egm);
+            render();
           };
 
           $scope.addConstruct = function() {
             var text = prompt();
             if (text) {
               grid.addConstruct(text);
-              selection.call(egm);
+              render();
             }
           };
 
@@ -309,9 +331,24 @@ var app = angular.module('egrid-core-example', ['ui.router'])
               });
             if (vertices.length == 2) {
               grid.merge(vertices[0], vertices[1]);
-              selection.call(egm);
+              render();
             }
           };
+
+          $scope.clear = function() {
+            var graph = grid.graph();
+            graph.vertices().forEach(function(u) {
+              graph.clearVertex(u);
+              graph.removeVertex(u);
+            });
+            render();
+          };
+
+          d3.select(window)
+            .on('resize', function() {
+              gridSelection
+                .call(egm.resize($('display-container').width(), 600));
+            });
         }
       })
       ;
