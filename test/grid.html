@@ -172,6 +172,34 @@ describe('Grid', function() {
     });
   });
 
+  describe('merge', function() {
+    it('should merge two vertices into one vertex', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('1st construct');
+      var v = grid.addConstruct('2nd construct');
+      var w = grid.merge(u, v);
+      expect(grid.graph().numVertices()).to.be(1);
+      expect(grid.graph().numEdges()).to.be(0);
+      expect(grid.graph().get(u).text).to.be('1st construct, 2nd construct');
+      expect(w).to.be(u);
+    });
+
+    it('should merge edges', function() {
+      var grid = egrid.core.grid();
+      var a = grid.addConstruct('a');
+      var b = grid.ladderUp(a, 'b');
+      var c = grid.ladderDown(a, 'c');
+      var d = grid.addConstruct('d');
+      var e = grid.ladderUp(d, 'e');
+      var f = grid.ladderDown(d, 'f');
+      grid.merge(a, d);
+      expect(grid.graph().numVertices()).to.be(5);
+      expect(grid.graph().numEdges()).to.be(4);
+      expect(grid.graph().adjacentVertices(a)).to.be.eql([c, f]);
+      expect(grid.graph().invAdjacentVertices(a)).to.be.eql([b, e]);
+    });
+  });
+
   describe('canUndo', function() {
     it('should return true after transaction', function() {
       var grid = egrid.core.grid();
@@ -268,6 +296,24 @@ describe('Grid', function() {
       expect(grid.graph().numVertices()).to.be(2);
       expect(grid.graph().numEdges()).to.be(0);
     });
+
+    it('should revert merge', function() {
+      var grid = egrid.core.grid();
+      var a = grid.addConstruct('a');
+      var b = grid.ladderUp(a, 'b');
+      var c = grid.ladderDown(a, 'c');
+      var d = grid.addConstruct('d');
+      var e = grid.ladderUp(d, 'e');
+      var f = grid.ladderDown(d, 'f');
+      grid.merge(a, d);
+      grid.undo();
+      expect(grid.graph().numVertices()).to.be(6);
+      expect(grid.graph().numEdges()).to.be(4);
+      expect(grid.graph().adjacentVertices(a)).to.be.eql([c]);
+      expect(grid.graph().invAdjacentVertices(a)).to.be.eql([b]);
+      expect(grid.graph().adjacentVertices(d)).to.be.eql([f]);
+      expect(grid.graph().invAdjacentVertices(d)).to.be.eql([e]);
+    });
   });
 
   describe('redo', function() {
@@ -344,6 +390,23 @@ describe('Grid', function() {
       grid.redo();
       expect(grid.graph().numVertices()).to.be(2);
       expect(grid.graph().numEdges()).to.be(1);
+    });
+
+    it('should re-execute merge', function() {
+      var grid = egrid.core.grid();
+      var a = grid.addConstruct('a');
+      var b = grid.ladderUp(a, 'b');
+      var c = grid.ladderDown(a, 'c');
+      var d = grid.addConstruct('d');
+      var e = grid.ladderUp(d, 'e');
+      var f = grid.ladderDown(d, 'f');
+      grid.merge(a, d);
+      grid.undo();
+      grid.redo();
+      expect(grid.graph().numVertices()).to.be(5);
+      expect(grid.graph().numEdges()).to.be(4);
+      expect(grid.graph().adjacentVertices(a)).to.be.eql([c, f]);
+      expect(grid.graph().invAdjacentVertices(a)).to.be.eql([b, e]);
     });
   });
 });

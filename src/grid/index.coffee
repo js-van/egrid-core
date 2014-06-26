@@ -125,6 +125,37 @@ module.exports = (vertices, edges) ->
             graph.removeVertex v
       v
 
+    merge: (u, v) ->
+      uValue = graph.get u
+      vValue = graph.get v
+      uText = uValue.text
+      uAdjacentVertices = graph.adjacentVertices u
+      uInvAdjacentVertices = graph.invAdjacentVertices u
+      vAdjacentVertices = graph.adjacentVertices v
+      vInvAdjacentVertices = graph.invAdjacentVertices v
+      execute
+        execute: ->
+          uValue.text = "#{uValue.text}, #{vValue.text}"
+          graph.clearVertex v
+          graph.removeVertex v
+          for w in vAdjacentVertices
+            graph.addEdge u, w
+          for w in vInvAdjacentVertices
+            graph.addEdge w, u
+        revert: ->
+          graph.clearVertex u
+          for w in uAdjacentVertices
+            graph.addEdge u, w
+          for w in uInvAdjacentVertices
+            graph.addEdge w, u
+          graph.addVertex vValue, v
+          for w in vAdjacentVertices
+            graph.addEdge v, w
+          for w in vInvAdjacentVertices
+            graph.addEdge w, v
+          uValue.text = uText
+      u
+
     canUndo: ->
       undoStack.length > 0
 
