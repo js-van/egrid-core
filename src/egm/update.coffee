@@ -2,10 +2,11 @@ svg = require '../svg'
 select = require './select'
 
 
-onClickVertex = ({container, vertexButtons}) ->
+onClickVertex = ({container, vertexButtons, clickVertexCallback}) ->
   (vertex) ->
     vertex.selected = not vertex.selected
     container.call select vertexButtons
+    clickVertexCallback()
     return
 
 
@@ -169,8 +170,8 @@ initContainer = (zoom) ->
         .classed 'vertices', true
       zoom.on 'zoom', ->
         e = d3.event
-        t = svg.transform.translate(e.translate[0], e.translate[1])
-        s = svg.transform.scale(e.scale)
+        t = svg.transform.translate e.translate[0], e.translate[1]
+        s = svg.transform.scale e.scale
         contents.attr 'transform', svg.transform.compose(t, s)
     return
 
@@ -179,7 +180,8 @@ module.exports = (arg) ->
   {vertexScale, vertexText, vertexVisibility,
    enableZoom, zoom, maxTextLength,
    edgePointsSize, edgeLine,
-   vertexButtons} = arg
+   vertexButtons,
+   clickVertexCallback} = arg
 
   (selection) ->
     selection
@@ -212,6 +214,7 @@ module.exports = (arg) ->
             .on 'click', onClickVertex
               container: container
               vertexButtons: vertexButtons
+              clickVertexCallback: clickVertexCallback
             .on 'mouseenter', onMouseEnterVertex vertexText
             .on 'mouseleave', onMouseLeaveVertex()
             .on 'touchstart', onMouseEnterVertex vertexText

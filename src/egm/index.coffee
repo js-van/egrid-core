@@ -94,6 +94,7 @@ module.exports = (options={}) ->
       .call update
         edgePointsSize: edgePointsSize
         edgeLine: edgeLine
+        clickVertexCallback: egm.onClickVertex()
         vertexButtons: egm.vertexButtons()
         vertexScale: egm.vertexScale()
         vertexText: egm.vertexText()
@@ -111,6 +112,17 @@ module.exports = (options={}) ->
         vertexOpacity: egm.vertexOpacity()
         vertexColor: egm.vertexColor()
       .call select egm.vertexButtons()
+
+    [width, height] = egm.size()
+    vertices = selection
+      .selectAll 'g.vertex'
+      .data()
+    left = d3.min vertices, (vertex) -> vertex.x - vertex.width / 2
+    right = d3.max vertices, (vertex) -> vertex.x + vertex.width / 2
+    top = d3.min vertices, (vertex) -> vertex.y - vertex.height / 2
+    bottom = d3.max vertices, (vertex) -> vertex.y + vertex.height / 2
+    scale = d3.min [Math.min width / (right - left), height / (bottom - top), 1]
+    zoom.scaleExtent [scale, 1]
     return
 
   accessor = (defaultVal) ->
@@ -130,6 +142,7 @@ module.exports = (options={}) ->
     enableClickVertex: true
     enableZoom: true
     maxTextLength: Infinity
+    onClickVertex: ->
     vertexButtons: -> []
     vertexColor: -> ''
     vertexOpacity: -> 1
@@ -213,12 +226,18 @@ module.exports = (options={}) ->
       right = d3.max vertices, (vertex) -> vertex.x + vertex.width / 2
       top = d3.min vertices, (vertex) -> vertex.y - vertex.height / 2
       bottom = d3.max vertices, (vertex) -> vertex.y + vertex.height / 2
-      scale = Math.min width / (right - left), height / (bottom - top)
+      scale = d3.min [width / (right - left), height / (bottom - top), 1]
+      x = (width - (right - left) * scale) / 2
+      y = (height - (bottom - top) * scale) / 2
       zoom
         .scale scale
-        .translate [(width - (right - left) * scale) / 2,
-                    (height - (bottom - top) * scale) / 2]
-        .event selection.select 'g.contents'
+        .translate [x, y]
+      t = svg.transform.translate x, y
+      s = svg.transform.scale scale
+      selection
+        .select 'g.contents'
+        .transition()
+        .attr 'transform', svg.transform.compose(t, s)
 
   egm.options = (options) ->
     for attr of optionAttributes
