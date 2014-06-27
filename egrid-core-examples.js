@@ -252,6 +252,9 @@ var app = angular.module('egrid-core-example', ['ui.router'])
           var egm = egrid.core.egm()
             .size([$('div.display-container').width(), 600])
             .maxTextLength(10)
+            .onClickVertex(function() {
+              $scope.$apply();
+            })
             .vertexButtons([
               egrid.core.ui.ladderUpButton(grid, function() {
                 render();
@@ -273,7 +276,8 @@ var app = angular.module('egrid-core-example', ['ui.router'])
           var selection = d3.select('svg.display')
             .datum(grid.graph())
             .call(egm.css())
-            .call(egm);
+            .call(egm)
+            .call(egm.center());
 
           var render = function() {
             selection.call(egm);
@@ -291,6 +295,10 @@ var app = angular.module('egrid-core-example', ['ui.router'])
             });
             localStorage.setItem('ui.vertices', JSON.stringify(vertices));
             localStorage.setItem('ui.edges', JSON.stringify(edges));
+          };
+
+          $scope.mergeDisabled = function() {
+            return selection.selectAll('g.vertex.selected').size() != 2;
           };
 
           $scope.undoDisabled = function() {
@@ -336,18 +344,24 @@ var app = angular.module('egrid-core-example', ['ui.router'])
           };
 
           $scope.clear = function() {
-            var graph = grid.graph();
-            graph.vertices().forEach(function(u) {
-              graph.clearVertex(u);
-              graph.removeVertex(u);
-            });
-            render();
+            if (confirm('Clear ?')) {
+              var graph = grid.graph();
+              graph.vertices().forEach(function(u) {
+                graph.clearVertex(u);
+                graph.removeVertex(u);
+              });
+              render();
+            }
+          };
+
+          $scope.center = function() {
+            selection.call(egm.center());
           };
 
           d3.select(window)
             .on('resize', function() {
-              gridSelection
-                .call(egm.resize($('display-container').width(), 600));
+              selection
+                .call(egm.resize($('div.display-container').width(), 600));
             });
         }
       })
