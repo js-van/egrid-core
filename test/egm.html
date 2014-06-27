@@ -1,25 +1,167 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <link rel="stylesheet" href="../bower_components/mocha/mocha.css" />
-  </head>
-  <body>
-    <div id="mocha"></div>
-    <script src="../bower_components/mocha/mocha.js"></script>
-    <script src="../bower_components/expect/index.js"></script>
-    <script src="../bower_components/sinon/lib/sinon.js"></script>
-    <script src="../bower_components/d3/d3.min.js"></script>
-    <script src="../lib/dagre.js"></script>
-    <script src="../egrid-core.js"></script>
-    <script>
-      mocha.ui('bdd');
-      mocha.reporter('html');
-    </script>
-    <script src="egm.js"></script>
-    <script>
-      if (window.mochaPhantomJS) { mochaPhantomJS.run(); }
-      else { mocha.run(); }
-    </script>
-  </body>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../bower_components/mocha/mocha.css" />
+</head>
+<body>
+<div id="mocha"></div>
+<script src="../bower_components/mocha/mocha.js"></script>
+<script src="../bower_components/expect/index.js"></script>
+<script src="../bower_components/sinon/lib/sinon.js"></script>
+<script src="../bower_components/d3/d3.min.js"></script>
+<script src="../lib/dagre.js"></script>
+<script src="../egrid-core.js"></script>
+<script>
+mocha.ui('bdd');
+mocha.reporter('html');
+
+describe('egm', function() {
+  function makeGrid() {
+    var graph = egrid.core.graph.adjacencyList();
+    var a = graph.addVertex({text: 'a'});
+    var b = graph.addVertex({text: 'b'});
+    var c = graph.addVertex({text: 'c'});
+    var d = graph.addVertex({text: 'd'});
+    graph.addEdge(a, b);
+    graph.addEdge(b, c);
+    graph.addEdge(b, d);
+    return graph;
+  }
+
+  beforeEach(function() {
+    d3.select('body').append('svg');
+  });
+
+  afterEach(function() {
+    d3.select('svg').remove();
+  });
+
+  it('test draw', function() {
+    var egm = egrid.core.egm();
+    var selection = d3.select('svg')
+      .datum(makeGrid())
+      .call(egm);
+
+    expect(selection.selectAll('g.vertices > g.vertex > rect').size()).to.be(4);
+    expect(selection.selectAll('g.vertices > g.vertex > text').size()).to.be(4);
+    expect(selection.selectAll('g.edges > g.edge > path').size()).to.be(3);
+  });
+
+  it('test clear', function() {
+    var egm = egrid.core.egm();
+    var selection = d3.select('svg')
+      .datum(makeGrid())
+      .call(egm)
+      .datum(null)
+      .call(egm);
+
+    expect(selection.select('g.vertices').empty()).to.be.ok();
+    expect(selection.select('g.edges').empty()).to.be.ok();
+  });
+
+  it('test change text', function() {
+    var egm = egrid.core.egm();
+    var grid = makeGrid();
+    var selection = d3.select('svg')
+      .datum(grid)
+      .call(egm);
+
+    expect(selection.select('g.vertices > g.vertex:nth-child(2) > text').text()).to.be('b');
+
+    grid.get(1).text = 'changed';
+    selection.call(egm);
+
+    expect(selection.select('g.vertices > g.vertex:nth-child(2) > text').text()).to.be('changed');
+  });
+
+  it('vertices ordering', function() {
+    var egm = egrid.core.egm()
+      .vertexVisibility(function(vertex) {
+        return vertex.visible === undefined ? true : vertex.visible;
+      });
+    var grid = makeGrid();
+    var selection = d3.select('svg')
+      .datum(grid)
+      .call(egm);
+
+    var positions = {};
+    selection.selectAll('g.vertices > g.vertex')
+      .each(function(u) {
+        positions[u.key] = [u.x, u.y];
+      });
+
+    grid.get(2).visible = false;
+    selection.call(egm);
+    grid.get(2).visible = true;
+    selection.call(egm);
+
+    selection.selectAll('g.vertices > g.vertex')
+      .each(function(u) {
+        expect(u.x).to.be(positions[u.key][0]);
+        expect(u.y).to.be(positions[u.key][1]);
+      });
+  });
+
+  describe('center', function() {
+    it('should work with empty grid', function() {
+      var egm = egrid.core.egm()
+        .size([100, 100]);
+      var grid = egrid.core.grid();
+
+      var selection = d3.select('svg')
+        .datum(grid.graph())
+        .call(egm)
+        .call(egm.center({transition: false}));
+
+        var transform = selection.select('g.contents').attr('transform');
+        expect(transform).to.be('translate(50,50)scale(1,1)');
+    });
+
+    it('should transform contents region', function() {
+      var egm = egrid.core.egm()
+        .size([100, 100]);
+      var grid = egrid.core.grid();
+      var a = grid.addConstruct('a');
+      var b = grid.addConstruct('b');
+      var c = grid.addConstruct('c');
+
+      var selection = d3.select('svg')
+        .datum(grid.graph())
+        .call(egm);
+
+      selection.selectAll('g.vertex')
+        .each(function(vertex) {
+          if (vertex.key == a) {
+            vertex.width = 20;
+            vertex.height = 10;
+            vertex.x = 10;
+            vertex.y = 5;
+          } else if (vertex.key == b) {
+            vertex.width = 20;
+            vertex.height = 10;
+            vertex.x = 190;
+            vertex.y = 50;
+          } else {
+            vertex.width = 20;
+            vertex.height = 10;
+            vertex.x = 100;
+            vertex.y = 95;
+          }
+        });
+      selection.call(egm.center({transition: false}));
+
+      var transform = selection.select('g.contents').attr('transform');
+      expect(transform).to.be('translate(0,25)scale(0.5,0.5)');
+    });
+  });
+});
+
+if (window.mochaPhantomJS) {
+  mochaPhantomJS.run();
+} else {
+  mocha.run();
+}
+</script>
+</body>
 </html>
