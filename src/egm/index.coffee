@@ -216,16 +216,18 @@ module.exports = (options={}) ->
     egm.size([width, height])
     resize width, height
 
-  egm.center = () ->
+  egm.center = (arg={}) ->
+    useTransition = if arg.transition? then arg.transition else true
+
     (selection) ->
       [width, height] = egm.size()
       vertices = selection
         .selectAll 'g.vertex'
         .data()
-      left = d3.min vertices, (vertex) -> vertex.x - vertex.width / 2
-      right = d3.max vertices, (vertex) -> vertex.x + vertex.width / 2
-      top = d3.min vertices, (vertex) -> vertex.y - vertex.height / 2
-      bottom = d3.max vertices, (vertex) -> vertex.y + vertex.height / 2
+      left = (d3.min vertices, (vertex) -> vertex.x - vertex.width / 2) or 0
+      right = (d3.max vertices, (vertex) -> vertex.x + vertex.width / 2) or 0
+      top = (d3.min vertices, (vertex) -> vertex.y - vertex.height / 2) or 0
+      bottom = (d3.max vertices, (vertex) -> vertex.y + vertex.height / 2) or 0
       scale = d3.min [width / (right - left), height / (bottom - top), 1]
       x = (width - (right - left) * scale) / 2
       y = (height - (bottom - top) * scale) / 2
@@ -234,10 +236,16 @@ module.exports = (options={}) ->
         .translate [x, y]
       t = svg.transform.translate x, y
       s = svg.transform.scale scale
-      selection
-        .select 'g.contents'
-        .transition()
-        .attr 'transform', svg.transform.compose(t, s)
+      if useTransition
+        selection
+          .select 'g.contents'
+          .transition()
+          .attr 'transform', svg.transform.compose(t, s)
+      else
+        selection
+          .select 'g.contents'
+          .attr 'transform', svg.transform.compose(t, s)
+      return
 
   egm.options = (options) ->
     for attr of optionAttributes

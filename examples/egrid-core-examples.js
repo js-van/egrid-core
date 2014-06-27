@@ -360,8 +360,8 @@ var app = angular.module('egrid-core-example', ['ui.router'])
 
           d3.select(window)
             .on('resize', function() {
-              gridSelection
-                .call(egm.resize($('display-container').width(), 600));
+              selection
+                .call(egm.resize($('div.display-container').width(), 600));
             });
         }
       })
