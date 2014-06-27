@@ -98,9 +98,11 @@
     }
     zoom = d3.behavior.zoom().scaleExtent([0, 1]);
     egm = function(selection) {
+      var bottom, height, left, right, scale, top, vertices, width, _ref;
       selection.call(update({
         edgePointsSize: edgePointsSize,
         edgeLine: edgeLine,
+        clickVertexCallback: egm.onClickVertex(),
         vertexButtons: egm.vertexButtons(),
         vertexScale: egm.vertexScale(),
         vertexText: egm.vertexText(),
@@ -117,6 +119,22 @@
         vertexOpacity: egm.vertexOpacity(),
         vertexColor: egm.vertexColor()
       })).call(select(egm.vertexButtons()));
+      _ref = egm.size(), width = _ref[0], height = _ref[1];
+      vertices = selection.selectAll('g.vertex').data();
+      left = d3.min(vertices, function(vertex) {
+        return vertex.x - vertex.width / 2;
+      });
+      right = d3.max(vertices, function(vertex) {
+        return vertex.x + vertex.width / 2;
+      });
+      top = d3.min(vertices, function(vertex) {
+        return vertex.y - vertex.height / 2;
+      });
+      bottom = d3.max(vertices, function(vertex) {
+        return vertex.y + vertex.height / 2;
+      });
+      scale = d3.min([Math.min(width / (right - left), height / (bottom - top), 1)]);
+      zoom.scaleExtent([scale, 1]);
     };
     accessor = function(defaultVal) {
       var val;
@@ -138,6 +156,7 @@
       enableClickVertex: true,
       enableZoom: true,
       maxTextLength: Infinity,
+      onClickVertex: function() {},
       vertexButtons: function() {
         return [];
       },
@@ -173,25 +192,39 @@
       egm.size([width, height]);
       return resize(width, height);
     };
-    egm.center = function() {
+    egm.center = function(arg) {
+      var useTransition;
+      if (arg == null) {
+        arg = {};
+      }
+      useTransition = arg.transition != null ? arg.transition : true;
       return function(selection) {
-        var bottom, height, left, right, scale, top, vertices, width, _ref;
+        var bottom, height, left, right, s, scale, t, top, vertices, width, x, y, _ref;
         _ref = egm.size(), width = _ref[0], height = _ref[1];
         vertices = selection.selectAll('g.vertex').data();
-        left = d3.min(vertices, function(vertex) {
+        left = (d3.min(vertices, function(vertex) {
           return vertex.x - vertex.width / 2;
-        });
-        right = d3.max(vertices, function(vertex) {
+        })) || 0;
+        right = (d3.max(vertices, function(vertex) {
           return vertex.x + vertex.width / 2;
-        });
-        top = d3.min(vertices, function(vertex) {
+        })) || 0;
+        top = (d3.min(vertices, function(vertex) {
           return vertex.y - vertex.height / 2;
-        });
-        bottom = d3.max(vertices, function(vertex) {
+        })) || 0;
+        bottom = (d3.max(vertices, function(vertex) {
           return vertex.y + vertex.height / 2;
-        });
-        scale = Math.min(width / (right - left), height / (bottom - top));
-        return zoom.scale(scale).translate([(width - (right - left) * scale) / 2, (height - (bottom - top) * scale) / 2]).event(selection.select('g.contents'));
+        })) || 0;
+        scale = d3.min([width / (right - left), height / (bottom - top), 1]);
+        x = (width - (right - left) * scale) / 2;
+        y = (height - (bottom - top) * scale) / 2;
+        zoom.scale(scale).translate([x, y]);
+        t = svg.transform.translate(x, y);
+        s = svg.transform.scale(scale);
+        if (useTransition) {
+          selection.select('g.contents').transition().attr('transform', svg.transform.compose(t, s));
+        } else {
+          selection.select('g.contents').attr('transform', svg.transform.compose(t, s));
+        }
       };
     };
     egm.options = function(options) {
@@ -354,11 +387,12 @@
   select = require('./select');
 
   onClickVertex = function(_arg) {
-    var container, vertexButtons;
-    container = _arg.container, vertexButtons = _arg.vertexButtons;
+    var clickVertexCallback, container, vertexButtons;
+    container = _arg.container, vertexButtons = _arg.vertexButtons, clickVertexCallback = _arg.clickVertexCallback;
     return function(vertex) {
       vertex.selected = !vertex.selected;
       container.call(select(vertexButtons));
+      clickVertexCallback();
     };
   };
 
@@ -556,8 +590,8 @@
   };
 
   module.exports = function(arg) {
-    var edgeLine, edgePointsSize, enableZoom, maxTextLength, vertexButtons, vertexScale, vertexText, vertexVisibility, zoom;
-    vertexScale = arg.vertexScale, vertexText = arg.vertexText, vertexVisibility = arg.vertexVisibility, enableZoom = arg.enableZoom, zoom = arg.zoom, maxTextLength = arg.maxTextLength, edgePointsSize = arg.edgePointsSize, edgeLine = arg.edgeLine, vertexButtons = arg.vertexButtons;
+    var clickVertexCallback, edgeLine, edgePointsSize, enableZoom, maxTextLength, vertexButtons, vertexScale, vertexText, vertexVisibility, zoom;
+    vertexScale = arg.vertexScale, vertexText = arg.vertexText, vertexVisibility = arg.vertexVisibility, enableZoom = arg.enableZoom, zoom = arg.zoom, maxTextLength = arg.maxTextLength, edgePointsSize = arg.edgePointsSize, edgeLine = arg.edgeLine, vertexButtons = arg.vertexButtons, clickVertexCallback = arg.clickVertexCallback;
     return function(selection) {
       return selection.each(function(graph) {
         var container, contents, edges, vertices, _ref;
@@ -584,7 +618,8 @@
             vertexScale: vertexScale
           })).on('click', onClickVertex({
             container: container,
-            vertexButtons: vertexButtons
+            vertexButtons: vertexButtons,
+            clickVertexCallback: clickVertexCallback
           })).on('mouseenter', onMouseEnterVertex(vertexText)).on('mouseleave', onMouseLeaveVertex()).on('touchstart', onMouseEnterVertex(vertexText)).on('touchmove', function() {
             return d3.event.preventDefault();
           }).on('touchend', onMouseLeaveVertex());
