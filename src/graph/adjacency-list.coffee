@@ -74,4 +74,15 @@ module.exports = (v, e) ->
       else
         vertices[u].property
 
+    dump: ->
+      vertexMap = {}
+      @vertices().forEach (u, i) ->
+        vertexMap[u] = i
+      {
+        vertices: @vertices().map (u) => @get u
+        edges: @edges().map ([u, v]) ->
+          source: vertexMap[u]
+          target: vertexMap[v]
+      }
+
   new AdjacencyList v, e
