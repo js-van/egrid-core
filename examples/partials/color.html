@@ -17,8 +17,8 @@
           <td><label><input type="checkbox" ng-model="vertex.visible" ng-change="update()"/> Visible</label></td>
           <td><input class="form-control" type="text" ng-model="vertex.text" ng-change="update()"/></td>
           <td><input class="form-control" type="number" min="0" step="1" ng-model="vertex.size" ng-change="update()"/></td>
-          <td><input class="form-control" type="number" min="0" max="1" step="0.1" ng-model="vertex.opacity" ng-change="update()"/></td>
-          <td><input class="form-control" type="color" ng-model="vertex.color" ng-change="update()"/></td>
+          <td><input class="form-control" type="number" min="0" max="1" step="0.1" ng-model="vertex.opacity" ng-change="updateColor()"/></td>
+          <td><input class="form-control" type="color" ng-model="vertex.color" ng-change="updateColor()"/></td>
         </tr>
       </table>
     </form>

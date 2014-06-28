@@ -64,6 +64,9 @@ var app = angular.module('egrid-core-example', ['ui.router'])
             ]
           );
           var egm = egrid.core.egm({
+            edgeOpacity: function(source, target) {
+              return (source.opacity + target.opacity) / 2;
+            },
             enableClickNode: true,
             vertexColor: function(vertex) {
               return vertex.color;
@@ -89,6 +92,9 @@ var app = angular.module('egrid-core-example', ['ui.router'])
           });
           $scope.update = function() {
             d3.select('svg.display').call(egm);
+          };
+          $scope.updateColor = function() {
+            d3.select('svg.display').call(egm.updateColor());
           };
         }
       })
