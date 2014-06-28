@@ -1,6 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 (function() {
-  var edgeLine, edgePointsSize, layout, resize, select, svg, transition, update;
+  var edgeLine, edgePointsSize, layout, paint, resize, select, svg, transition, update;
 
   svg = require('../svg');
 
@@ -59,21 +59,31 @@
   };
 
   transition = function(arg) {
-    var vertexColor, vertexOpacity;
-    vertexOpacity = arg.vertexOpacity, vertexColor = arg.vertexColor;
     return function(selection) {
       var trans;
       trans = selection.transition();
       trans.selectAll('g.vertices > g.vertex').attr('transform', function(u) {
         return svg.transform.compose(svg.transform.translate(u.x, u.y), svg.transform.scale(u.scale));
-      }).style('opacity', function(u) {
-        return vertexOpacity(u.data);
       });
-      trans.selectAll('g.vertices > g.vertex > rect').style('fill', function(u) {
-        return vertexColor(u.data, u.key);
-      });
-      return trans.selectAll('g.edges > g.edge').select('path').attr('d', function(e) {
+      trans.selectAll('g.edges > g.edge').select('path').attr('d', function(e) {
         return edgeLine(e.points);
+      });
+      return trans.call(paint(arg));
+    };
+  };
+
+  paint = function(_arg) {
+    var edgeOpacity, vertexColor, vertexOpacity;
+    vertexOpacity = _arg.vertexOpacity, vertexColor = _arg.vertexColor, edgeOpacity = _arg.edgeOpacity;
+    return function(container) {
+      container.selectAll('g.vertices>g.vertex').style('opacity', function(vertex) {
+        return vertexOpacity(vertex.data, vertex.key);
+      });
+      container.selectAll('g.vertices>g.vertex>rect').style('fill', function(vertex) {
+        return vertexColor(vertex.data, vertex.key);
+      });
+      return container.selectAll('g.edges>g.edge>path').style('opacity', function(edge) {
+        return edgeOpacity(edge.source.data, edge.target.data);
       });
     };
   };
@@ -116,6 +126,7 @@
         dagreRankDir: egm.dagreRankDir(),
         dagreRankSep: egm.dagreRankSep()
       })).call(transition({
+        edgeOpacity: egm.edgeOpacity(),
         vertexOpacity: egm.vertexOpacity(),
         vertexColor: egm.vertexColor()
       })).call(select(egm.vertexButtons()));
@@ -153,6 +164,9 @@
       dagreNodeSep: 20,
       dagreRankDir: 'LR',
       dagreRankSep: 30,
+      edgeOpacity: function() {
+        return 1;
+      },
       enableClickVertex: true,
       enableZoom: true,
       maxTextLength: Infinity,
@@ -225,6 +239,15 @@
         } else {
           selection.select('g.contents').attr('transform', svg.transform.compose(t, s));
         }
+      };
+    };
+    egm.updateColor = function() {
+      return function(selection) {
+        return selection.transition().call(paint({
+          vertexOpacity: egm.vertexOpacity(),
+          vertexColor: egm.vertexColor(),
+          edgeOpacity: egm.edgeOpacity()
+        }));
       };
     };
     egm.options = function(options) {
@@ -809,6 +832,29 @@
         } else {
           return vertices[u].property;
         }
+      };
+
+      AdjacencyList.prototype.dump = function() {
+        var vertexMap;
+        vertexMap = {};
+        this.vertices().forEach(function(u, i) {
+          return vertexMap[u] = i;
+        });
+        return {
+          vertices: this.vertices().map((function(_this) {
+            return function(u) {
+              return _this.get(u);
+            };
+          })(this)),
+          edges: this.edges().map(function(_arg) {
+            var u, v;
+            u = _arg[0], v = _arg[1];
+            return {
+              source: vertexMap[u],
+              target: vertexMap[v]
+            };
+          })
+        };
       };
 
       return AdjacencyList;
