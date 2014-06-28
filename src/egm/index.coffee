@@ -52,8 +52,6 @@ layout = (arg) ->
 
 
 transition = (arg) ->
-  {vertexOpacity, vertexColor} = arg
-
   (selection) ->
     trans = selection.transition()
     trans
@@ -61,14 +59,24 @@ transition = (arg) ->
       .attr 'transform', (u) ->
         svg.transform.compose((svg.transform.translate u.x, u.y),
                               (svg.transform.scale u.scale))
-      .style 'opacity', (u) -> vertexOpacity u.data
-    trans
-      .selectAll 'g.vertices > g.vertex > rect'
-      .style 'fill', (u) -> vertexColor u.data, u.key
     trans
       .selectAll 'g.edges > g.edge'
       .select 'path'
       .attr 'd', (e) -> edgeLine e.points
+    trans.call paint arg
+
+
+paint = ({vertexOpacity, vertexColor, edgeOpacity}) ->
+  (container) ->
+    container
+      .selectAll 'g.vertices>g.vertex'
+      .style 'opacity', (vertex) -> vertexOpacity vertex.data, vertex.key
+    container
+      .selectAll 'g.vertices>g.vertex>rect'
+      .style 'fill', (vertex) -> vertexColor vertex.data, vertex.key
+    container
+      .selectAll 'g.edges>g.edge>path'
+      .style 'opacity', (edge) -> edgeOpacity edge.source.data, edge.target.data
 
 
 resize = (width, height) ->
@@ -109,6 +117,7 @@ module.exports = (options={}) ->
         dagreRankDir: egm.dagreRankDir()
         dagreRankSep: egm.dagreRankSep()
       .call transition
+        edgeOpacity: egm.edgeOpacity()
         vertexOpacity: egm.vertexOpacity()
         vertexColor: egm.vertexColor()
       .call select egm.vertexButtons()
@@ -139,6 +148,7 @@ module.exports = (options={}) ->
     dagreNodeSep: 20
     dagreRankDir: 'LR'
     dagreRankSep: 30
+    edgeOpacity: -> 1
     enableClickVertex: true
     enableZoom: true
     maxTextLength: Infinity
@@ -246,6 +256,15 @@ module.exports = (options={}) ->
           .select 'g.contents'
           .attr 'transform', svg.transform.compose(t, s)
       return
+
+  egm.updateColor = () ->
+    (selection) ->
+      selection
+        .transition()
+        .call paint
+          vertexOpacity: egm.vertexOpacity()
+          vertexColor: egm.vertexColor()
+          edgeOpacity: egm.edgeOpacity()
 
   egm.options = (options) ->
     for attr of optionAttributes

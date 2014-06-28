@@ -64,6 +64,9 @@ var app = angular.module('egrid-core-example', ['ui.router'])
             ]
           );
           var egm = egrid.core.egm({
+            edgeOpacity: function(source, target) {
+              return (source.opacity + target.opacity) / 2;
+            },
             enableClickNode: true,
             vertexColor: function(vertex) {
               return vertex.color;
@@ -89,6 +92,9 @@ var app = angular.module('egrid-core-example', ['ui.router'])
           });
           $scope.update = function() {
             d3.select('svg.display').call(egm);
+          };
+          $scope.updateColor = function() {
+            d3.select('svg.display').call(egm.updateColor());
           };
         }
       })
@@ -245,9 +251,13 @@ var app = angular.module('egrid-core-example', ['ui.router'])
         templateUrl: 'partials/ui.html',
         controller: function($scope) {
           var grid = (function() {
-            var vertices = JSON.parse(localStorage.getItem('ui.vertices')) || [];
-            var edges = JSON.parse(localStorage.getItem('ui.edges')) || [];
-            return egrid.core.grid(vertices, edges);
+            var data = localStorage.getItem('ui.grid');
+            if (data) {
+              var grid = JSON.parse(data);
+              return egrid.core.grid(grid.vertices, grid.edges);
+            } else {
+              return egrid.core.grid();
+            }
           })();
           var egm = egrid.core.egm()
             .size([$('div.display-container').width(), 600])
@@ -281,20 +291,8 @@ var app = angular.module('egrid-core-example', ['ui.router'])
 
           var render = function() {
             selection.call(egm);
-            var graph = grid.graph();
-            var vertexMap = {};
-            var vertices = graph.vertices().map(function(u, i) {
-              vertexMap[u] = i;
-              return graph.get(u);
-            });
-            var edges = graph.edges().map(function(edge) {
-              return {
-                source: vertexMap[edge[0]],
-                target: vertexMap[edge[1]]
-              };
-            });
-            localStorage.setItem('ui.vertices', JSON.stringify(vertices));
-            localStorage.setItem('ui.edges', JSON.stringify(edges));
+            var data = grid.graph().dump();
+            localStorage.setItem('ui.grid', JSON.stringify(data));
           };
 
           $scope.mergeDisabled = function() {
