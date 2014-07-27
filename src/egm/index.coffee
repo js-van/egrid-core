@@ -60,13 +60,20 @@ transition = (arg) ->
         svg.transform.compose((svg.transform.translate u.x, u.y),
                               (svg.transform.scale u.scale))
     trans
-      .selectAll 'g.edges > g.edge'
+      .selectAll 'g.edges>g.edge'
       .select 'path'
       .attr 'd', (e) -> edgeLine e.points
+    trans
+      .selectAll 'g.edges>g.edge'
+      .select 'text'
+      .attr 'transform', (e) ->
+        svg.transform.translate e.points[1][0], e.points[1][1]
     trans.call paint arg
 
 
-paint = ({vertexOpacity, vertexColor, edgeOpacity}) ->
+paint = (arg) ->
+  {vertexOpacity, vertexColor,
+   edgeColor, edgeOpacity, edgeWidth} = arg
   (container) ->
     container
       .selectAll 'g.vertices>g.vertex'
@@ -76,7 +83,10 @@ paint = ({vertexOpacity, vertexColor, edgeOpacity}) ->
       .style 'fill', (vertex) -> vertexColor vertex.data, vertex.key
     container
       .selectAll 'g.edges>g.edge>path'
-      .style 'opacity', (edge) -> edgeOpacity edge.source.data, edge.target.data
+      .style
+        opacity: ({source, target}) -> edgeOpacity source.key, target.key
+        stroke: ({source, target}) -> edgeColor source.key, target.key
+        'stroke-width': ({source, target}) -> edgeWidth source.key, target.key
 
 
 resize = (width, height) ->
@@ -102,6 +112,7 @@ module.exports = (options={}) ->
       .call update
         edgePointsSize: edgePointsSize
         edgeLine: edgeLine
+        edgeText: egm.edgeText()
         clickVertexCallback: egm.onClickVertex()
         vertexButtons: egm.vertexButtons()
         vertexScale: egm.vertexScale()
@@ -117,7 +128,9 @@ module.exports = (options={}) ->
         dagreRankDir: egm.dagreRankDir()
         dagreRankSep: egm.dagreRankSep()
       .call transition
+        edgeColor: egm.edgeColor()
         edgeOpacity: egm.edgeOpacity()
+        edgeWidth: egm.edgeWidth()
         vertexOpacity: egm.vertexOpacity()
         vertexColor: egm.vertexColor()
       .call select egm.vertexButtons()
@@ -148,7 +161,10 @@ module.exports = (options={}) ->
     dagreNodeSep: 20
     dagreRankDir: 'LR'
     dagreRankSep: 30
+    edgeColor: -> ''
     edgeOpacity: -> 1
+    edgeText: -> ''
+    edgeWidth: -> 1
     enableClickVertex: true
     enableZoom: true
     maxTextLength: Infinity
