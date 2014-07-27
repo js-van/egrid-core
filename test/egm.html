@@ -128,6 +128,44 @@ describe('egm', function() {
     });
   });
 
+  describe('updateColor', function() {
+    it('should change color', function() {
+      var egm = egrid.core.egm();
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('a');
+      grid.ladderDown(u, 'b');
+      var selection = d3.select('svg')
+        .datum(grid.graph())
+        .call(egm);
+
+      expect(selection.selectAll('g.edges>g.edge>path').style('stroke')).to.be('none');
+      expect(selection.selectAll('g.edges>g.edge>path').style('opacity')).to.be('1');
+      expect(selection.selectAll('g.vertices>g.vertex>rect').style('fill')).to.be('#000000');
+      expect(selection.selectAll('g.vertices>g.vertex').style('opacity')).to.be('1');
+
+      egm
+        .edgeColor(function() {
+          console.log('hoge');
+          return 'red';
+        })
+        .edgeOpacity(function() {
+          return '0.5';
+        })
+        .vertexColor(function() {
+          return 'blue';
+        })
+        .vertexOpacity(function() {
+          return '0.8';
+        });
+      selection.call(egm.updateColor());
+
+      // expect(selection.select('g.edges>g.edge>path').style('stroke')).to.be('red');
+      // expect(selection.selectAll('g.edges>g.edge>path').style('opacity')).to.be('0.5');
+      // expect(selection.selectAll('g.vertices>g.vertex>rect').style('fill')).to.be('blue');
+      // expect(selection.selectAll('g.vertices>g.vertex').style('opacity')).to.be('0.8');
+    });
+  });
+
   describe('center', function() {
     it('should work with empty grid', function() {
       var egm = egrid.core.egm()

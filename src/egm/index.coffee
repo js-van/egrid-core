@@ -278,9 +278,11 @@ module.exports = (options={}) ->
       selection
         .transition()
         .call paint
-          vertexOpacity: egm.vertexOpacity()
-          vertexColor: egm.vertexColor()
+          edgeColor: egm.edgeColor()
           edgeOpacity: egm.edgeOpacity()
+          edgeWidth: egm.edgeWidth()
+          vertexColor: egm.vertexColor()
+          vertexOpacity: egm.vertexOpacity()
 
   egm.options = (options) ->
     for attr of optionAttributes
