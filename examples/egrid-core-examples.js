@@ -63,9 +63,25 @@ var app = angular.module('egrid-core-example', ['ui.router'])
               {source: 1, target: 5}
             ]
           );
+          var edgeText = {
+            '0,1': 'A',
+            '1,2': 'B',
+            '3,1': 'C',
+            '1,4': 'D',
+            '1,5': 'E'
+          };
           var egm = egrid.core.egm({
-            edgeOpacity: function(source, target) {
-              return (source.opacity + target.opacity) / 2;
+            edgeColor: function(u, v) {
+              return grid.get(u).color;
+            },
+            edgeOpacity: function(u, v) {
+              return (grid.get(u).opacity + grid.get(v).opacity) / 2;
+            },
+            edgeText: function(u, v) {
+              return edgeText[u + ',' + v] || '';
+            },
+            edgeWidth: function(u, v) {
+              return (grid.get(u).size + grid.get(v).size) / 2;
             },
             enableClickNode: true,
             vertexColor: function(vertex) {

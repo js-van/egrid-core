@@ -93,12 +93,13 @@ updateVertices = (arg) ->
 
 
 updateEdges = (arg) ->
-  {edgePointsSize, edgeLine} = arg
+  {edgeText, edgePointsSize, edgeLine} = arg
   (selection) ->
-    selection
+    edge = selection
       .enter()
       .append 'g'
       .classed 'edge', true
+    edge
       .append 'path'
       .attr 'd', ({source, target}) ->
         points = []
@@ -106,6 +107,10 @@ updateEdges = (arg) ->
         for i in [1..edgePointsSize]
           points.push [target.x, target.y]
         edgeLine points
+    edge
+      .append 'text'
+      .text ({source, target}) ->
+        edgeText source.key, target.key
     selection
       .exit()
       .remove()
@@ -177,7 +182,8 @@ initContainer = (zoom) ->
 
 
 module.exports = (arg) ->
-  {vertexScale, vertexText, vertexVisibility,
+  {edgeText,
+   vertexScale, vertexText, vertexVisibility,
    enableZoom, zoom, maxTextLength,
    edgePointsSize, edgeLine,
    vertexButtons,
@@ -225,6 +231,7 @@ module.exports = (arg) ->
             .selectAll 'g.edge'
             .data edges, ({source, target}) -> "#{source.key}:#{target.key}"
             .call updateEdges
+              edgeText: edgeText
               edgePointsSize: edgePointsSize
               edgeLine: edgeLine
         else
