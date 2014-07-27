@@ -109,11 +109,12 @@ updateEdges = (arg) ->
         edgeLine points
     edge
       .append 'text'
-      .text ({source, target}) ->
-        edgeText source.key, target.key
     selection
       .exit()
       .remove()
+    selection
+      .select 'text'
+      .text ({source, target}) -> edgeText source.key, target.key
 
 
 makeGrid = (graph, arg) ->

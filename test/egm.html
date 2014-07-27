@@ -103,6 +103,31 @@ describe('egm', function() {
       });
   });
 
+  describe('edgeText', function() {
+    it('should add edge text', function() {
+      var egm = egrid.core.egm()
+        .edgeText(function(u, v) {
+          return 'hoge';
+        });
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('a');
+      grid.ladderDown(u, 'b');
+      var selection = d3.select('svg')
+        .datum(grid.graph())
+        .call(egm);
+
+      expect(selection.select('g.edges>g.edge>text').text()).to.be('hoge');
+
+      egm
+        .edgeText(function(u, v) {
+          return 'fuga';
+        });
+      selection.call(egm);
+
+      expect(selection.select('g.edges>g.edge>text').text()).to.be('fuga');
+    });
+  });
+
   describe('center', function() {
     it('should work with empty grid', function() {
       var egm = egrid.core.egm()
