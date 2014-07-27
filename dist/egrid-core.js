@@ -273,9 +273,11 @@
     egm.updateColor = function() {
       return function(selection) {
         return selection.transition().call(paint({
-          vertexOpacity: egm.vertexOpacity(),
+          edgeColor: egm.edgeColor(),
+          edgeOpacity: egm.edgeOpacity(),
+          edgeWidth: egm.edgeWidth(),
           vertexColor: egm.vertexColor(),
-          edgeOpacity: egm.edgeOpacity()
+          vertexOpacity: egm.vertexOpacity()
         }));
       };
     };
