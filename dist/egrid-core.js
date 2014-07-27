@@ -549,12 +549,13 @@
         }
         return edgeLine(points);
       });
-      edge.append('text').text(function(_arg) {
+      edge.append('text');
+      selection.exit().remove();
+      return selection.select('text').text(function(_arg) {
         var source, target;
         source = _arg.source, target = _arg.target;
         return edgeText(source.key, target.key);
       });
-      return selection.exit().remove();
     };
   };
 
