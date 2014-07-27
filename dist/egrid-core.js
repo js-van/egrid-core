@@ -65,16 +65,19 @@
       trans.selectAll('g.vertices > g.vertex').attr('transform', function(u) {
         return svg.transform.compose(svg.transform.translate(u.x, u.y), svg.transform.scale(u.scale));
       });
-      trans.selectAll('g.edges > g.edge').select('path').attr('d', function(e) {
+      trans.selectAll('g.edges>g.edge').select('path').attr('d', function(e) {
         return edgeLine(e.points);
+      });
+      trans.selectAll('g.edges>g.edge').select('text').attr('transform', function(e) {
+        return svg.transform.translate(e.points[1][0], e.points[1][1]);
       });
       return trans.call(paint(arg));
     };
   };
 
-  paint = function(_arg) {
-    var edgeOpacity, vertexColor, vertexOpacity;
-    vertexOpacity = _arg.vertexOpacity, vertexColor = _arg.vertexColor, edgeOpacity = _arg.edgeOpacity;
+  paint = function(arg) {
+    var edgeColor, edgeOpacity, edgeWidth, vertexColor, vertexOpacity;
+    vertexOpacity = arg.vertexOpacity, vertexColor = arg.vertexColor, edgeColor = arg.edgeColor, edgeOpacity = arg.edgeOpacity, edgeWidth = arg.edgeWidth;
     return function(container) {
       container.selectAll('g.vertices>g.vertex').style('opacity', function(vertex) {
         return vertexOpacity(vertex.data, vertex.key);
@@ -82,8 +85,22 @@
       container.selectAll('g.vertices>g.vertex>rect').style('fill', function(vertex) {
         return vertexColor(vertex.data, vertex.key);
       });
-      return container.selectAll('g.edges>g.edge>path').style('opacity', function(edge) {
-        return edgeOpacity(edge.source.data, edge.target.data);
+      return container.selectAll('g.edges>g.edge>path').style({
+        opacity: function(_arg) {
+          var source, target;
+          source = _arg.source, target = _arg.target;
+          return edgeOpacity(source.key, target.key);
+        },
+        stroke: function(_arg) {
+          var source, target;
+          source = _arg.source, target = _arg.target;
+          return edgeColor(source.key, target.key);
+        },
+        'stroke-width': function(_arg) {
+          var source, target;
+          source = _arg.source, target = _arg.target;
+          return edgeWidth(source.key, target.key);
+        }
       });
     };
   };
@@ -112,6 +129,7 @@
       selection.call(update({
         edgePointsSize: edgePointsSize,
         edgeLine: edgeLine,
+        edgeText: egm.edgeText(),
         clickVertexCallback: egm.onClickVertex(),
         vertexButtons: egm.vertexButtons(),
         vertexScale: egm.vertexScale(),
@@ -126,7 +144,9 @@
         dagreRankDir: egm.dagreRankDir(),
         dagreRankSep: egm.dagreRankSep()
       })).call(transition({
+        edgeColor: egm.edgeColor(),
         edgeOpacity: egm.edgeOpacity(),
+        edgeWidth: egm.edgeWidth(),
         vertexOpacity: egm.vertexOpacity(),
         vertexColor: egm.vertexColor()
       })).call(select(egm.vertexButtons()));
@@ -164,7 +184,16 @@
       dagreNodeSep: 20,
       dagreRankDir: 'LR',
       dagreRankSep: 30,
+      edgeColor: function() {
+        return '';
+      },
       edgeOpacity: function() {
+        return 1;
+      },
+      edgeText: function() {
+        return '';
+      },
+      edgeWidth: function() {
         return 1;
       },
       enableClickVertex: true,
@@ -505,10 +534,12 @@
   };
 
   updateEdges = function(arg) {
-    var edgeLine, edgePointsSize;
-    edgePointsSize = arg.edgePointsSize, edgeLine = arg.edgeLine;
+    var edgeLine, edgePointsSize, edgeText;
+    edgeText = arg.edgeText, edgePointsSize = arg.edgePointsSize, edgeLine = arg.edgeLine;
     return function(selection) {
-      selection.enter().append('g').classed('edge', true).append('path').attr('d', function(_arg) {
+      var edge;
+      edge = selection.enter().append('g').classed('edge', true);
+      edge.append('path').attr('d', function(_arg) {
         var i, points, source, target, _i;
         source = _arg.source, target = _arg.target;
         points = [];
@@ -517,6 +548,11 @@
           points.push([target.x, target.y]);
         }
         return edgeLine(points);
+      });
+      edge.append('text').text(function(_arg) {
+        var source, target;
+        source = _arg.source, target = _arg.target;
+        return edgeText(source.key, target.key);
       });
       return selection.exit().remove();
     };
@@ -613,8 +649,8 @@
   };
 
   module.exports = function(arg) {
-    var clickVertexCallback, edgeLine, edgePointsSize, enableZoom, maxTextLength, vertexButtons, vertexScale, vertexText, vertexVisibility, zoom;
-    vertexScale = arg.vertexScale, vertexText = arg.vertexText, vertexVisibility = arg.vertexVisibility, enableZoom = arg.enableZoom, zoom = arg.zoom, maxTextLength = arg.maxTextLength, edgePointsSize = arg.edgePointsSize, edgeLine = arg.edgeLine, vertexButtons = arg.vertexButtons, clickVertexCallback = arg.clickVertexCallback;
+    var clickVertexCallback, edgeLine, edgePointsSize, edgeText, enableZoom, maxTextLength, vertexButtons, vertexScale, vertexText, vertexVisibility, zoom;
+    edgeText = arg.edgeText, vertexScale = arg.vertexScale, vertexText = arg.vertexText, vertexVisibility = arg.vertexVisibility, enableZoom = arg.enableZoom, zoom = arg.zoom, maxTextLength = arg.maxTextLength, edgePointsSize = arg.edgePointsSize, edgeLine = arg.edgeLine, vertexButtons = arg.vertexButtons, clickVertexCallback = arg.clickVertexCallback;
     return function(selection) {
       return selection.each(function(graph) {
         var container, contents, edges, vertices, _ref;
@@ -651,6 +687,7 @@
             source = _arg.source, target = _arg.target;
             return "" + source.key + ":" + target.key;
           }).call(updateEdges({
+            edgeText: edgeText,
             edgePointsSize: edgePointsSize,
             edgeLine: edgeLine
           }));
