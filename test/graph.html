@@ -118,6 +118,30 @@ describe('AdjacencyList', function() {
       expect(graph.numEdges()).to.be(0);
     });
   });
+
+  describe('get()', function() {
+    it('should return property of edge', function() {
+      var graph = egrid.core.graph.adjacencyList();
+      var u = graph.addVertex({
+        text: 'TEXT'
+      });
+      expect(graph.get(u).text).to.be('TEXT');
+    });
+  });
+
+  describe('set()', function() {
+    it('should set property of edge', function() {
+      var graph = egrid.core.graph.adjacencyList();
+      var u = graph.addVertex({
+        text: 'TEXT'
+      });
+      expect(graph.get(u).text).to.be('TEXT');
+      graph.set(u, {
+        text: 'NEW TEXT'
+      });
+      expect(graph.get(u).text).to.be('NEW TEXT');
+    });
+  });
 });
 
 if (window.mochaPhantomJS) {

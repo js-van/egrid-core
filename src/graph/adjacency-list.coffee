@@ -74,6 +74,13 @@ module.exports = (v, e) ->
       else
         vertices[u].property
 
+    set: (u, v, prop) ->
+      if prop?
+        vertices[u].outAdjacencies[v] = prop
+      else
+        prop = v
+        vertices[u].property = prop
+
     dump: ->
       vertexMap = {}
       @vertices().forEach (u, i) ->

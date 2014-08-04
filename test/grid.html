@@ -198,6 +198,21 @@ describe('Grid', function() {
       expect(grid.graph().adjacentVertices(a)).to.be.eql([c, f]);
       expect(grid.graph().invAdjacentVertices(a)).to.be.eql([b, e]);
     });
+
+    it('should run with custom merge function', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('1st construct');
+      var v = grid.addConstruct('2nd construct');
+      var w = grid.merge(u, v, function(u, v) {
+        return {
+          text: 'custom merge function'
+        };
+      });
+      expect(grid.graph().numVertices()).to.be(1);
+      expect(grid.graph().numEdges()).to.be(0);
+      expect(grid.graph().get(u).text).to.be('custom merge function');
+      expect(w).to.be(u);
+    });
   });
 
   describe('canUndo', function() {

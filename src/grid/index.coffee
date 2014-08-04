@@ -125,17 +125,19 @@ module.exports = (vertices, edges) ->
             graph.removeVertex v
       v
 
-    merge: (u, v) ->
+    merge: (u, v, f) ->
+      f = f || (u, v) ->
+        text: "#{graph.get(u).text}, #{graph.get(v).text}"
       uValue = graph.get u
       vValue = graph.get v
-      uText = uValue.text
+      wValue = f u, v
       uAdjacentVertices = graph.adjacentVertices u
       uInvAdjacentVertices = graph.invAdjacentVertices u
       vAdjacentVertices = graph.adjacentVertices v
       vInvAdjacentVertices = graph.invAdjacentVertices v
       execute
         execute: ->
-          uValue.text = "#{uValue.text}, #{vValue.text}"
+          graph.set u, wValue
           graph.clearVertex v
           graph.removeVertex v
           for w in vAdjacentVertices
@@ -153,7 +155,7 @@ module.exports = (vertices, edges) ->
             graph.addEdge v, w
           for w in vInvAdjacentVertices
             graph.addEdge w, v
-          uValue.text = uText
+            graph.set u, uValue
       u
 
     canUndo: ->
