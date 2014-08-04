@@ -571,6 +571,7 @@
     }
     vertices = graph.vertices().filter(pred).map(function(u) {
       if (oldVerticesMap[u] != null) {
+        oldVerticesMap[u].data = graph.get(u);
         return oldVerticesMap[u];
       } else {
         return {
