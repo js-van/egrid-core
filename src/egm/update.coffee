@@ -127,6 +127,7 @@ makeGrid = (graph, arg) ->
     .filter pred
     .map (u) ->
       if oldVerticesMap[u]?
+        oldVerticesMap[u].data = graph.get u
         oldVerticesMap[u]
       else
         key: u

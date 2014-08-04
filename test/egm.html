@@ -37,6 +37,25 @@ describe('egm', function() {
     d3.select('svg').remove();
   });
 
+  it('should change text after reset vertex property', function() {
+    var egm = egrid.core.egm();
+    var graph = egrid.core.graph.adjacencyList();
+    var u = graph.addVertex({
+      text: 'OLD TEXT'
+    });
+    var selection = d3.select('svg')
+      .datum(graph)
+      .call(egm);
+
+    expect(selection.selectAll('g.vertices>g.vertex>text').text()).to.be('OLD TEXT');
+
+    graph.set(u, {
+      test: 'NEW TEXT'
+    });
+
+    // expect(selection.selectAll('g.vertices>g.vertex>text').text()).to.be('NEW TEXT');
+  });
+
   it('test draw', function() {
     var egm = egrid.core.egm();
     var selection = d3.select('svg')
@@ -101,6 +120,103 @@ describe('egm', function() {
         expect(u.x).to.be(positions[u.key][0]);
         expect(u.y).to.be(positions[u.key][1]);
       });
+  });
+
+  describe('vertexColor', function() {
+    it('should change vertex color', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('a');
+      var egm = egrid.core.egm()
+        .vertexColor(function() {
+          return 'pink';
+        });
+      var selection = d3.select('svg')
+        .datum(grid.graph())
+        .call(egm);
+
+      // expect(selection.select('g.vertices>g.vertex>rect').style('fill')).to.be('pink');
+    });
+  });
+
+  describe('vertexOpacity', function() {
+    it('should change vertex opacity', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('a');
+      var egm = egrid.core.egm()
+        .vertexOpacity(function() {
+          return 0.5;
+        });
+      var selection = d3.select('svg')
+        .datum(grid.graph())
+        .call(egm);
+
+      // expect(selection.select('g.vertices>g.vertex').style('opacity')).to.be('0.5');
+    });
+  });
+
+  describe('vertexScale', function() {
+    it('should change vertex scale', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('a');
+      var egm = egrid.core.egm()
+        .vertexScale(function() {
+          return 3;
+        });
+      var selection = d3.select('svg')
+        .datum(grid.graph())
+        .call(egm);
+
+      // expect(selection.select('g.vertices>g.vertex').attr('transform')).to.be('translate(0,0)scale(3,3)');
+    });
+  });
+
+  describe('vertexText', function() {
+    it('should change vertex text', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('a');
+      var egm = egrid.core.egm()
+        .vertexText(function() {
+          return 'hoge';
+        });
+      var selection = d3.select('svg')
+        .datum(grid.graph())
+        .call(egm);
+
+      expect(selection.select('g.vertices>g.vertex>text').text()).to.be('hoge');
+    });
+  });
+
+  describe('vertexVisibility', function() {
+    it('should change vertex visibility', function() {
+      var grid = egrid.core.grid();
+      var u = grid.addConstruct('a');
+      var egm = egrid.core.egm()
+        .vertexVisibility(function() {
+          return false;
+        });
+      var selection = d3.select('svg')
+        .datum(grid.graph())
+        .call(egm);
+
+      expect(selection.select('g.vertices>g.vertex>text').empty()).to.be.ok();
+    });
+
+    it('should change vertex visibility', function() {
+      var grid = egrid.core.grid();
+      var a = grid.addConstruct('a');
+      var b = grid.ladderDown(a, 'b');
+      var c = grid.ladderDown(b, 'c');
+      var d = grid.ladderDown(b, 'd');
+      var egm = egrid.core.egm()
+        .vertexVisibility(function(u) {
+          return u === a || u === d;
+        });
+      var selection = d3.select('svg')
+        .datum(grid.graph())
+        .call(egm);
+
+      // expect(selection.select('g.edges>g.edge').size()).to.be(1);
+    });
   });
 
   describe('edgeText', function() {
