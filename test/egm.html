@@ -16,6 +16,13 @@
 mocha.ui('bdd');
 mocha.reporter('html');
 
+function flushTransitions() {
+  var now = Date.now;
+  Date.now = function() { return Infinity; };
+  d3.timer.flush();
+  Date.now = now;
+}
+
 describe('egm', function() {
   function makeGrid() {
     var graph = egrid.core.graph.adjacencyList();
@@ -50,10 +57,12 @@ describe('egm', function() {
     expect(selection.selectAll('g.vertices>g.vertex>text').text()).to.be('OLD TEXT');
 
     graph.set(u, {
-      test: 'NEW TEXT'
+      text: 'NEW TEXT'
     });
 
-    // expect(selection.selectAll('g.vertices>g.vertex>text').text()).to.be('NEW TEXT');
+    selection.call(egm);
+
+    expect(selection.selectAll('g.vertices>g.vertex>text').text()).to.be('NEW TEXT');
   });
 
   it('test draw', function() {
@@ -128,13 +137,13 @@ describe('egm', function() {
       var u = grid.addConstruct('a');
       var egm = egrid.core.egm()
         .vertexColor(function() {
-          return 'pink';
+          return '#ffc0cb';
         });
       var selection = d3.select('svg')
         .datum(grid.graph())
         .call(egm);
-
-      // expect(selection.select('g.vertices>g.vertex>rect').style('fill')).to.be('pink');
+      flushTransitions();
+      expect(selection.select('g.vertices>g.vertex>rect').style('fill')).to.be('#ffc0cb');
     });
   });
 
@@ -149,8 +158,8 @@ describe('egm', function() {
       var selection = d3.select('svg')
         .datum(grid.graph())
         .call(egm);
-
-      // expect(selection.select('g.vertices>g.vertex').style('opacity')).to.be('0.5');
+      flushTransitions();
+      expect(selection.select('g.vertices>g.vertex').style('opacity')).to.be('0.5');
     });
   });
 
@@ -165,8 +174,8 @@ describe('egm', function() {
       var selection = d3.select('svg')
         .datum(grid.graph())
         .call(egm);
-
-      // expect(selection.select('g.vertices>g.vertex').attr('transform')).to.be('translate(0,0)scale(3,3)');
+      flushTransitions();
+      expect(selection.select('g.vertices>g.vertex').attr('transform')).to.be('translate(27,42)scale(3,3)');
     });
   });
 
@@ -214,7 +223,7 @@ describe('egm', function() {
       var selection = d3.select('svg')
         .datum(grid.graph())
         .call(egm);
-
+      flushTransitions();
       // expect(selection.select('g.edges>g.edge').size()).to.be(1);
     });
   });
@@ -261,23 +270,25 @@ describe('egm', function() {
 
       egm
         .edgeColor(function() {
-          return 'red';
+          return '#ff0000';
         })
         .edgeOpacity(function() {
-          return '0.5';
+          return 0.5;
         })
         .vertexColor(function() {
-          return 'blue';
+          return '#0000ff';
         })
         .vertexOpacity(function() {
-          return '0.8';
+          return 0.25;
         });
-      selection.call(egm.updateColor());
 
-      // expect(selection.select('g.edges>g.edge>path').style('stroke')).to.be('red');
-      // expect(selection.selectAll('g.edges>g.edge>path').style('opacity')).to.be('0.5');
-      // expect(selection.selectAll('g.vertices>g.vertex>rect').style('fill')).to.be('blue');
-      // expect(selection.selectAll('g.vertices>g.vertex').style('opacity')).to.be('0.8');
+      selection.call(egm.updateColor());
+      flushTransitions();
+
+      expect(selection.select('g.edges>g.edge>path').style('stroke')).to.be('#ff0000');
+      expect(selection.selectAll('g.edges>g.edge>path').style('opacity')).to.be('0.5');
+      expect(selection.selectAll('g.vertices>g.vertex>rect').style('fill')).to.be('#0000ff');
+      expect(selection.selectAll('g.vertices>g.vertex').style('opacity')).to.be('0.25');
     });
   });
 
@@ -290,10 +301,12 @@ describe('egm', function() {
       var selection = d3.select('svg')
         .datum(grid.graph())
         .call(egm)
-        .call(egm.center({transition: false}));
 
-        var transform = selection.select('g.contents').attr('transform');
-        expect(transform).to.be('translate(50,50)scale(1,1)');
+      selection.call(egm.center());
+      flushTransitions();
+
+      var transform = selection.select('g.contents').attr('transform');
+      expect(transform).to.be('translate(50,50)');
     });
 
     it('should transform contents region', function() {
@@ -327,7 +340,9 @@ describe('egm', function() {
             vertex.y = 95;
           }
         });
-      selection.call(egm.center({transition: false}));
+
+      selection.call(egm.center());
+      flushTransitions();
 
       var transform = selection.select('g.contents').attr('transform');
       expect(transform).to.be('translate(0,25)scale(0.5,0.5)');

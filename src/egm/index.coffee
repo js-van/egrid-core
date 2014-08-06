@@ -243,8 +243,6 @@ module.exports = (options={}) ->
     resize width, height
 
   egm.center = (arg={}) ->
-    useTransition = if arg.transition? then arg.transition else true
-
     (selection) ->
       [width, height] = egm.size()
       vertices = selection
@@ -262,15 +260,10 @@ module.exports = (options={}) ->
         .translate [x, y]
       t = svg.transform.translate x, y
       s = svg.transform.scale scale
-      if useTransition
-        selection
-          .select 'g.contents'
-          .transition()
-          .attr 'transform', svg.transform.compose(t, s)
-      else
-        selection
-          .select 'g.contents'
-          .attr 'transform', svg.transform.compose(t, s)
+      selection
+        .select 'g.contents'
+        .transition()
+        .attr 'transform', svg.transform.compose(t, s)
       return
 
   egm.updateColor = () ->
