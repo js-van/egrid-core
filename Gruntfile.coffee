@@ -2,26 +2,39 @@ module.exports = (grunt) ->
   grunt.initConfig
     pkg: grunt.file.readJSON 'package.json'
     coffee:
-      compile:
+      src:
         files: [
           expand: true
           cwd: 'src/'
           src: ['**/*.coffee']
-          dest: 'js'
+          dest: 'src'
           ext: '.js'
         ]
+      test:
+        files: [
+          expand: true
+          cwd: 'test/'
+          src: ['**/*.coffee']
+          dest: 'test'
+          ext: '.js'
+        ]
+        options:
+          bare: true
     browserify:
-      dist:
+      src:
         files:
-          'egrid-core.js': ['js/index.js']
+          'egrid-core.js': ['src/index.js']
+      test:
+        files:
+          'test/egrid-core-test.js': ['test/index.js']
     watch:
       scripts:
         files: ['src/**/*.coffee']
-        tasks: ['compile']
+        tasks: ['build:src']
       test:
-        files: ['src/**/*.coffee', 'test/**/*']
-        tasks: ['compile', 'test']
-      ghPages:
+        files: ['src/**/*.coffee', 'test/**/*.coffee', 'test/**/*.html']
+        tasks: ['build', 'test']
+      'gh-pages':
         files: ['src/**/*.coffee', 'examples/**/*']
         tasks: ['gh-pages']
     mocha_phantomjs:
@@ -42,7 +55,7 @@ module.exports = (grunt) ->
             dest: 'dist/'
           }
         ]
-      ghPages:
+      'gh-pages':
         files: [
           {
             expand: true
@@ -60,10 +73,10 @@ module.exports = (grunt) ->
           }
         ]
     clean: [
-      'dist'
       'egrid-core.js'
       'gh-pages'
-      'js'
+      'src/**/*.js'
+      'test/**/*.js'
     ]
     bump:
       options:
@@ -80,9 +93,11 @@ module.exports = (grunt) ->
     grunt.loadNpmTasks 'grunt-contrib-watch'
     grunt.loadNpmTasks 'grunt-mocha-phantomjs'
 
-    grunt.registerTask 'compile', ['coffee', 'browserify']
-    grunt.registerTask 'default', ['watch:scripts']
-    grunt.registerTask 'dist', ['compile', 'copy:dist']
-    grunt.registerTask 'gh-pages', ['compile', 'copy:ghPages']
+    grunt.registerTask 'build', ['build:src', 'build:test']
+    grunt.registerTask 'build:src', ['coffee:src', 'browserify:src']
+    grunt.registerTask 'build:test', ['coffee:test', 'browserify:test']
+    grunt.registerTask 'default', ['build:src']
+    grunt.registerTask 'dist', ['build:src', 'copy:dist']
+    grunt.registerTask 'gh-pages', ['build:src', 'copy:gh-pages']
     grunt.registerTask 'release', ['dist', 'bump']
     grunt.registerTask 'test', ['mocha_phantomjs']
