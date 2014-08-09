@@ -116,3 +116,39 @@ module.exports = ->
           .attr 'transform'
         expect transform
           .to.be 'translate(25,37.5)scale(0.25,0.25)'
+
+      it 'should transform contents region with scale', ->
+        egm = egrid.core.egm()
+          .size [500, 500]
+        grid = egrid.core.grid()
+        a = grid.addConstruct 'a'
+        b = grid.addConstruct 'b'
+        c = grid.addConstruct 'c'
+        selection = d3.select 'svg'
+          .datum grid.graph()
+          .call egm
+        selection.selectAll 'g.vertex'
+          .each (vertex) ->
+            if vertex.key is a
+              vertex.width = 20
+              vertex.height = 10
+              vertex.x = 10
+              vertex.y = 5
+            else if vertex.key is b
+              vertex.width = 20
+              vertex.height = 10
+              vertex.x = 190
+              vertex.y = 50
+            else
+              vertex.width = 20
+              vertex.height = 10
+              vertex.x = 100
+              vertex.y = 95
+        selection.call egm.center
+          maxScale: 2
+        flushTransitions()
+        transform = selection
+          .select 'g.contents'
+          .attr 'transform'
+        expect transform
+          .to.be 'translate(50,150)scale(2,2)'
