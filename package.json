@@ -1,6 +1,6 @@
 {
   "name": "egrid-core",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "",
   "main": "egrid-core.js",
   "scripts": {
