@@ -3,6 +3,7 @@ mocha.reporter 'html'
 
 tests = [
   require './centrality'
+  require './egm'
 ]
 
 for test in tests

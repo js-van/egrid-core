@@ -163,22 +163,6 @@ describe('egm', function() {
     });
   });
 
-  describe('vertexScale', function() {
-    it('should change vertex scale', function() {
-      var grid = egrid.core.grid();
-      var u = grid.addConstruct('a');
-      var egm = egrid.core.egm()
-        .vertexScale(function() {
-          return 3;
-        });
-      var selection = d3.select('svg')
-        .datum(grid.graph())
-        .call(egm);
-      flushTransitions();
-      expect(selection.select('g.vertices>g.vertex').attr('transform')).to.be('translate(27,42)scale(3,3)');
-    });
-  });
-
   describe('vertexText', function() {
     it('should change vertex text', function() {
       var grid = egrid.core.grid();
