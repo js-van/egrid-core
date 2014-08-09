@@ -236,38 +236,35 @@
       return resize(width, height);
     };
     egm.center = function(arg) {
-      var useTransition;
+      var maxScale, scale, _ref, _ref1;
       if (arg == null) {
         arg = {};
       }
-      useTransition = arg.transition != null ? arg.transition : true;
+      scale = (_ref = arg.scale) != null ? _ref : 1;
+      maxScale = (_ref1 = arg.maxScale) != null ? _ref1 : 1;
       return function(selection) {
-        var bottom, height, left, right, s, scale, t, top, vertices, width, x, y, _ref;
-        _ref = egm.size(), width = _ref[0], height = _ref[1];
+        var bottom, contentScale, height, left, right, s, t, top, vertices, width, x, y, _ref2, _ref3, _ref4, _ref5, _ref6;
+        _ref2 = egm.size(), width = _ref2[0], height = _ref2[1];
         vertices = selection.selectAll('g.vertex').data();
-        left = (d3.min(vertices, function(vertex) {
+        left = (_ref3 = d3.min(vertices, function(vertex) {
           return vertex.x - vertex.width / 2;
-        })) || 0;
-        right = (d3.max(vertices, function(vertex) {
+        })) != null ? _ref3 : 0;
+        right = (_ref4 = d3.max(vertices, function(vertex) {
           return vertex.x + vertex.width / 2;
-        })) || 0;
-        top = (d3.min(vertices, function(vertex) {
+        })) != null ? _ref4 : 0;
+        top = (_ref5 = d3.min(vertices, function(vertex) {
           return vertex.y - vertex.height / 2;
-        })) || 0;
-        bottom = (d3.max(vertices, function(vertex) {
+        })) != null ? _ref5 : 0;
+        bottom = (_ref6 = d3.max(vertices, function(vertex) {
           return vertex.y + vertex.height / 2;
-        })) || 0;
-        scale = d3.min([width / (right - left), height / (bottom - top), 1]);
-        x = (width - (right - left) * scale) / 2;
-        y = (height - (bottom - top) * scale) / 2;
-        zoom.scale(scale).translate([x, y]);
+        })) != null ? _ref6 : 0;
+        contentScale = scale * d3.min([width / (right - left), height / (bottom - top), maxScale]);
+        x = (width - (right - left) * contentScale) / 2;
+        y = (height - (bottom - top) * contentScale) / 2;
+        zoom.scale(contentScale).translate([x, y]);
         t = svg.transform.translate(x, y);
-        s = svg.transform.scale(scale);
-        if (useTransition) {
-          selection.select('g.contents').transition().attr('transform', svg.transform.compose(t, s));
-        } else {
-          selection.select('g.contents').attr('transform', svg.transform.compose(t, s));
-        }
+        s = svg.transform.scale(contentScale);
+        selection.select('g.contents').transition().attr('transform', svg.transform.compose(t, s));
       };
     };
     egm.updateColor = function() {
@@ -297,7 +294,7 @@
 
 }).call(this);
 
-},{"../svg":16,"./select":2,"./update":3}],2:[function(require,module,exports){
+},{"../svg":17,"./select":2,"./update":3}],2:[function(require,module,exports){
 (function() {
   var dijkstra, svg, updateButtons, updateSelectedVertex;
 
@@ -432,7 +429,7 @@
 
 }).call(this);
 
-},{"../graph/dijkstra":5,"../svg":16}],3:[function(require,module,exports){
+},{"../graph/dijkstra":5,"../svg":17}],3:[function(require,module,exports){
 (function() {
   var calculateTextSize, createVertex, initContainer, makeGrid, onClickVertex, onMouseEnterVertex, onMouseLeaveVertex, select, svg, updateEdges, updateVertices;
 
@@ -704,7 +701,7 @@
 
 }).call(this);
 
-},{"../svg":16,"./select":2}],4:[function(require,module,exports){
+},{"../svg":17,"./select":2}],4:[function(require,module,exports){
 (function() {
   module.exports = function(v, e) {
     var AdjacencyList, nextVertexId, vertices;
@@ -1395,7 +1392,7 @@
 }).call(this);
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./egm":1,"./graph":7,"./grid":9,"./network":15,"./ui":18}],11:[function(require,module,exports){
+},{"./egm":1,"./graph":7,"./grid":9,"./network":16,"./ui":19}],11:[function(require,module,exports){
 (function() {
   module.exports = function() {
     return function(graph) {
@@ -1536,12 +1533,78 @@
     inDegree: degree.inDegree,
     outDegree: degree.outDegree,
     closeness: require('./closeness'),
-    betweenness: require('./betweenness')
+    betweenness: require('./betweenness'),
+    katz: require('./katz')
   };
 
 }).call(this);
 
-},{"./betweenness":11,"./closeness":12,"./degree":13}],15:[function(require,module,exports){
+},{"./betweenness":11,"./closeness":12,"./degree":13,"./katz":15}],15:[function(require,module,exports){
+(function() {
+  var dictFromKeys;
+
+  dictFromKeys = function(keys, value) {
+    var key, result, _i, _len;
+    result = {};
+    for (_i = 0, _len = keys.length; _i < _len; _i++) {
+      key = keys[_i];
+      result[key] = value;
+    }
+    return result;
+  };
+
+  module.exports = function(graph, options) {
+    var alpha, b, beta, err, i, maxIter, nnodes, normalized, s, tol, u, v, x, xlast, _i, _j, _k, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
+    if (options == null) {
+      options = {};
+    }
+    alpha = (_ref = options.alpha) != null ? _ref : 0.1;
+    beta = (_ref1 = options.beta) != null ? _ref1 : 1.0;
+    maxIter = (_ref2 = options.maxIter) != null ? _ref2 : 1000;
+    tol = (_ref3 = options.tol) != null ? _ref3 : 1.0e-6;
+    normalized = (_ref4 = options.normalized) != null ? _ref4 : true;
+    nnodes = graph.numVertices();
+    x = dictFromKeys(graph.vertices(), 0);
+    b = dictFromKeys(graph.vertices(), beta);
+    for (i = _i = 0; 0 <= maxIter ? _i < maxIter : _i > maxIter; i = 0 <= maxIter ? ++_i : --_i) {
+      xlast = x;
+      x = dictFromKeys(graph.vertices(), 0);
+      for (u in x) {
+        _ref5 = graph.adjacentVertices(u);
+        for (_j = 0, _len = _ref5.length; _j < _len; _j++) {
+          v = _ref5[_j];
+          x[v] += xlast[u];
+        }
+        _ref6 = graph.invAdjacentVertices(u);
+        for (_k = 0, _len1 = _ref6.length; _k < _len1; _k++) {
+          v = _ref6[_k];
+          x[v] += xlast[u];
+        }
+      }
+      for (u in x) {
+        x[u] = alpha * x[u] + b[u];
+      }
+      err = graph.vertices().reduce((function(e, u) {
+        return e + Math.abs(x[u] - xlast[u]);
+      }), 0);
+      if (err < nnodes * tol) {
+        break;
+      }
+    }
+    if (normalized) {
+      s = 1 / Math.sqrt(graph.vertices().reduce((function(s, u) {
+        return s + x[u] * x[u];
+      }), 0));
+      for (u in x) {
+        x[u] *= s;
+      }
+    }
+    return x;
+  };
+
+}).call(this);
+
+},{}],16:[function(require,module,exports){
 (function() {
   module.exports = {
     centrality: require('./centrality')
@@ -1549,7 +1612,7 @@
 
 }).call(this);
 
-},{"./centrality":14}],16:[function(require,module,exports){
+},{"./centrality":14}],17:[function(require,module,exports){
 (function() {
   module.exports = {
     transform: require('./transform')
@@ -1557,7 +1620,7 @@
 
 }).call(this);
 
-},{"./transform":17}],17:[function(require,module,exports){
+},{"./transform":18}],18:[function(require,module,exports){
 (function() {
   var Scale, Translate,
     __slice = [].slice;
@@ -1611,7 +1674,7 @@
 
 }).call(this);
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 (function() {
   module.exports = {
     removeButton: function(grid, callback) {
