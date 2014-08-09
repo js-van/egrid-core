@@ -244,6 +244,7 @@ module.exports = (options={}) ->
 
   egm.center = (arg={}) ->
     scale = arg.scale ? 1
+    maxScale = arg.maxScale ? 1
 
     (selection) ->
       [width, height] = egm.size()
