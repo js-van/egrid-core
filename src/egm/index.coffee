@@ -243,23 +243,29 @@ module.exports = (options={}) ->
     resize width, height
 
   egm.center = (arg={}) ->
+    scale = arg.scale ? 1
+
     (selection) ->
       [width, height] = egm.size()
       vertices = selection
         .selectAll 'g.vertex'
         .data()
-      left = (d3.min vertices, (vertex) -> vertex.x - vertex.width / 2) or 0
-      right = (d3.max vertices, (vertex) -> vertex.x + vertex.width / 2) or 0
-      top = (d3.min vertices, (vertex) -> vertex.y - vertex.height / 2) or 0
-      bottom = (d3.max vertices, (vertex) -> vertex.y + vertex.height / 2) or 0
-      scale = d3.min [width / (right - left), height / (bottom - top), 1]
-      x = (width - (right - left) * scale) / 2
-      y = (height - (bottom - top) * scale) / 2
+      left = (d3.min vertices, (vertex) -> vertex.x - vertex.width / 2) ? 0
+      right = (d3.max vertices, (vertex) -> vertex.x + vertex.width / 2) ? 0
+      top = (d3.min vertices, (vertex) -> vertex.y - vertex.height / 2) ? 0
+      bottom = (d3.max vertices, (vertex) -> vertex.y + vertex.height / 2) ? 0
+      contentScale = scale * d3.min [
+        width / (right - left),
+        height / (bottom - top),
+        maxScale
+      ]
+      x = (width - (right - left) * contentScale) / 2
+      y = (height - (bottom - top) * contentScale) / 2
       zoom
-        .scale scale
+        .scale contentScale
         .translate [x, y]
       t = svg.transform.translate x, y
-      s = svg.transform.scale scale
+      s = svg.transform.scale contentScale
       selection
         .select 'g.contents'
         .transition()
