@@ -31,7 +31,12 @@ calculateTextSize = () ->
     measure = d3
       .select 'body'
       .append 'svg'
-    measureText = measure.append 'text'
+    measureText = measure
+      .append 'text'
+      .style
+        'font-family': """'Lucida Grande', 'Hiragino Kaku Gothic ProN',
+          'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif"""
+        'font-size': '14px'
     selection.each (u) ->
       measureText.text u.text
       bbox = measureText.node().getBBox()

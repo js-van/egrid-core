@@ -180,29 +180,32 @@ module.exports = (options={}) ->
   egm.css = (options = {}) ->
     svgCss = """
     g.vertex > rect, rect.background {
-      fill: #{options.backgroundColor || 'whitesmoke'};
+      fill: #{options.backgroundColor ? 'whitesmoke'};
     }
     g.edge > path {
       fill: none;
     }
     g.vertex > rect, g.edge > path {
-      stroke: #{options.strokeColor || 'black'};
+      stroke: #{options.strokeColor ? 'black'};
     }
     g.vertex > text {
-      fill: #{options.strokeColor || 'black'};
+      fill: #{options.strokeColor ? 'black'};
+      font-family: 'Lucida Grande', 'Hiragino Kaku Gothic ProN',
+        'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif;
+      font-size: 14px;
       user-select: none;
       -moz-user-select: none;
       -webkit-user-select: none;
       -ms-user-select: none;
     }
     g.vertex.lower > rect, g.edge.lower > path {
-      stroke: #{options.lowerStrokeColor || 'red'};
+      stroke: #{options.lowerStrokeColor ? 'red'};
     }
     g.vertex.upper > rect, g.edge.upper > path {
-      stroke: #{options.upperStrokeColor || 'blue'};
+      stroke: #{options.upperStrokeColor ? 'blue'};
     }
     g.vertex.upper.lower>rect, g.edge.upper.lower>path {
-      stroke: #{options.selectedStrokeColor || 'purple'};
+      stroke: #{options.selectedStrokeColor ? 'purple'};
     }
     rect.background {
       cursor: move;
