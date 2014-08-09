@@ -500,7 +500,7 @@
       selection.call(calculateTextSize()).each(function(u) {
         u.originalWidth = u.textWidth + 2 * r;
         u.originalHeight = u.textHeight + 2 * r;
-        u.scale = vertexScale(u.data);
+        u.scale = vertexScale(u.data, u.key);
         u.width = (u.originalWidth + strokeWidth) * u.scale;
         return u.height = (u.originalHeight + strokeWidth) * u.scale;
       });
