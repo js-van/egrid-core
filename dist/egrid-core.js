@@ -236,27 +236,28 @@
       return resize(width, height);
     };
     egm.center = function(arg) {
-      var scale, _ref;
+      var maxScale, scale, _ref, _ref1;
       if (arg == null) {
         arg = {};
       }
       scale = (_ref = arg.scale) != null ? _ref : 1;
+      maxScale = (_ref1 = arg.maxScale) != null ? _ref1 : 1;
       return function(selection) {
-        var bottom, contentScale, height, left, right, s, t, top, vertices, width, x, y, _ref1, _ref2, _ref3, _ref4, _ref5;
-        _ref1 = egm.size(), width = _ref1[0], height = _ref1[1];
+        var bottom, contentScale, height, left, right, s, t, top, vertices, width, x, y, _ref2, _ref3, _ref4, _ref5, _ref6;
+        _ref2 = egm.size(), width = _ref2[0], height = _ref2[1];
         vertices = selection.selectAll('g.vertex').data();
-        left = (_ref2 = d3.min(vertices, function(vertex) {
+        left = (_ref3 = d3.min(vertices, function(vertex) {
           return vertex.x - vertex.width / 2;
-        })) != null ? _ref2 : 0;
-        right = (_ref3 = d3.max(vertices, function(vertex) {
-          return vertex.x + vertex.width / 2;
         })) != null ? _ref3 : 0;
-        top = (_ref4 = d3.min(vertices, function(vertex) {
-          return vertex.y - vertex.height / 2;
+        right = (_ref4 = d3.max(vertices, function(vertex) {
+          return vertex.x + vertex.width / 2;
         })) != null ? _ref4 : 0;
-        bottom = (_ref5 = d3.max(vertices, function(vertex) {
-          return vertex.y + vertex.height / 2;
+        top = (_ref5 = d3.min(vertices, function(vertex) {
+          return vertex.y - vertex.height / 2;
         })) != null ? _ref5 : 0;
+        bottom = (_ref6 = d3.max(vertices, function(vertex) {
+          return vertex.y + vertex.height / 2;
+        })) != null ? _ref6 : 0;
         contentScale = scale * d3.min([width / (right - left), height / (bottom - top), maxScale]);
         x = (width - (right - left) * contentScale) / 2;
         y = (height - (bottom - top) * contentScale) / 2;
