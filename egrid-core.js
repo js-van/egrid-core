@@ -221,11 +221,11 @@
       size: [1, 1]
     };
     egm.css = function(options) {
-      var svgCss;
+      var svgCss, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
       if (options == null) {
         options = {};
       }
-      svgCss = "g.vertex > rect, rect.background {\n  fill: " + (options.backgroundColor || 'whitesmoke') + ";\n}\ng.edge > path {\n  fill: none;\n}\ng.vertex > rect, g.edge > path {\n  stroke: " + (options.strokeColor || 'black') + ";\n}\ng.vertex > text {\n  fill: " + (options.strokeColor || 'black') + ";\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex.lower > rect, g.edge.lower > path {\n  stroke: " + (options.lowerStrokeColor || 'red') + ";\n}\ng.vertex.upper > rect, g.edge.upper > path {\n  stroke: " + (options.upperStrokeColor || 'blue') + ";\n}\ng.vertex.upper.lower>rect, g.edge.upper.lower>path {\n  stroke: " + (options.selectedStrokeColor || 'purple') + ";\n}\nrect.background {\n  cursor: move;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex {\n  cursor: pointer;\n}\ng.vertex-buttons {\n  opacity: 0.7;\n}\ng.vertex-button {\n  cursor: pointer;\n}\ng.vertex-button>rect {\n  fill: #fff;\n  stroke: #adadad\n}\ng.vertex-button.hover>rect {\n  fill: #ebebeb;\n}";
+      svgCss = "g.vertex > rect, rect.background {\n  fill: " + ((_ref = options.backgroundColor) != null ? _ref : 'whitesmoke') + ";\n}\ng.edge > path {\n  fill: none;\n}\ng.vertex > rect, g.edge > path {\n  stroke: " + ((_ref1 = options.strokeColor) != null ? _ref1 : 'black') + ";\n}\ng.vertex > text {\n  fill: " + ((_ref2 = options.strokeColor) != null ? _ref2 : 'black') + ";\n  font-family: 'Lucida Grande', 'Hiragino Kaku Gothic ProN',\n    'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif;\n  font-size: 14px;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex.lower > rect, g.edge.lower > path {\n  stroke: " + ((_ref3 = options.lowerStrokeColor) != null ? _ref3 : 'red') + ";\n}\ng.vertex.upper > rect, g.edge.upper > path {\n  stroke: " + ((_ref4 = options.upperStrokeColor) != null ? _ref4 : 'blue') + ";\n}\ng.vertex.upper.lower>rect, g.edge.upper.lower>path {\n  stroke: " + ((_ref5 = options.selectedStrokeColor) != null ? _ref5 : 'purple') + ";\n}\nrect.background {\n  cursor: move;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex {\n  cursor: pointer;\n}\ng.vertex-buttons {\n  opacity: 0.7;\n}\ng.vertex-button {\n  cursor: pointer;\n}\ng.vertex-button>rect {\n  fill: #fff;\n  stroke: #adadad\n}\ng.vertex-button.hover>rect {\n  fill: #ebebeb;\n}";
       return function(selection) {
         selection.selectAll('defs.egrid-style').remove();
         return selection.append('defs').classed('egrid-style', true).append('style').text(svgCss);
@@ -463,7 +463,10 @@
     return function(selection) {
       var measure, measureText;
       measure = d3.select('body').append('svg');
-      measureText = measure.append('text');
+      measureText = measure.append('text').style({
+        'font-family': "'Lucida Grande', 'Hiragino Kaku Gothic ProN',\n'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif",
+        'font-size': '14px'
+      });
       selection.each(function(u) {
         var bbox;
         measureText.text(u.text);
