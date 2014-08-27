@@ -60,32 +60,30 @@
 
   transition = function(arg) {
     return function(selection) {
-      var trans;
-      trans = selection.transition();
-      trans.selectAll('g.vertices > g.vertex').attr('transform', function(u) {
+      selection.selectAll('g.vertices > g.vertex').attr('transform', function(u) {
         return svg.transform.compose(svg.transform.translate(u.x, u.y), svg.transform.scale(u.scale));
       });
-      trans.selectAll('g.edges>g.edge').select('path').attr('d', function(e) {
+      selection.selectAll('g.edges>g.edge').select('path').attr('d', function(e) {
         return edgeLine(e.points);
       });
-      trans.selectAll('g.edges>g.edge').select('text').attr('transform', function(e) {
+      selection.selectAll('g.edges>g.edge').select('text').attr('transform', function(e) {
         return svg.transform.translate(e.points[1][0], e.points[1][1]);
       });
-      return trans.call(paint(arg));
+      return selection.call(paint(arg));
     };
   };
 
   paint = function(arg) {
     var edgeColor, edgeOpacity, edgeWidth, vertexColor, vertexOpacity;
     vertexOpacity = arg.vertexOpacity, vertexColor = arg.vertexColor, edgeColor = arg.edgeColor, edgeOpacity = arg.edgeOpacity, edgeWidth = arg.edgeWidth;
-    return function(container) {
-      container.selectAll('g.vertices>g.vertex').style('opacity', function(vertex) {
+    return function(selection) {
+      selection.selectAll('g.vertices>g.vertex').style('opacity', function(vertex) {
         return vertexOpacity(vertex.data, vertex.key);
       });
-      container.selectAll('g.vertices>g.vertex>rect').style('fill', function(vertex) {
+      selection.selectAll('g.vertices>g.vertex>rect').style('fill', function(vertex) {
         return vertexColor(vertex.data, vertex.key);
       });
-      return container.selectAll('g.edges>g.edge>path').style({
+      return selection.selectAll('g.edges>g.edge>path').style({
         opacity: function(_arg) {
           var source, target;
           source = _arg.source, target = _arg.target;
@@ -125,47 +123,52 @@
     }
     zoom = d3.behavior.zoom().scaleExtent([0, 1]);
     egm = function(selection) {
-      var bottom, height, left, right, scale, top, vertices, width, _ref;
-      selection.call(update({
-        edgePointsSize: edgePointsSize,
-        edgeLine: edgeLine,
-        edgeText: egm.edgeText(),
-        clickVertexCallback: egm.onClickVertex(),
-        vertexButtons: egm.vertexButtons(),
-        vertexScale: egm.vertexScale(),
-        vertexText: egm.vertexText(),
-        vertexVisibility: egm.vertexVisibility(),
-        enableZoom: egm.enableZoom(),
-        zoom: zoom,
-        maxTextLength: egm.maxTextLength()
-      })).call(resize(egm.size()[0], egm.size()[1])).call(layout({
-        dagreEdgeSep: egm.dagreEdgeSep(),
-        dagreNodeSep: egm.dagreNodeSep(),
-        dagreRankDir: egm.dagreRankDir(),
-        dagreRankSep: egm.dagreRankSep()
-      })).call(transition({
-        edgeColor: egm.edgeColor(),
-        edgeOpacity: egm.edgeOpacity(),
-        edgeWidth: egm.edgeWidth(),
-        vertexOpacity: egm.vertexOpacity(),
-        vertexColor: egm.vertexColor()
-      })).call(select(egm.vertexButtons()));
-      _ref = egm.size(), width = _ref[0], height = _ref[1];
-      vertices = selection.selectAll('g.vertex').data();
-      left = d3.min(vertices, function(vertex) {
-        return vertex.x - vertex.width / 2;
+      selection.each(function(graph) {
+        var bottom, container, height, left, right, scale, top, vertices, width, _ref;
+        container = d3.select(this);
+        container.call(update(graph, {
+          edgePointsSize: edgePointsSize,
+          edgeLine: edgeLine,
+          edgeText: egm.edgeText(),
+          clickVertexCallback: egm.onClickVertex(),
+          vertexButtons: egm.vertexButtons(),
+          vertexScale: egm.vertexScale(),
+          vertexText: egm.vertexText(),
+          vertexVisibility: egm.vertexVisibility(),
+          enableZoom: egm.enableZoom(),
+          zoom: zoom,
+          maxTextLength: egm.maxTextLength()
+        })).call(resize(egm.size()[0], egm.size()[1])).call(layout({
+          dagreEdgeSep: egm.dagreEdgeSep(),
+          dagreNodeSep: egm.dagreNodeSep(),
+          dagreRankDir: egm.dagreRankDir(),
+          dagreRankSep: egm.dagreRankSep()
+        }));
+        selection.call(transition({
+          edgeColor: egm.edgeColor(),
+          edgeOpacity: egm.edgeOpacity(),
+          edgeWidth: egm.edgeWidth(),
+          vertexOpacity: egm.vertexOpacity(),
+          vertexColor: egm.vertexColor()
+        }));
+        container.call(select(egm.vertexButtons()));
+        _ref = egm.size(), width = _ref[0], height = _ref[1];
+        vertices = container.selectAll('g.vertex').data();
+        left = d3.min(vertices, function(vertex) {
+          return vertex.x - vertex.width / 2;
+        });
+        right = d3.max(vertices, function(vertex) {
+          return vertex.x + vertex.width / 2;
+        });
+        top = d3.min(vertices, function(vertex) {
+          return vertex.y - vertex.height / 2;
+        });
+        bottom = d3.max(vertices, function(vertex) {
+          return vertex.y + vertex.height / 2;
+        });
+        scale = d3.min([Math.min(width / (right - left), height / (bottom - top), 1)]);
+        zoom.scaleExtent([scale, 1]);
       });
-      right = d3.max(vertices, function(vertex) {
-        return vertex.x + vertex.width / 2;
-      });
-      top = d3.min(vertices, function(vertex) {
-        return vertex.y - vertex.height / 2;
-      });
-      bottom = d3.max(vertices, function(vertex) {
-        return vertex.y + vertex.height / 2;
-      });
-      scale = d3.min([Math.min(width / (right - left), height / (bottom - top), 1)]);
-      zoom.scaleExtent([scale, 1]);
     };
     accessor = function(defaultVal) {
       var val;
@@ -227,8 +230,12 @@
       }
       svgCss = "g.vertex > rect, rect.background {\n  fill: " + ((_ref = options.backgroundColor) != null ? _ref : 'whitesmoke') + ";\n}\ng.edge > path {\n  fill: none;\n}\ng.vertex > rect, g.edge > path {\n  stroke: " + ((_ref1 = options.strokeColor) != null ? _ref1 : 'black') + ";\n}\ng.vertex > text {\n  fill: " + ((_ref2 = options.strokeColor) != null ? _ref2 : 'black') + ";\n  font-family: 'Lucida Grande', 'Hiragino Kaku Gothic ProN',\n    'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif;\n  font-size: 14px;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex.lower > rect, g.edge.lower > path {\n  stroke: " + ((_ref3 = options.lowerStrokeColor) != null ? _ref3 : 'red') + ";\n}\ng.vertex.upper > rect, g.edge.upper > path {\n  stroke: " + ((_ref4 = options.upperStrokeColor) != null ? _ref4 : 'blue') + ";\n}\ng.vertex.upper.lower>rect, g.edge.upper.lower>path {\n  stroke: " + ((_ref5 = options.selectedStrokeColor) != null ? _ref5 : 'purple') + ";\n}\nrect.background {\n  cursor: move;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex {\n  cursor: pointer;\n}\ng.vertex-buttons {\n  opacity: 0.7;\n}\ng.vertex-button {\n  cursor: pointer;\n}\ng.vertex-button>rect {\n  fill: #fff;\n  stroke: #adadad\n}\ng.vertex-button.hover>rect {\n  fill: #ebebeb;\n}";
       return function(selection) {
-        selection.selectAll('defs.egrid-style').remove();
-        return selection.append('defs').classed('egrid-style', true).append('style').text(svgCss);
+        return selection.each(function() {
+          var container;
+          container = d3.select(this);
+          container.selectAll('defs.egrid-style').remove();
+          return container.append('defs').classed('egrid-style', true).append('style').text(svgCss);
+        });
       };
     };
     egm.resize = function(width, height) {
@@ -243,33 +250,36 @@
       scale = (_ref = arg.scale) != null ? _ref : 1;
       maxScale = (_ref1 = arg.maxScale) != null ? _ref1 : 1;
       return function(selection) {
-        var bottom, contentScale, height, left, right, s, t, top, vertices, width, x, y, _ref2, _ref3, _ref4, _ref5, _ref6;
-        _ref2 = egm.size(), width = _ref2[0], height = _ref2[1];
-        vertices = selection.selectAll('g.vertex').data();
-        left = (_ref3 = d3.min(vertices, function(vertex) {
-          return vertex.x - vertex.width / 2;
-        })) != null ? _ref3 : 0;
-        right = (_ref4 = d3.max(vertices, function(vertex) {
-          return vertex.x + vertex.width / 2;
-        })) != null ? _ref4 : 0;
-        top = (_ref5 = d3.min(vertices, function(vertex) {
-          return vertex.y - vertex.height / 2;
-        })) != null ? _ref5 : 0;
-        bottom = (_ref6 = d3.max(vertices, function(vertex) {
-          return vertex.y + vertex.height / 2;
-        })) != null ? _ref6 : 0;
-        contentScale = scale * d3.min([width / (right - left), height / (bottom - top), maxScale]);
-        x = (width - (right - left) * contentScale) / 2;
-        y = (height - (bottom - top) * contentScale) / 2;
-        zoom.scale(contentScale).translate([x, y]);
-        t = svg.transform.translate(x, y);
-        s = svg.transform.scale(contentScale);
-        selection.select('g.contents').transition().attr('transform', svg.transform.compose(t, s));
+        selection.each(function() {
+          var bottom, container, contentScale, height, left, right, s, t, top, vertices, width, x, y, _ref2, _ref3, _ref4, _ref5, _ref6;
+          container = d3.select(this);
+          _ref2 = egm.size(), width = _ref2[0], height = _ref2[1];
+          vertices = container.selectAll('g.vertex').data();
+          left = (_ref3 = d3.min(vertices, function(vertex) {
+            return vertex.x - vertex.width / 2;
+          })) != null ? _ref3 : 0;
+          right = (_ref4 = d3.max(vertices, function(vertex) {
+            return vertex.x + vertex.width / 2;
+          })) != null ? _ref4 : 0;
+          top = (_ref5 = d3.min(vertices, function(vertex) {
+            return vertex.y - vertex.height / 2;
+          })) != null ? _ref5 : 0;
+          bottom = (_ref6 = d3.max(vertices, function(vertex) {
+            return vertex.y + vertex.height / 2;
+          })) != null ? _ref6 : 0;
+          contentScale = scale * d3.min([width / (right - left), height / (bottom - top), maxScale]);
+          x = (width - (right - left) * contentScale) / 2;
+          y = (height - (bottom - top) * contentScale) / 2;
+          zoom.scale(contentScale).translate([x, y]);
+          t = svg.transform.translate(x, y);
+          s = svg.transform.scale(contentScale);
+          selection.select('g.contents').attr('transform', svg.transform.compose(t, s));
+        });
       };
     };
     egm.updateColor = function() {
       return function(selection) {
-        return selection.transition().call(paint({
+        return selection.call(paint({
           edgeColor: egm.edgeColor(),
           edgeOpacity: egm.edgeOpacity(),
           edgeWidth: egm.edgeWidth(),
@@ -652,53 +662,50 @@
     };
   };
 
-  module.exports = function(arg) {
+  module.exports = function(graph, arg) {
     var clickVertexCallback, edgeLine, edgePointsSize, edgeText, enableZoom, maxTextLength, vertexButtons, vertexScale, vertexText, vertexVisibility, zoom;
     edgeText = arg.edgeText, vertexScale = arg.vertexScale, vertexText = arg.vertexText, vertexVisibility = arg.vertexVisibility, enableZoom = arg.enableZoom, zoom = arg.zoom, maxTextLength = arg.maxTextLength, edgePointsSize = arg.edgePointsSize, edgeLine = arg.edgeLine, vertexButtons = arg.vertexButtons, clickVertexCallback = arg.clickVertexCallback;
     return function(selection) {
-      return selection.each(function(graph) {
-        var container, contents, edges, vertices, _ref;
-        container = d3.select(this);
-        if (graph != null) {
-          container.call(initContainer(zoom));
-          contents = container.select('g.contents');
-          if (enableZoom) {
-            container.select('rect.background').call(zoom);
-          } else {
-            container.select('rect.background').on('.zoom', null);
-          }
-          _ref = makeGrid(graph, {
-            pred: function(u) {
-              return vertexVisibility(graph.get(u), u);
-            },
-            oldVertices: container.selectAll('g.vertex').data(),
-            vertexText: vertexText,
-            maxTextLength: maxTextLength
-          }), vertices = _ref.vertices, edges = _ref.edges;
-          contents.select('g.vertices').selectAll('g.vertex').data(vertices, function(u) {
-            return u.key;
-          }).call(updateVertices({
-            vertexScale: vertexScale
-          })).on('click', onClickVertex({
-            container: container,
-            vertexButtons: vertexButtons,
-            clickVertexCallback: clickVertexCallback
-          })).on('mouseenter', onMouseEnterVertex(vertexText)).on('mouseleave', onMouseLeaveVertex()).on('touchstart', onMouseEnterVertex(vertexText)).on('touchmove', function() {
-            return d3.event.preventDefault();
-          }).on('touchend', onMouseLeaveVertex());
-          return contents.select('g.edges').selectAll('g.edge').data(edges, function(_arg) {
-            var source, target;
-            source = _arg.source, target = _arg.target;
-            return "" + source.key + ":" + target.key;
-          }).call(updateEdges({
-            edgeText: edgeText,
-            edgePointsSize: edgePointsSize,
-            edgeLine: edgeLine
-          }));
+      var contents, edges, vertices, _ref;
+      if (graph != null) {
+        selection.call(initContainer(zoom));
+        contents = selection.select('g.contents');
+        if (enableZoom) {
+          selection.select('rect.background').call(zoom);
         } else {
-          return container.select('g.contents').remove();
+          selection.select('rect.background').on('.zoom', null);
         }
-      });
+        _ref = makeGrid(graph, {
+          pred: function(u) {
+            return vertexVisibility(graph.get(u), u);
+          },
+          oldVertices: selection.selectAll('g.vertex').data(),
+          vertexText: vertexText,
+          maxTextLength: maxTextLength
+        }), vertices = _ref.vertices, edges = _ref.edges;
+        contents.select('g.vertices').selectAll('g.vertex').data(vertices, function(u) {
+          return u.key;
+        }).call(updateVertices({
+          vertexScale: vertexScale
+        })).on('click', onClickVertex({
+          container: selection,
+          vertexButtons: vertexButtons,
+          clickVertexCallback: clickVertexCallback
+        })).on('mouseenter', onMouseEnterVertex(vertexText)).on('mouseleave', onMouseLeaveVertex()).on('touchstart', onMouseEnterVertex(vertexText)).on('touchmove', function() {
+          return d3.event.preventDefault();
+        }).on('touchend', onMouseLeaveVertex());
+        return contents.select('g.edges').selectAll('g.edge').data(edges, function(_arg) {
+          var source, target;
+          source = _arg.source, target = _arg.target;
+          return "" + source.key + ":" + target.key;
+        }).call(updateEdges({
+          edgeText: edgeText,
+          edgePointsSize: edgePointsSize,
+          edgeLine: edgeLine
+        }));
+      } else {
+        return selection.select('g.contents').remove();
+      }
     };
   };
 
