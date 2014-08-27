@@ -1,9 +1,3 @@
-flushTransitions = ->
-  now = Date.now
-  Date.now = -> Infinity
-  d3.timer.flush()
-  Date.now = now
-
 module.exports = ->
   describe 'egm', ->
     beforeEach ->
@@ -23,7 +17,6 @@ module.exports = ->
         selection = d3.select 'svg'
           .datum grid.graph()
           .call egm
-        flushTransitions()
         transform = selection
           .select 'g.vertices>g.vertex'
           .attr 'transform'
@@ -39,12 +32,11 @@ module.exports = ->
           .datum grid.graph()
           .call egm
         selection.call egm.center()
-        flushTransitions()
         transform = selection
           .select 'g.contents'
           .attr 'transform'
         expect transform
-          .to.be 'translate(50,50)'
+          .to.be 'translate(50,50)scale(1,1)'
 
       it 'should transform contents region', ->
         egm = egrid.core.egm()
@@ -74,7 +66,6 @@ module.exports = ->
               vertex.x = 100
               vertex.y = 95
         selection.call egm.center()
-        flushTransitions()
         transform = selection
           .select 'g.contents'
           .attr 'transform'
@@ -110,7 +101,6 @@ module.exports = ->
               vertex.y = 95
         selection.call egm.center
           scale: 0.5
-        flushTransitions()
         transform = selection
           .select 'g.contents'
           .attr 'transform'
@@ -146,7 +136,6 @@ module.exports = ->
               vertex.y = 95
         selection.call egm.center
           maxScale: 2
-        flushTransitions()
         transform = selection
           .select 'g.contents'
           .attr 'transform'
