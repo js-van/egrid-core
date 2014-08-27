@@ -53,35 +53,35 @@ layout = (arg) ->
 
 transition = (arg) ->
   (selection) ->
-    trans = selection.transition()
-    trans
+    selection
       .selectAll 'g.vertices > g.vertex'
       .attr 'transform', (u) ->
         svg.transform.compose((svg.transform.translate u.x, u.y),
                               (svg.transform.scale u.scale))
-    trans
+    selection
       .selectAll 'g.edges>g.edge'
       .select 'path'
       .attr 'd', (e) -> edgeLine e.points
-    trans
+    selection
       .selectAll 'g.edges>g.edge'
       .select 'text'
       .attr 'transform', (e) ->
         svg.transform.translate e.points[1][0], e.points[1][1]
-    trans.call paint arg
+    selection
+      .call paint arg
 
 
 paint = (arg) ->
   {vertexOpacity, vertexColor,
    edgeColor, edgeOpacity, edgeWidth} = arg
-  (container) ->
-    container
+  (selection) ->
+    selection
       .selectAll 'g.vertices>g.vertex'
       .style 'opacity', (vertex) -> vertexOpacity vertex.data, vertex.key
-    container
+    selection
       .selectAll 'g.vertices>g.vertex>rect'
       .style 'fill', (vertex) -> vertexColor vertex.data, vertex.key
-    container
+    selection
       .selectAll 'g.edges>g.edge>path'
       .style
         opacity: ({source, target}) -> edgeOpacity source.key, target.key
@@ -108,43 +108,49 @@ module.exports = (options={}) ->
     .scaleExtent [0, 1]
 
   egm = (selection) ->
-    selection
-      .call update
-        edgePointsSize: edgePointsSize
-        edgeLine: edgeLine
-        edgeText: egm.edgeText()
-        clickVertexCallback: egm.onClickVertex()
-        vertexButtons: egm.vertexButtons()
-        vertexScale: egm.vertexScale()
-        vertexText: egm.vertexText()
-        vertexVisibility: egm.vertexVisibility()
-        enableZoom: egm.enableZoom()
-        zoom: zoom
-        maxTextLength: egm.maxTextLength()
-      .call resize egm.size()[0], egm.size()[1]
-      .call layout
-        dagreEdgeSep: egm.dagreEdgeSep()
-        dagreNodeSep: egm.dagreNodeSep()
-        dagreRankDir: egm.dagreRankDir()
-        dagreRankSep: egm.dagreRankSep()
-      .call transition
-        edgeColor: egm.edgeColor()
-        edgeOpacity: egm.edgeOpacity()
-        edgeWidth: egm.edgeWidth()
-        vertexOpacity: egm.vertexOpacity()
-        vertexColor: egm.vertexColor()
-      .call select egm.vertexButtons()
+    selection.each (graph) ->
+      container = d3.select this
+      container
+        .call update graph,
+          edgePointsSize: edgePointsSize
+          edgeLine: edgeLine
+          edgeText: egm.edgeText()
+          clickVertexCallback: egm.onClickVertex()
+          vertexButtons: egm.vertexButtons()
+          vertexScale: egm.vertexScale()
+          vertexText: egm.vertexText()
+          vertexVisibility: egm.vertexVisibility()
+          enableZoom: egm.enableZoom()
+          zoom: zoom
+          maxTextLength: egm.maxTextLength()
+        .call resize egm.size()[0], egm.size()[1]
+        .call layout
+          dagreEdgeSep: egm.dagreEdgeSep()
+          dagreNodeSep: egm.dagreNodeSep()
+          dagreRankDir: egm.dagreRankDir()
+          dagreRankSep: egm.dagreRankSep()
+      selection
+        .call transition
+          edgeColor: egm.edgeColor()
+          edgeOpacity: egm.edgeOpacity()
+          edgeWidth: egm.edgeWidth()
+          vertexOpacity: egm.vertexOpacity()
+          vertexColor: egm.vertexColor()
+      container
+        .call select egm.vertexButtons()
 
-    [width, height] = egm.size()
-    vertices = selection
-      .selectAll 'g.vertex'
-      .data()
-    left = d3.min vertices, (vertex) -> vertex.x - vertex.width / 2
-    right = d3.max vertices, (vertex) -> vertex.x + vertex.width / 2
-    top = d3.min vertices, (vertex) -> vertex.y - vertex.height / 2
-    bottom = d3.max vertices, (vertex) -> vertex.y + vertex.height / 2
-    scale = d3.min [Math.min width / (right - left), height / (bottom - top), 1]
-    zoom.scaleExtent [scale, 1]
+      [width, height] = egm.size()
+      vertices = container
+        .selectAll 'g.vertex'
+        .data()
+      left = d3.min vertices, (vertex) -> vertex.x - vertex.width / 2
+      right = d3.max vertices, (vertex) -> vertex.x + vertex.width / 2
+      top = d3.min vertices, (vertex) -> vertex.y - vertex.height / 2
+      bottom = d3.max vertices, (vertex) -> vertex.y + vertex.height / 2
+      scale = d3.min [Math.min width / (right - left),
+                      height / (bottom - top), 1]
+      zoom.scaleExtent [scale, 1]
+      return
     return
 
   accessor = (defaultVal) ->
@@ -232,14 +238,16 @@ module.exports = (options={}) ->
     }
     """
     (selection) ->
-      selection
-        .selectAll 'defs.egrid-style'
-        .remove()
-      selection
-        .append 'defs'
-        .classed 'egrid-style', true
-        .append 'style'
-        .text svgCss
+      selection.each ->
+        container = d3.select this
+        container
+          .selectAll 'defs.egrid-style'
+          .remove()
+        container
+          .append 'defs'
+          .classed 'egrid-style', true
+          .append 'style'
+          .text svgCss
 
   egm.resize = (width, height) ->
     egm.size([width, height])
@@ -250,36 +258,37 @@ module.exports = (options={}) ->
     maxScale = arg.maxScale ? 1
 
     (selection) ->
-      [width, height] = egm.size()
-      vertices = selection
-        .selectAll 'g.vertex'
-        .data()
-      left = (d3.min vertices, (vertex) -> vertex.x - vertex.width / 2) ? 0
-      right = (d3.max vertices, (vertex) -> vertex.x + vertex.width / 2) ? 0
-      top = (d3.min vertices, (vertex) -> vertex.y - vertex.height / 2) ? 0
-      bottom = (d3.max vertices, (vertex) -> vertex.y + vertex.height / 2) ? 0
-      contentScale = scale * d3.min [
-        width / (right - left),
-        height / (bottom - top),
-        maxScale
-      ]
-      x = (width - (right - left) * contentScale) / 2
-      y = (height - (bottom - top) * contentScale) / 2
-      zoom
-        .scale contentScale
-        .translate [x, y]
-      t = svg.transform.translate x, y
-      s = svg.transform.scale contentScale
-      selection
-        .select 'g.contents'
-        .transition()
-        .attr 'transform', svg.transform.compose(t, s)
+      selection.each ->
+        container = d3.select this
+        [width, height] = egm.size()
+        vertices = container
+          .selectAll 'g.vertex'
+          .data()
+        left = (d3.min vertices, (vertex) -> vertex.x - vertex.width / 2) ? 0
+        right = (d3.max vertices, (vertex) -> vertex.x + vertex.width / 2) ? 0
+        top = (d3.min vertices, (vertex) -> vertex.y - vertex.height / 2) ? 0
+        bottom = (d3.max vertices, (vertex) -> vertex.y + vertex.height / 2) ? 0
+        contentScale = scale * d3.min [
+          width / (right - left),
+          height / (bottom - top),
+          maxScale
+        ]
+        x = (width - (right - left) * contentScale) / 2
+        y = (height - (bottom - top) * contentScale) / 2
+        zoom
+          .scale contentScale
+          .translate [x, y]
+        t = svg.transform.translate x, y
+        s = svg.transform.scale contentScale
+        selection
+          .select 'g.contents'
+          .attr 'transform', svg.transform.compose(t, s)
+        return
       return
 
   egm.updateColor = () ->
     (selection) ->
       selection
-        .transition()
         .call paint
           edgeColor: egm.edgeColor()
           edgeOpacity: egm.edgeOpacity()

@@ -188,7 +188,7 @@ initContainer = (zoom) ->
     return
 
 
-module.exports = (arg) ->
+module.exports = (graph, arg) ->
   {edgeText,
    vertexScale, vertexText, vertexVisibility,
    enableZoom, zoom, maxTextLength,
@@ -197,51 +197,48 @@ module.exports = (arg) ->
    clickVertexCallback} = arg
 
   (selection) ->
-    selection
-      .each (graph) ->
-        container = d3.select this
-        if graph?
-          container.call initContainer zoom
-          contents = container.select 'g.contents'
-          if enableZoom
-            container
-              .select 'rect.background'
-              .call zoom
-          else
-            container
-              .select 'rect.background'
-              .on '.zoom', null
+    if graph?
+      selection.call initContainer zoom
+      contents = selection.select 'g.contents'
+      if enableZoom
+        selection
+          .select 'rect.background'
+          .call zoom
+      else
+        selection
+          .select 'rect.background'
+          .on '.zoom', null
 
-          {vertices, edges} = makeGrid graph,
-            pred: (u) -> vertexVisibility (graph.get u), u
-            oldVertices: container.selectAll('g.vertex').data()
-            vertexText: vertexText
-            maxTextLength: maxTextLength
+      {vertices, edges} = makeGrid graph,
+        pred: (u) -> vertexVisibility (graph.get u), u
+        oldVertices: selection.selectAll('g.vertex').data()
+        vertexText: vertexText
+        maxTextLength: maxTextLength
 
-          contents
-            .select 'g.vertices'
-            .selectAll 'g.vertex'
-            .data vertices, (u) -> u.key
-            .call updateVertices
-              vertexScale: vertexScale
-            .on 'click', onClickVertex
-              container: container
-              vertexButtons: vertexButtons
-              clickVertexCallback: clickVertexCallback
-            .on 'mouseenter', onMouseEnterVertex vertexText
-            .on 'mouseleave', onMouseLeaveVertex()
-            .on 'touchstart', onMouseEnterVertex vertexText
-            .on 'touchmove', -> d3.event.preventDefault()
-            .on 'touchend', onMouseLeaveVertex()
-          contents
-            .select 'g.edges'
-            .selectAll 'g.edge'
-            .data edges, ({source, target}) -> "#{source.key}:#{target.key}"
-            .call updateEdges
-              edgeText: edgeText
-              edgePointsSize: edgePointsSize
-              edgeLine: edgeLine
-        else
-          container
-            .select 'g.contents'
-            .remove()
+      contents
+        .select 'g.vertices'
+        .selectAll 'g.vertex'
+        .data vertices, (u) -> u.key
+        .call updateVertices
+          vertexScale: vertexScale
+        .on 'click', onClickVertex
+          container: selection
+          vertexButtons: vertexButtons
+          clickVertexCallback: clickVertexCallback
+        .on 'mouseenter', onMouseEnterVertex vertexText
+        .on 'mouseleave', onMouseLeaveVertex()
+        .on 'touchstart', onMouseEnterVertex vertexText
+        .on 'touchmove', -> d3.event.preventDefault()
+        .on 'touchend', onMouseLeaveVertex()
+      contents
+        .select 'g.edges'
+        .selectAll 'g.edge'
+        .data edges, ({source, target}) -> "#{source.key}:#{target.key}"
+        .call updateEdges
+          edgeText: edgeText
+          edgePointsSize: edgePointsSize
+          edgeLine: edgeLine
+    else
+      selection
+        .select 'g.contents'
+        .remove()
