@@ -300,13 +300,17 @@ var app = angular.module('egrid-core-example', ['ui.router'])
               })
             ]);
           var selection = d3.select('svg.display')
-            .datum(grid.graph())
+            .datum(grid.graph());
+          selection
+            .transition()
             .call(egm.css())
             .call(egm)
             .call(egm.center());
 
           var render = function() {
-            selection.call(egm);
+            selection
+              .transition()
+              .call(egm);
             var data = grid.graph().dump();
             localStorage.setItem('ui.grid', JSON.stringify(data));
           };
@@ -369,7 +373,9 @@ var app = angular.module('egrid-core-example', ['ui.router'])
           };
 
           $scope.center = function() {
-            selection.call(egm.center());
+            selection
+              .transition()
+              .call(egm.center());
           };
 
           d3.select(window)
