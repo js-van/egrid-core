@@ -1,0 +1,23 @@
+<div>
+  <div>
+    <h2>Demo</h2>
+    <div>
+      <form>
+        <div class="form-group">
+          <label>Threshold</label>
+          <input type="number" class="form-control" min="0" max="1" step="0.1" ng-model="threshold"/>
+        </div>
+        <div class="form-group">
+          <label>Filter</label>
+          <select class="form-control" ng-model="centrality" ng-options="c.value as c.name for c in centralities"/>
+        </div>
+        <div class="form-group">
+          <label>Number of visible node</label>
+          <p>{{nVisibleNode()}}</p>
+      </form>
+    </div>
+    <div class="thumbnail" style="width: 610px;">
+      <svg class="display"/>
+    </div>
+  </div>
+</div>

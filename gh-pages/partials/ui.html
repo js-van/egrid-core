@@ -1,0 +1,18 @@
+<div>
+  <div>
+    <h2>Demo</h2>
+    <form>
+      <div class="form-group">
+        <button class="btn btn-default" ng-disabled="undoDisabled()" ng-click="undo()">Undo</button>
+        <button class="btn btn-default" ng-disabled="redoDisabled()" ng-click="redo()">Redo</button>
+        <button class="btn btn-default" ng-click="addConstruct()">Add Construct</button>
+        <button class="btn btn-default" ng-disabled="mergeDisabled()" ng-click="mergeConstructs()">Merge Constructs</button>
+        <button class="btn btn-default" ng-click="clear()">Clear</button>
+        <button class="btn btn-default" ng-click="center()">Center</button>
+      </div>
+    </form>
+    <div class="thumbnail display-container">
+      <svg class="display"/>
+    </div>
+  </div>
+</div>
