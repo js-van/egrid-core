@@ -1,6 +1,74 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 (function() {
-  var edgeLine, edgePointsSize, layout, paint, resize, select, svg, transition, update;
+  var svg;
+
+  svg = require('../svg');
+
+  module.exports = function(zoom) {
+    return function(arg) {
+      var egm, margin, maxScale, scale, _ref;
+      if (arg == null) {
+        arg = {};
+      }
+      egm = this;
+      scale = (_ref = arg.scale) != null ? _ref : 1;
+      margin = egm.contentsMargin();
+      maxScale = egm.contentsScaleMax();
+      return function(selection) {
+        selection.each(function() {
+          var bottom, container, contentScale, height, left, right, s, t, top, vertices, width, x, y, _ref1, _ref2, _ref3, _ref4, _ref5;
+          container = d3.select(this);
+          _ref1 = egm.size(), width = _ref1[0], height = _ref1[1];
+          vertices = container.selectAll('g.vertex').data();
+          left = (_ref2 = d3.min(vertices, function(vertex) {
+            return vertex.x - vertex.width / 2;
+          })) != null ? _ref2 : 0;
+          right = (_ref3 = d3.max(vertices, function(vertex) {
+            return vertex.x + vertex.width / 2;
+          })) != null ? _ref3 : 0;
+          top = (_ref4 = d3.min(vertices, function(vertex) {
+            return vertex.y - vertex.height / 2;
+          })) != null ? _ref4 : 0;
+          bottom = (_ref5 = d3.max(vertices, function(vertex) {
+            return vertex.y + vertex.height / 2;
+          })) != null ? _ref5 : 0;
+          contentScale = scale * d3.min([(width - 2 * margin) / (right - left), (height - 2 * margin) / (bottom - top), maxScale]);
+          x = ((width - 2 * margin) - (right - left) * contentScale) / 2 + margin;
+          y = ((height - 2 * margin) - (bottom - top) * contentScale) / 2 + margin;
+          zoom.scale(contentScale).translate([x, y]);
+          t = svg.transform.translate(x, y);
+          s = svg.transform.scale(contentScale);
+          selection.select('g.contents').attr('transform', svg.transform.compose(t, s));
+        });
+      };
+    };
+  };
+
+}).call(this);
+
+},{"../svg":21}],2:[function(require,module,exports){
+(function() {
+  module.exports = function(options) {
+    var svgCss, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+    if (options == null) {
+      options = {};
+    }
+    svgCss = "g.vertex > rect, rect.background {\n  fill: " + ((_ref = options.backgroundColor) != null ? _ref : 'whitesmoke') + ";\n}\ng.edge > path {\n  fill: none;\n}\ng.vertex > rect, g.edge > path {\n  stroke: " + ((_ref1 = options.strokeColor) != null ? _ref1 : 'black') + ";\n}\ng.vertex > text {\n  fill: " + ((_ref2 = options.strokeColor) != null ? _ref2 : 'black') + ";\n  font-family: 'Lucida Grande', 'Hiragino Kaku Gothic ProN',\n    'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif;\n  font-size: 14px;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex.lower > rect, g.edge.lower > path {\n  stroke: " + ((_ref3 = options.lowerStrokeColor) != null ? _ref3 : 'red') + ";\n}\ng.vertex.upper > rect, g.edge.upper > path {\n  stroke: " + ((_ref4 = options.upperStrokeColor) != null ? _ref4 : 'blue') + ";\n}\ng.vertex.upper.lower>rect, g.edge.upper.lower>path {\n  stroke: " + ((_ref5 = options.selectedStrokeColor) != null ? _ref5 : 'purple') + ";\n}\nrect.background {\n  cursor: move;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex {\n  cursor: pointer;\n}\ng.vertex-buttons {\n  opacity: 0.7;\n}\ng.vertex-button {\n  cursor: pointer;\n}\ng.vertex-button>rect {\n  fill: #fff;\n  stroke: #adadad\n}\ng.vertex-button.hover>rect {\n  fill: #ebebeb;\n}";
+    return function(selection) {
+      return selection.each(function() {
+        var container;
+        container = d3.select(this);
+        container.selectAll('defs.egrid-style').remove();
+        return container.append('defs').classed('egrid-style', true).append('style').text(svgCss);
+      });
+    };
+  };
+
+}).call(this);
+
+},{}],3:[function(require,module,exports){
+(function() {
+  var edgeLine, edgePointsSize, layout, select, svg, transition, update;
 
   svg = require('../svg');
 
@@ -58,7 +126,7 @@
     };
   };
 
-  transition = function(arg) {
+  transition = function(egm, arg) {
     return function(selection) {
       selection.selectAll('g.vertices > g.vertex').attr('transform', function(u) {
         return svg.transform.compose(svg.transform.translate(u.x, u.y), svg.transform.scale(u.scale));
@@ -69,60 +137,17 @@
       selection.selectAll('g.edges>g.edge').select('text').attr('transform', function(e) {
         return svg.transform.translate(e.points[1][0], e.points[1][1]);
       });
-      return selection.call(paint(arg));
+      return selection.call(egm.updateColor());
     };
   };
 
-  paint = function(arg) {
-    var edgeColor, edgeOpacity, edgeWidth, vertexColor, vertexOpacity;
-    vertexOpacity = arg.vertexOpacity, vertexColor = arg.vertexColor, edgeColor = arg.edgeColor, edgeOpacity = arg.edgeOpacity, edgeWidth = arg.edgeWidth;
-    return function(selection) {
-      selection.selectAll('g.vertices>g.vertex').style('opacity', function(vertex) {
-        return vertexOpacity(vertex.data, vertex.key);
-      });
-      selection.selectAll('g.vertices>g.vertex>rect').style('fill', function(vertex) {
-        return vertexColor(vertex.data, vertex.key);
-      });
-      return selection.selectAll('g.edges>g.edge>path').style({
-        opacity: function(_arg) {
-          var source, target;
-          source = _arg.source, target = _arg.target;
-          return edgeOpacity(source.key, target.key);
-        },
-        stroke: function(_arg) {
-          var source, target;
-          source = _arg.source, target = _arg.target;
-          return edgeColor(source.key, target.key);
-        },
-        'stroke-width': function(_arg) {
-          var source, target;
-          source = _arg.source, target = _arg.target;
-          return edgeWidth(source.key, target.key);
-        }
-      });
-    };
-  };
-
-  resize = function(width, height) {
-    return function(selection) {
-      selection.attr({
-        width: width,
-        height: height
-      });
-      selection.select('rect.background').attr({
-        width: width,
-        height: height
-      });
-    };
-  };
-
-  module.exports = function(options) {
+  module.exports = function() {
     var accessor, attr, egm, optionAttributes, val, zoom;
-    if (options == null) {
-      options = {};
-    }
     zoom = d3.behavior.zoom().scaleExtent([0, 1]);
     egm = function(selection) {
+      var margin, scaleMax;
+      margin = egm.contentsMargin();
+      scaleMax = egm.contentsScaleMax();
       selection.each(function(graph) {
         var bottom, container, height, left, right, scale, top, vertices, width, _ref;
         container = d3.select(this);
@@ -138,13 +163,13 @@
           enableZoom: egm.enableZoom(),
           zoom: zoom,
           maxTextLength: egm.maxTextLength()
-        })).call(resize(egm.size()[0], egm.size()[1])).call(layout({
+        })).call(egm.resize(egm.size()[0], egm.size()[1])).call(layout({
           dagreEdgeSep: egm.dagreEdgeSep(),
           dagreNodeSep: egm.dagreNodeSep(),
           dagreRankDir: egm.dagreRankDir(),
           dagreRankSep: egm.dagreRankSep()
         }));
-        selection.call(transition({
+        selection.call(transition(egm, {
           edgeColor: egm.edgeColor(),
           edgeOpacity: egm.edgeOpacity(),
           edgeWidth: egm.edgeWidth(),
@@ -166,8 +191,8 @@
         bottom = d3.max(vertices, function(vertex) {
           return vertex.y + vertex.height / 2;
         });
-        scale = d3.min([Math.min(width / (right - left), height / (bottom - top), 1)]);
-        zoom.scaleExtent([scale, 1]);
+        scale = d3.min([(width - 2 * margin) / (right - left), (height - 2 * margin) / (bottom - top), 1]);
+        zoom.scaleExtent([scale, scaleMax]);
       });
     };
     accessor = function(defaultVal) {
@@ -183,6 +208,8 @@
       };
     };
     optionAttributes = {
+      contentsMargin: 0,
+      contentsScaleMax: 1,
       dagreEdgeSep: 10,
       dagreNodeSep: 20,
       dagreRankDir: 'LR',
@@ -223,89 +250,44 @@
       },
       size: [1, 1]
     };
-    egm.css = function(options) {
-      var svgCss, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
-      if (options == null) {
-        options = {};
-      }
-      svgCss = "g.vertex > rect, rect.background {\n  fill: " + ((_ref = options.backgroundColor) != null ? _ref : 'whitesmoke') + ";\n}\ng.edge > path {\n  fill: none;\n}\ng.vertex > rect, g.edge > path {\n  stroke: " + ((_ref1 = options.strokeColor) != null ? _ref1 : 'black') + ";\n}\ng.vertex > text {\n  fill: " + ((_ref2 = options.strokeColor) != null ? _ref2 : 'black') + ";\n  font-family: 'Lucida Grande', 'Hiragino Kaku Gothic ProN',\n    'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif;\n  font-size: 14px;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex.lower > rect, g.edge.lower > path {\n  stroke: " + ((_ref3 = options.lowerStrokeColor) != null ? _ref3 : 'red') + ";\n}\ng.vertex.upper > rect, g.edge.upper > path {\n  stroke: " + ((_ref4 = options.upperStrokeColor) != null ? _ref4 : 'blue') + ";\n}\ng.vertex.upper.lower>rect, g.edge.upper.lower>path {\n  stroke: " + ((_ref5 = options.selectedStrokeColor) != null ? _ref5 : 'purple') + ";\n}\nrect.background {\n  cursor: move;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex {\n  cursor: pointer;\n}\ng.vertex-buttons {\n  opacity: 0.7;\n}\ng.vertex-button {\n  cursor: pointer;\n}\ng.vertex-button>rect {\n  fill: #fff;\n  stroke: #adadad\n}\ng.vertex-button.hover>rect {\n  fill: #ebebeb;\n}";
-      return function(selection) {
-        return selection.each(function() {
-          var container;
-          container = d3.select(this);
-          container.selectAll('defs.egrid-style').remove();
-          return container.append('defs').classed('egrid-style', true).append('style').text(svgCss);
-        });
-      };
-    };
-    egm.resize = function(width, height) {
-      egm.size([width, height]);
-      return resize(width, height);
-    };
-    egm.center = function(arg) {
-      var margin, maxScale, scale, _ref, _ref1, _ref2;
-      if (arg == null) {
-        arg = {};
-      }
-      scale = (_ref = arg.scale) != null ? _ref : 1;
-      margin = (_ref1 = arg.margin) != null ? _ref1 : 0;
-      maxScale = (_ref2 = arg.maxScale) != null ? _ref2 : 1;
-      return function(selection) {
-        selection.each(function() {
-          var bottom, container, contentScale, height, left, right, s, t, top, vertices, width, x, y, _ref3, _ref4, _ref5, _ref6, _ref7;
-          container = d3.select(this);
-          _ref3 = egm.size(), width = _ref3[0], height = _ref3[1];
-          vertices = container.selectAll('g.vertex').data();
-          left = (_ref4 = d3.min(vertices, function(vertex) {
-            return vertex.x - vertex.width / 2;
-          })) != null ? _ref4 : 0;
-          right = (_ref5 = d3.max(vertices, function(vertex) {
-            return vertex.x + vertex.width / 2;
-          })) != null ? _ref5 : 0;
-          top = (_ref6 = d3.min(vertices, function(vertex) {
-            return vertex.y - vertex.height / 2;
-          })) != null ? _ref6 : 0;
-          bottom = (_ref7 = d3.max(vertices, function(vertex) {
-            return vertex.y + vertex.height / 2;
-          })) != null ? _ref7 : 0;
-          contentScale = scale * d3.min([(width - 2 * margin) / (right - left), (height - 2 * margin) / (bottom - top), maxScale]);
-          x = ((width - 2 * margin) - (right - left) * contentScale) / 2;
-          y = ((height - 2 * margin) - (bottom - top) * contentScale) / 2;
-          zoom.scale(contentScale).translate([x, y]);
-          t = svg.transform.translate(x, y);
-          s = svg.transform.scale(contentScale);
-          selection.select('g.contents').attr('transform', svg.transform.compose(t, s));
-        });
-      };
-    };
-    egm.updateColor = function() {
-      return function(selection) {
-        return selection.call(paint({
-          edgeColor: egm.edgeColor(),
-          edgeOpacity: egm.edgeOpacity(),
-          edgeWidth: egm.edgeWidth(),
-          vertexColor: egm.vertexColor(),
-          vertexOpacity: egm.vertexOpacity()
-        }));
-      };
-    };
-    egm.options = function(options) {
-      var attr;
-      for (attr in optionAttributes) {
-        egm[attr](options[attr]);
-      }
-      return egm;
-    };
     for (attr in optionAttributes) {
       val = optionAttributes[attr];
       egm[attr] = accessor(val);
     }
-    return egm.options(options);
+    egm.center = require('./center')(zoom);
+    egm.css = require('./css');
+    egm.resize = require('./resize');
+    egm.updateColor = require('./update-color');
+    return egm;
   };
 
 }).call(this);
 
-},{"../svg":17,"./select":2,"./update":3}],2:[function(require,module,exports){
+},{"../svg":21,"./center":1,"./css":2,"./resize":4,"./select":5,"./update":7,"./update-color":6}],4:[function(require,module,exports){
+(function() {
+  var resize;
+
+  resize = function(width, height) {
+    return function(selection) {
+      selection.attr({
+        width: width,
+        height: height
+      });
+      selection.select('rect.background').attr({
+        width: width,
+        height: height
+      });
+    };
+  };
+
+  module.exports = function(width, height) {
+    this.size([width, height]);
+    return resize(width, height);
+  };
+
+}).call(this);
+
+},{}],5:[function(require,module,exports){
 (function() {
   var dijkstra, svg, updateButtons, updateSelectedVertex;
 
@@ -440,7 +422,57 @@
 
 }).call(this);
 
-},{"../graph/dijkstra":5,"../svg":17}],3:[function(require,module,exports){
+},{"../graph/dijkstra":9,"../svg":21}],6:[function(require,module,exports){
+(function() {
+  var paint;
+
+  paint = function(arg) {
+    var edgeColor, edgeOpacity, edgeWidth, vertexColor, vertexOpacity;
+    vertexOpacity = arg.vertexOpacity, vertexColor = arg.vertexColor, edgeColor = arg.edgeColor, edgeOpacity = arg.edgeOpacity, edgeWidth = arg.edgeWidth;
+    return function(selection) {
+      selection.selectAll('g.vertices>g.vertex').style('opacity', function(vertex) {
+        return vertexOpacity(vertex.data, vertex.key);
+      });
+      selection.selectAll('g.vertices>g.vertex>rect').style('fill', function(vertex) {
+        return vertexColor(vertex.data, vertex.key);
+      });
+      return selection.selectAll('g.edges>g.edge>path').style({
+        opacity: function(_arg) {
+          var source, target;
+          source = _arg.source, target = _arg.target;
+          return edgeOpacity(source.key, target.key);
+        },
+        stroke: function(_arg) {
+          var source, target;
+          source = _arg.source, target = _arg.target;
+          return edgeColor(source.key, target.key);
+        },
+        'stroke-width': function(_arg) {
+          var source, target;
+          source = _arg.source, target = _arg.target;
+          return edgeWidth(source.key, target.key);
+        }
+      });
+    };
+  };
+
+  module.exports = function() {
+    var egm;
+    egm = this;
+    return function(selection) {
+      return selection.call(paint({
+        edgeColor: egm.edgeColor(),
+        edgeOpacity: egm.edgeOpacity(),
+        edgeWidth: egm.edgeWidth(),
+        vertexColor: egm.vertexColor(),
+        vertexOpacity: egm.vertexOpacity()
+      }));
+    };
+  };
+
+}).call(this);
+
+},{}],7:[function(require,module,exports){
 (function() {
   var calculateTextSize, createVertex, initContainer, makeGrid, onClickVertex, onMouseEnterVertex, onMouseLeaveVertex, select, svg, updateEdges, updateVertices;
 
@@ -712,7 +744,7 @@
 
 }).call(this);
 
-},{"../svg":17,"./select":2}],4:[function(require,module,exports){
+},{"../svg":21,"./select":5}],8:[function(require,module,exports){
 (function() {
   module.exports = function(v, e) {
     var AdjacencyList, nextVertexId, vertices;
@@ -923,7 +955,7 @@
 
 }).call(this);
 
-},{}],5:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 (function() {
   module.exports = function() {
     var dijkstra, inv, weight;
@@ -983,7 +1015,7 @@
 
 }).call(this);
 
-},{}],6:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 (function() {
   var adjacencyList;
 
@@ -1021,7 +1053,7 @@
 
 }).call(this);
 
-},{"./adjacency-list":4}],7:[function(require,module,exports){
+},{"./adjacency-list":8}],11:[function(require,module,exports){
 (function() {
   module.exports = {
     graph: require('./graph'),
@@ -1032,7 +1064,7 @@
 
 }).call(this);
 
-},{"./adjacency-list":4,"./dijkstra":5,"./graph":6,"./warshall-floyd":8}],8:[function(require,module,exports){
+},{"./adjacency-list":8,"./dijkstra":9,"./graph":10,"./warshall-floyd":12}],12:[function(require,module,exports){
 (function() {
   module.exports = function() {
     var warshallFloyd, weight;
@@ -1089,7 +1121,7 @@
 
 }).call(this);
 
-},{}],9:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 (function() {
   var factory;
 
@@ -1387,7 +1419,7 @@
 
 }).call(this);
 
-},{"../graph/graph":6}],10:[function(require,module,exports){
+},{"../graph/graph":10}],14:[function(require,module,exports){
 (function (global){
 (function() {
   global.window.egrid = {
@@ -1403,7 +1435,7 @@
 }).call(this);
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./egm":1,"./graph":7,"./grid":9,"./network":16,"./ui":19}],11:[function(require,module,exports){
+},{"./egm":3,"./graph":11,"./grid":13,"./network":20,"./ui":23}],15:[function(require,module,exports){
 (function() {
   module.exports = function() {
     return function(graph) {
@@ -1467,7 +1499,7 @@
 
 }).call(this);
 
-},{}],12:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 (function() {
   module.exports = function(weight) {
     var warshallFloyd;
@@ -1496,7 +1528,7 @@
 
 }).call(this);
 
-},{"../../graph/warshall-floyd":8}],13:[function(require,module,exports){
+},{"../../graph/warshall-floyd":12}],17:[function(require,module,exports){
 (function() {
   module.exports = {
     inDegree: function(graph) {
@@ -1533,7 +1565,7 @@
 
 }).call(this);
 
-},{}],14:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 (function() {
   var degree;
 
@@ -1550,7 +1582,7 @@
 
 }).call(this);
 
-},{"./betweenness":11,"./closeness":12,"./degree":13,"./katz":15}],15:[function(require,module,exports){
+},{"./betweenness":15,"./closeness":16,"./degree":17,"./katz":19}],19:[function(require,module,exports){
 (function() {
   var dictFromKeys;
 
@@ -1615,7 +1647,7 @@
 
 }).call(this);
 
-},{}],16:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 (function() {
   module.exports = {
     centrality: require('./centrality')
@@ -1623,7 +1655,7 @@
 
 }).call(this);
 
-},{"./centrality":14}],17:[function(require,module,exports){
+},{"./centrality":18}],21:[function(require,module,exports){
 (function() {
   module.exports = {
     transform: require('./transform')
@@ -1631,7 +1663,7 @@
 
 }).call(this);
 
-},{"./transform":18}],18:[function(require,module,exports){
+},{"./transform":22}],22:[function(require,module,exports){
 (function() {
   var Scale, Translate,
     __slice = [].slice;
@@ -1685,7 +1717,7 @@
 
 }).call(this);
 
-},{}],19:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 (function() {
   module.exports = {
     removeButton: function(grid, callback) {
@@ -1740,4 +1772,4 @@
 
 }).call(this);
 
-},{}]},{},[10])
+},{}]},{},[14])
