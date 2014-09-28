@@ -108,6 +108,9 @@ module.exports = (options={}) ->
     .scaleExtent [0, 1]
 
   egm = (selection) ->
+    margin = egm.contentsMargin()
+    scaleMax = egm.contentsScaleMax()
+
     selection.each (graph) ->
       container = d3.select this
       container
@@ -147,9 +150,10 @@ module.exports = (options={}) ->
       right = d3.max vertices, (vertex) -> vertex.x + vertex.width / 2
       top = d3.min vertices, (vertex) -> vertex.y - vertex.height / 2
       bottom = d3.max vertices, (vertex) -> vertex.y + vertex.height / 2
-      scale = d3.min [Math.min width / (right - left),
-                      height / (bottom - top), 1]
-      zoom.scaleExtent [scale, 1]
+      scale = d3.min [(width - 2 * margin) / (right - left),
+                      (height - 2 * margin) / (bottom - top),
+                      1]
+      zoom.scaleExtent [scale, scaleMax]
       return
     return
 
@@ -163,6 +167,8 @@ module.exports = (options={}) ->
         val
 
   optionAttributes =
+    contentsMargin: 0
+    contentsScaleMax: 1
     dagreEdgeSep: 10
     dagreNodeSep: 20
     dagreRankDir: 'LR'
@@ -255,8 +261,8 @@ module.exports = (options={}) ->
 
   egm.center = (arg={}) ->
     scale = arg.scale ? 1
-    margin = arg.margin ? 0
-    maxScale = arg.maxScale ? 1
+    margin = this.contentsMargin()
+    maxScale = this.contentsScaleMax()
 
     (selection) ->
       selection.each ->
@@ -274,8 +280,8 @@ module.exports = (options={}) ->
           (height - 2 * margin) / (bottom - top),
           maxScale
         ]
-        x = ((width - 2 * margin) - (right - left) * contentScale) / 2
-        y = ((height - 2 * margin) - (bottom - top) * contentScale) / 2
+        x = ((width - 2 * margin) - (right - left) * contentScale) / 2 + margin
+        y = ((height - 2 * margin) - (bottom - top) * contentScale) / 2 + margin
         zoom
           .scale contentScale
           .translate [x, y]

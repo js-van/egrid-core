@@ -110,6 +110,7 @@ module.exports = ->
       it 'should transform contents region with scale', ->
         egm = egrid.core.egm()
           .size [500, 500]
+          .contentsScaleMax 2
         grid = egrid.core.grid()
         a = grid.addConstruct 'a'
         b = grid.addConstruct 'b'
@@ -134,8 +135,7 @@ module.exports = ->
               vertex.height = 10
               vertex.x = 100
               vertex.y = 95
-        selection.call egm.center
-          maxScale: 2
+        selection.call egm.center()
         transform = selection
           .select 'g.contents'
           .attr 'transform'
@@ -145,6 +145,7 @@ module.exports = ->
       it 'should transform contents region with margin', ->
         egm = egrid.core.egm()
           .size [500, 500]
+          .contentsMargin 10
         grid = egrid.core.grid()
         a = grid.addConstruct 'a'
         b = grid.addConstruct 'b'
@@ -175,4 +176,4 @@ module.exports = ->
           .select 'g.contents'
           .attr 'transform'
         expect transform
-          .to.be 'translate(140,190)scale(1,1)'
+          .to.be 'translate(150,200)scale(1,1)'
