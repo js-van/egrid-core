@@ -276,11 +276,13 @@ var app = angular.module('egrid-core-example', ['ui.router'])
             }
           })();
           var egm = egrid.core.egm()
-            .size([$('div.display-container').width(), 600])
+            .contentsMargin(10)
+            .contentsScaleMax(2)
             .maxTextLength(10)
             .onClickVertex(function() {
               $scope.$apply();
             })
+            .size([$('div.display-container').width(), 600])
             .vertexButtons([
               egrid.core.ui.ladderUpButton(grid, function() {
                 render();

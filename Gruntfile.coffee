@@ -33,7 +33,7 @@ module.exports = (grunt) ->
         tasks: ['build:src']
       test:
         files: ['src/**/*.coffee', 'test/**/*.coffee', 'test/**/*.html']
-        tasks: ['build', 'test']
+        tasks: ['build:test', 'test']
       'gh-pages':
         files: ['src/**/*.coffee', 'examples/**/*']
         tasks: ['gh-pages']
