@@ -51,7 +51,7 @@ layout = (arg) ->
             e.points.push e.points[e.points.length - 1]
 
 
-transition = (arg) ->
+transition = (egm, arg) ->
   (selection) ->
     selection
       .selectAll 'g.vertices > g.vertex'
@@ -68,39 +68,7 @@ transition = (arg) ->
       .attr 'transform', (e) ->
         svg.transform.translate e.points[1][0], e.points[1][1]
     selection
-      .call paint arg
-
-
-paint = (arg) ->
-  {vertexOpacity, vertexColor,
-   edgeColor, edgeOpacity, edgeWidth} = arg
-  (selection) ->
-    selection
-      .selectAll 'g.vertices>g.vertex'
-      .style 'opacity', (vertex) -> vertexOpacity vertex.data, vertex.key
-    selection
-      .selectAll 'g.vertices>g.vertex>rect'
-      .style 'fill', (vertex) -> vertexColor vertex.data, vertex.key
-    selection
-      .selectAll 'g.edges>g.edge>path'
-      .style
-        opacity: ({source, target}) -> edgeOpacity source.key, target.key
-        stroke: ({source, target}) -> edgeColor source.key, target.key
-        'stroke-width': ({source, target}) -> edgeWidth source.key, target.key
-
-
-resize = (width, height) ->
-  (selection) ->
-    selection
-      .attr
-        width: width
-        height: height
-    selection
-      .select 'rect.background'
-      .attr
-        width: width
-        height: height
-    return
+      .call egm.updateColor()
 
 
 module.exports = () ->
@@ -126,14 +94,14 @@ module.exports = () ->
           enableZoom: egm.enableZoom()
           zoom: zoom
           maxTextLength: egm.maxTextLength()
-        .call resize egm.size()[0], egm.size()[1]
+        .call egm.resize egm.size()[0], egm.size()[1]
         .call layout
           dagreEdgeSep: egm.dagreEdgeSep()
           dagreNodeSep: egm.dagreNodeSep()
           dagreRankDir: egm.dagreRankDir()
           dagreRankSep: egm.dagreRankSep()
       selection
-        .call transition
+        .call transition egm,
           edgeColor: egm.edgeColor()
           edgeOpacity: egm.edgeOpacity()
           edgeWidth: egm.edgeWidth()
@@ -189,121 +157,12 @@ module.exports = () ->
     vertexVisibility: -> true
     size: [1, 1]
 
-  egm.css = (options = {}) ->
-    svgCss = """
-    g.vertex > rect, rect.background {
-      fill: #{options.backgroundColor ? 'whitesmoke'};
-    }
-    g.edge > path {
-      fill: none;
-    }
-    g.vertex > rect, g.edge > path {
-      stroke: #{options.strokeColor ? 'black'};
-    }
-    g.vertex > text {
-      fill: #{options.strokeColor ? 'black'};
-      font-family: 'Lucida Grande', 'Hiragino Kaku Gothic ProN',
-        'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif;
-      font-size: 14px;
-      user-select: none;
-      -moz-user-select: none;
-      -webkit-user-select: none;
-      -ms-user-select: none;
-    }
-    g.vertex.lower > rect, g.edge.lower > path {
-      stroke: #{options.lowerStrokeColor ? 'red'};
-    }
-    g.vertex.upper > rect, g.edge.upper > path {
-      stroke: #{options.upperStrokeColor ? 'blue'};
-    }
-    g.vertex.upper.lower>rect, g.edge.upper.lower>path {
-      stroke: #{options.selectedStrokeColor ? 'purple'};
-    }
-    rect.background {
-      cursor: move;
-      user-select: none;
-      -moz-user-select: none;
-      -webkit-user-select: none;
-      -ms-user-select: none;
-    }
-    g.vertex {
-      cursor: pointer;
-    }
-    g.vertex-buttons {
-      opacity: 0.7;
-    }
-    g.vertex-button {
-      cursor: pointer;
-    }
-    g.vertex-button>rect {
-      fill: #fff;
-      stroke: #adadad
-    }
-    g.vertex-button.hover>rect {
-      fill: #ebebeb;
-    }
-    """
-    (selection) ->
-      selection.each ->
-        container = d3.select this
-        container
-          .selectAll 'defs.egrid-style'
-          .remove()
-        container
-          .append 'defs'
-          .classed 'egrid-style', true
-          .append 'style'
-          .text svgCss
-
-  egm.resize = (width, height) ->
-    egm.size([width, height])
-    resize width, height
-
-  egm.center = (arg={}) ->
-    scale = arg.scale ? 1
-    margin = this.contentsMargin()
-    maxScale = this.contentsScaleMax()
-
-    (selection) ->
-      selection.each ->
-        container = d3.select this
-        [width, height] = egm.size()
-        vertices = container
-          .selectAll 'g.vertex'
-          .data()
-        left = (d3.min vertices, (vertex) -> vertex.x - vertex.width / 2) ? 0
-        right = (d3.max vertices, (vertex) -> vertex.x + vertex.width / 2) ? 0
-        top = (d3.min vertices, (vertex) -> vertex.y - vertex.height / 2) ? 0
-        bottom = (d3.max vertices, (vertex) -> vertex.y + vertex.height / 2) ? 0
-        contentScale = scale * d3.min [
-          (width - 2 * margin) / (right - left),
-          (height - 2 * margin) / (bottom - top),
-          maxScale
-        ]
-        x = ((width - 2 * margin) - (right - left) * contentScale) / 2 + margin
-        y = ((height - 2 * margin) - (bottom - top) * contentScale) / 2 + margin
-        zoom
-          .scale contentScale
-          .translate [x, y]
-        t = svg.transform.translate x, y
-        s = svg.transform.scale contentScale
-        selection
-          .select 'g.contents'
-          .attr 'transform', svg.transform.compose(t, s)
-        return
-      return
-
-  egm.updateColor = () ->
-    (selection) ->
-      selection
-        .call paint
-          edgeColor: egm.edgeColor()
-          edgeOpacity: egm.edgeOpacity()
-          edgeWidth: egm.edgeWidth()
-          vertexColor: egm.vertexColor()
-          vertexOpacity: egm.vertexOpacity()
-
   for attr, val of optionAttributes
     egm[attr] = accessor val
+
+  egm.center = require('./center')(zoom)
+  egm.css = require './css'
+  egm.resize = require './resize'
+  egm.updateColor = require('./update-color')
 
   egm
