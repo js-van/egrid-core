@@ -255,6 +255,7 @@ module.exports = (options={}) ->
 
   egm.center = (arg={}) ->
     scale = arg.scale ? 1
+    margin = arg.margin ? 0
     maxScale = arg.maxScale ? 1
 
     (selection) ->
@@ -269,12 +270,12 @@ module.exports = (options={}) ->
         top = (d3.min vertices, (vertex) -> vertex.y - vertex.height / 2) ? 0
         bottom = (d3.max vertices, (vertex) -> vertex.y + vertex.height / 2) ? 0
         contentScale = scale * d3.min [
-          width / (right - left),
-          height / (bottom - top),
+          (width - 2 * margin) / (right - left),
+          (height - 2 * margin) / (bottom - top),
           maxScale
         ]
-        x = (width - (right - left) * contentScale) / 2
-        y = (height - (bottom - top) * contentScale) / 2
+        x = ((width - 2 * margin) - (right - left) * contentScale) / 2
+        y = ((height - 2 * margin) - (bottom - top) * contentScale) / 2
         zoom
           .scale contentScale
           .translate [x, y]
