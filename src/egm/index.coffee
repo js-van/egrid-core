@@ -103,7 +103,7 @@ resize = (width, height) ->
     return
 
 
-module.exports = (options={}) ->
+module.exports = () ->
   zoom = d3.behavior.zoom()
     .scaleExtent [0, 1]
 
@@ -303,12 +303,7 @@ module.exports = (options={}) ->
           vertexColor: egm.vertexColor()
           vertexOpacity: egm.vertexOpacity()
 
-  egm.options = (options) ->
-    for attr of optionAttributes
-      egm[attr] options[attr]
-    egm
-
   for attr, val of optionAttributes
     egm[attr] = accessor val
 
-  egm.options options
+  egm
