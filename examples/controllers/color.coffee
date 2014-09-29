@@ -42,7 +42,6 @@ angular.module 'egrid-core-example'
       .size [$('div.display-container').width(), 300]
     d3.select 'svg.display'
       .datum grid
-      .call egm.css()
       .call egm
 
     $scope.vertices = grid.vertices().map (u) -> grid.get u

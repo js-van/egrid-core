@@ -1,16 +1,17 @@
-module.exports = (options = {}) ->
+module.exports =  ->
+  egm = this
   svgCss = """
   g.vertex > rect, rect.background {
-    fill: #{options.backgroundColor ? 'whitesmoke'};
+    fill: #{egm.backgroundColor()};
   }
   g.edge > path {
     fill: none;
   }
   g.vertex > rect, g.edge > path {
-    stroke: #{options.strokeColor ? 'black'};
+    stroke: #{egm.strokeColor()};
   }
   g.vertex > text {
-    fill: #{options.strokeColor ? 'black'};
+    fill: #{egm.strokeColor()};
     font-family: 'Lucida Grande', 'Hiragino Kaku Gothic ProN',
       'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif;
     font-size: 14px;
@@ -20,13 +21,13 @@ module.exports = (options = {}) ->
     -ms-user-select: none;
   }
   g.vertex.lower > rect, g.edge.lower > path {
-    stroke: #{options.lowerStrokeColor ? 'red'};
+    stroke: #{egm.lowerStrokeColor()};
   }
   g.vertex.upper > rect, g.edge.upper > path {
-    stroke: #{options.upperStrokeColor ? 'blue'};
+    stroke: #{egm.upperStrokeColor()};
   }
   g.vertex.upper.lower>rect, g.edge.upper.lower>path {
-    stroke: #{options.selectedStrokeColor ? 'purple'};
+    stroke: #{egm.selectedStrokeColor()};
   }
   rect.background {
     cursor: move;

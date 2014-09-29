@@ -177,3 +177,30 @@ module.exports = ->
           .attr 'transform'
         expect transform
           .to.be 'translate(150,200)scale(1,1)'
+
+    describe 'updateColor', ->
+      it 'should change color', ->
+        egm = egrid.core.egm()
+        grid = egrid.core.grid()
+        u = grid.addConstruct 'a'
+        grid.ladderDown u, 'b'
+        selection = d3.select 'svg'
+          .datum grid.graph()
+          .call egm
+
+        egm
+          .edgeColor -> '#ff0000'
+          .edgeOpacity -> 0.5
+          .vertexColor -> '#0000ff'
+          .vertexOpacity -> 0.25
+
+        selection.call egm.updateColor()
+
+        expect selection.selectAll('g.edges>g.edge>path').style('stroke')
+          .to.be '#ff0000'
+        expect selection.selectAll('g.edges>g.edge>path').style('opacity')
+          .to.be '0.5'
+        expect selection.selectAll('g.vertices>g.vertex>rect').style('fill')
+          .to.be '#0000ff'
+        expect selection.selectAll('g.vertices>g.vertex').style('opacity')
+          .to.be '0.25'

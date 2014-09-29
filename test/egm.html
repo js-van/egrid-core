@@ -236,45 +236,6 @@ describe('egm', function() {
       expect(selection.select('g.edges>g.edge>text').text()).to.be('fuga');
     });
   });
-
-  describe('updateColor', function() {
-    it('should change color', function() {
-      var egm = egrid.core.egm();
-      var grid = egrid.core.grid();
-      var u = grid.addConstruct('a');
-      grid.ladderDown(u, 'b');
-      var selection = d3.select('svg')
-        .datum(grid.graph())
-        .call(egm);
-
-      expect(selection.selectAll('g.edges>g.edge>path').style('stroke')).to.be('none');
-      expect(selection.selectAll('g.edges>g.edge>path').style('opacity')).to.be('1');
-      expect(selection.selectAll('g.vertices>g.vertex>rect').style('fill')).to.be('#000000');
-      expect(selection.selectAll('g.vertices>g.vertex').style('opacity')).to.be('1');
-
-      egm
-        .edgeColor(function() {
-          return '#ff0000';
-        })
-        .edgeOpacity(function() {
-          return 0.5;
-        })
-        .vertexColor(function() {
-          return '#0000ff';
-        })
-        .vertexOpacity(function() {
-          return 0.25;
-        });
-
-      selection.call(egm.updateColor());
-      flushTransitions();
-
-      expect(selection.select('g.edges>g.edge>path').style('stroke')).to.be('#ff0000');
-      expect(selection.selectAll('g.edges>g.edge>path').style('opacity')).to.be('0.5');
-      expect(selection.selectAll('g.vertices>g.vertex>rect').style('fill')).to.be('#0000ff');
-      expect(selection.selectAll('g.vertices>g.vertex').style('opacity')).to.be('0.25');
-    });
-  });
 });
 
 if (window.mochaPhantomJS) {

@@ -39,7 +39,6 @@ angular.module 'egrid-core-example'
       .datum grid.graph()
     selection
       .transition()
-      .call egm.css()
       .call egm
       .call egm.center()
 

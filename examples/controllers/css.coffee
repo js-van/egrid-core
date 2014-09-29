@@ -14,17 +14,27 @@ angular.module 'egrid-core-example'
     egm = egrid.core.egm()
       .vertexText Object
       .size [$('div.display-container').width(), 400]
+      .backgroundColor '#ffffff'
+      .strokeColor '#000000'
+      .upperStrokeColor '#ff0000'
+      .lowerStrokeColor '#0000ff'
+      .selectedStrokeColor '#ff00ff'
     $scope.css =
-      backgroundColor: '#ffffff'
-      strokeColor: '#000000'
-      upperStrokeColor: '#ff0000'
-      lowerStrokeColor: '#0000ff'
-      selectedStrokeColor: '#ff00ff'
+      backgroundColor: egm.backgroundColor()
+      strokeColor: egm.strokeColor()
+      upperStrokeColor: egm.upperStrokeColor()
+      lowerStrokeColor: egm.lowerStrokeColor()
+      selectedStrokeColor: egm.selectedStrokeColor()
     d3.select 'svg.display'
       .datum grid
-      .call egm.css $scope.css
       .call egm
 
     $scope.update = ->
+      egm
+        .backgroundColor $scope.css.backgroundColor
+        .strokeColor $scope.css.strokeColor
+        .upperStrokeColor $scope.css.upperStrokeColor
+        .lowerStrokeColor $scope.css.lowerStrokeColor
+        .selectedStrokeColor $scope.css.selectedStrokeColor
       d3.select 'svg.display'
-        .call egm.css $scope.css
+        .call egm.css()

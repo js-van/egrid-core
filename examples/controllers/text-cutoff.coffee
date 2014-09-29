@@ -17,7 +17,6 @@ angular.module 'egrid-core-example'
       .size [600, 600]
     selection = d3.select 'svg.display'
       .datum grid
-      .call egm.css()
 
     $scope.$watch 'maxTextLength', ->
       egm.maxTextLength $scope.maxTextLength
