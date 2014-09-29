@@ -16,7 +16,6 @@ angular.module 'egrid-core-example'
         .size [600, 200]
       d3.select 'svg.display'
         .datum grid
-        .call egm.css()
         .call egm
 
     $scope.code = draw.toString()

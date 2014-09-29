@@ -82,6 +82,12 @@ module.exports = () ->
     selection.each (graph) ->
       container = d3.select this
       container
+        .call egm.css
+          backgroundColor: egm.backgroundColor()
+          strokeColor: egm.strokeColor()
+          lowerStrokeColor: egm.lowerStrokeColor()
+          upperStrokeColor: egm.upperStrokeColor()
+          selectedStrokeColor: egm.selectedStrokeColor()
         .call update graph,
           edgePointsSize: edgePointsSize
           edgeLine: edgeLine
@@ -135,6 +141,7 @@ module.exports = () ->
         val
 
   optionAttributes =
+    backgroundColor: 'whitesmoke'
     contentsMargin: 0
     contentsScaleMax: 1
     dagreEdgeSep: 10
@@ -147,8 +154,11 @@ module.exports = () ->
     edgeWidth: -> 1
     enableClickVertex: true
     enableZoom: true
+    lowerStrokeColor: 'red'
     maxTextLength: Infinity
     onClickVertex: ->
+    selectedStrokeColor: 'purple'
+    strokeColor: 'black'
     vertexButtons: -> []
     vertexColor: -> ''
     vertexOpacity: -> 1
@@ -156,6 +166,7 @@ module.exports = () ->
     vertexText: (vertexData) -> vertexData.text
     vertexVisibility: -> true
     size: [1, 1]
+    upperStrokeColor: 'blue'
 
   for attr, val of optionAttributes
     egm[attr] = accessor val

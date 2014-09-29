@@ -1,7 +1,7 @@
 {
   "name": "egrid-core",
   "main": "egrid-core.js",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "homepage": "https://github.com/likr/egrid-core",
   "authors": [
     "Yosuke ONOUE <onoue@likr-lab.com>"
@@ -17,10 +17,11 @@
     "Gruntfile.coffee",
     "package.json",
     "lib",
-    "examples"
+    "examples",
+    "gh-pages"
   ],
   "dependencies": {
-    "d3": "~3.4.6"
+    "d3": "~3.4.11"
   },
   "devDependencies": {
     "mocha": "~1.20.1",

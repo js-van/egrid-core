@@ -31,7 +31,6 @@ angular.module 'egrid-core-example'
       .size [600, 600]
     d3.select 'svg.display'
       .datum grid
-      .call egm.css()
       .call egm
       .call egm.center()
 
