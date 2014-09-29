@@ -48,12 +48,10 @@
 
 },{"../svg":21}],2:[function(require,module,exports){
 (function() {
-  module.exports = function(options) {
-    var svgCss, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
-    if (options == null) {
-      options = {};
-    }
-    svgCss = "g.vertex > rect, rect.background {\n  fill: " + ((_ref = options.backgroundColor) != null ? _ref : 'whitesmoke') + ";\n}\ng.edge > path {\n  fill: none;\n}\ng.vertex > rect, g.edge > path {\n  stroke: " + ((_ref1 = options.strokeColor) != null ? _ref1 : 'black') + ";\n}\ng.vertex > text {\n  fill: " + ((_ref2 = options.strokeColor) != null ? _ref2 : 'black') + ";\n  font-family: 'Lucida Grande', 'Hiragino Kaku Gothic ProN',\n    'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif;\n  font-size: 14px;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex.lower > rect, g.edge.lower > path {\n  stroke: " + ((_ref3 = options.lowerStrokeColor) != null ? _ref3 : 'red') + ";\n}\ng.vertex.upper > rect, g.edge.upper > path {\n  stroke: " + ((_ref4 = options.upperStrokeColor) != null ? _ref4 : 'blue') + ";\n}\ng.vertex.upper.lower>rect, g.edge.upper.lower>path {\n  stroke: " + ((_ref5 = options.selectedStrokeColor) != null ? _ref5 : 'purple') + ";\n}\nrect.background {\n  cursor: move;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex {\n  cursor: pointer;\n}\ng.vertex-buttons {\n  opacity: 0.7;\n}\ng.vertex-button {\n  cursor: pointer;\n}\ng.vertex-button>rect {\n  fill: #fff;\n  stroke: #adadad\n}\ng.vertex-button.hover>rect {\n  fill: #ebebeb;\n}";
+  module.exports = function() {
+    var egm, svgCss;
+    egm = this;
+    svgCss = "g.vertex > rect, rect.background {\n  fill: " + (egm.backgroundColor()) + ";\n}\ng.edge > path {\n  fill: none;\n}\ng.vertex > rect, g.edge > path {\n  stroke: " + (egm.strokeColor()) + ";\n}\ng.vertex > text {\n  fill: " + (egm.strokeColor()) + ";\n  font-family: 'Lucida Grande', 'Hiragino Kaku Gothic ProN',\n    'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif;\n  font-size: 14px;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex.lower > rect, g.edge.lower > path {\n  stroke: " + (egm.lowerStrokeColor()) + ";\n}\ng.vertex.upper > rect, g.edge.upper > path {\n  stroke: " + (egm.upperStrokeColor()) + ";\n}\ng.vertex.upper.lower>rect, g.edge.upper.lower>path {\n  stroke: " + (egm.selectedStrokeColor()) + ";\n}\nrect.background {\n  cursor: move;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex {\n  cursor: pointer;\n}\ng.vertex-buttons {\n  opacity: 0.7;\n}\ng.vertex-button {\n  cursor: pointer;\n}\ng.vertex-button>rect {\n  fill: #fff;\n  stroke: #adadad\n}\ng.vertex-button.hover>rect {\n  fill: #ebebeb;\n}";
     return function(selection) {
       return selection.each(function() {
         var container;
@@ -151,7 +149,13 @@
       selection.each(function(graph) {
         var bottom, container, height, left, right, scale, top, vertices, width, _ref;
         container = d3.select(this);
-        container.call(update(graph, {
+        container.call(egm.css({
+          backgroundColor: egm.backgroundColor(),
+          strokeColor: egm.strokeColor(),
+          lowerStrokeColor: egm.lowerStrokeColor(),
+          upperStrokeColor: egm.upperStrokeColor(),
+          selectedStrokeColor: egm.selectedStrokeColor()
+        })).call(update(graph, {
           edgePointsSize: edgePointsSize,
           edgeLine: edgeLine,
           edgeText: egm.edgeText(),
@@ -208,6 +212,7 @@
       };
     };
     optionAttributes = {
+      backgroundColor: 'whitesmoke',
       contentsMargin: 0,
       contentsScaleMax: 1,
       dagreEdgeSep: 10,
@@ -228,8 +233,11 @@
       },
       enableClickVertex: true,
       enableZoom: true,
+      lowerStrokeColor: 'red',
       maxTextLength: Infinity,
       onClickVertex: function() {},
+      selectedStrokeColor: 'purple',
+      strokeColor: 'black',
       vertexButtons: function() {
         return [];
       },
@@ -248,7 +256,8 @@
       vertexVisibility: function() {
         return true;
       },
-      size: [1, 1]
+      size: [1, 1],
+      upperStrokeColor: 'blue'
     };
     for (attr in optionAttributes) {
       val = optionAttributes[attr];

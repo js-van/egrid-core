@@ -51,7 +51,7 @@
     graph = egrid.core.graph.graph();
     grid = graph(data.data.nodes, data.data.links);
     egm = egrid.core.egm().enableZoom(false).size([600, 600]);
-    d3.select('svg.display').datum(grid).call(egm.css()).call(egm).call(egm.center());
+    d3.select('svg.display').datum(grid).call(egm).call(egm.center());
     draw = function() {
       var colorScale, extent, scale;
       extent = d3.extent(grid.vertices(), function(u) {
@@ -200,7 +200,7 @@
     }).vertexVisibility(function(vertex) {
       return vertex.visible;
     }).size([$('div.display-container').width(), 300]);
-    d3.select('svg.display').datum(grid).call(egm.css()).call(egm);
+    d3.select('svg.display').datum(grid).call(egm);
     $scope.vertices = grid.vertices().map(function(u) {
       return grid.get(u);
     });
@@ -234,17 +234,18 @@
         target: 2
       }
     ]);
-    egm = egrid.core.egm().vertexText(Object).size([$('div.display-container').width(), 400]);
+    egm = egrid.core.egm().vertexText(Object).size([$('div.display-container').width(), 400]).backgroundColor('#ffffff').strokeColor('#000000').upperStrokeColor('#ff0000').lowerStrokeColor('#0000ff').selectedStrokeColor('#ff00ff');
     $scope.css = {
-      backgroundColor: '#ffffff',
-      strokeColor: '#000000',
-      upperStrokeColor: '#ff0000',
-      lowerStrokeColor: '#0000ff',
-      selectedStrokeColor: '#ff00ff'
+      backgroundColor: egm.backgroundColor(),
+      strokeColor: egm.strokeColor(),
+      upperStrokeColor: egm.upperStrokeColor(),
+      lowerStrokeColor: egm.lowerStrokeColor(),
+      selectedStrokeColor: egm.selectedStrokeColor()
     };
-    d3.select('svg.display').datum(grid).call(egm.css($scope.css)).call(egm);
+    d3.select('svg.display').datum(grid).call(egm);
     return $scope.update = function() {
-      return d3.select('svg.display').call(egm.css($scope.css));
+      egm.backgroundColor($scope.css.backgroundColor).strokeColor($scope.css.strokeColor).upperStrokeColor($scope.css.upperStrokeColor).lowerStrokeColor($scope.css.lowerStrokeColor).selectedStrokeColor($scope.css.selectedStrokeColor);
+      return d3.select('svg.display').call(egm.css());
     };
   });
 
@@ -281,7 +282,7 @@
         }
       ]);
       egm = egrid.core.egm().size([600, 200]);
-      return d3.select('svg.display').datum(grid).call(egm.css()).call(egm);
+      return d3.select('svg.display').datum(grid).call(egm);
     };
     $scope.code = draw.toString();
     return draw();
@@ -308,7 +309,7 @@
     graph = egrid.core.graph.graph();
     grid = graph(data.data.nodes, data.data.links);
     egm = egrid.core.egm().enableZoom(false).size([600, 600]);
-    selection = d3.select('svg.display').datum(grid).call(egm.css());
+    selection = d3.select('svg.display').datum(grid);
     return $scope.$watch('maxTextLength', function() {
       egm.maxTextLength($scope.maxTextLength);
       return selection.call(egm).call(egm.center());
@@ -355,7 +356,7 @@
       })
     ]);
     selection = d3.select('svg.display').datum(grid.graph());
-    selection.transition().call(egm.css()).call(egm).call(egm.center());
+    selection.transition().call(egm).call(egm.center());
     render = function() {
       var data;
       selection.transition().call(egm);
