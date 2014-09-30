@@ -4,6 +4,9 @@ resize = (width, height) ->
       .attr
         width: width
         height: height
+      .style
+        width: width
+        height: height
     selection
       .select 'rect.background'
       .attr
