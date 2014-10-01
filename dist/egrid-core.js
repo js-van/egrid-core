@@ -502,15 +502,19 @@
     };
   };
 
-  onMouseEnterVertex = function(vertexText) {
+  onMouseEnterVertex = function() {
     return function(vertex) {
-      return d3.select(this).select('text').text(vertexText(vertex.data));
+      return d3.select(this).selectAll('tspan').text(function(d) {
+        return d.originalText;
+      });
     };
   };
 
   onMouseLeaveVertex = function() {
     return function(vertex) {
-      return d3.select(this).select('text').transition().delay(1000).text(vertex.text);
+      return d3.select(this).selectAll('tspan').transition().delay(1000).text(function(d) {
+        return d.text;
+      });
     };
   };
 
@@ -522,12 +526,18 @@
         'font-family': "'Lucida Grande', 'Hiragino Kaku Gothic ProN',\n'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif",
         'font-size': '14px'
       });
-      selection.each(function(u) {
+      selection.each(function(d) {
         var bbox;
-        measureText.text(u.text);
+        measureText.selectAll('tspan').remove();
+        measureText.selectAll('tspan').data(d.texts).enter().append('tspan').text(function(t) {
+          return t.text;
+        }).attr({
+          x: 0,
+          dy: 20
+        });
         bbox = measureText.node().getBBox();
-        u.textWidth = bbox.width;
-        return u.textHeight = bbox.height;
+        d.textWidth = bbox.width;
+        return d.textHeight = bbox.height;
       });
       return measure.remove();
     };
@@ -540,9 +550,6 @@
         u.x = 0;
         u.y = 0;
         return u.selected = false;
-      }).attr({
-        'text-anchor': 'left',
-        'dominant-baseline': 'text-before-edge'
       });
     };
   };
@@ -562,15 +569,23 @@
         u.width = (u.originalWidth + strokeWidth) * u.scale;
         return u.height = (u.originalHeight + strokeWidth) * u.scale;
       });
-      selection.select('text').text(function(u) {
-        return u.text;
-      }).attr({
-        x: function(u) {
-          return -u.textWidth / 2;
-        },
-        y: function(u) {
-          return -u.textHeight / 2;
-        }
+      selection.select('text').attr('y', function(d) {
+        return -d.textHeight / 2 - 20;
+      }).each(function(d) {
+        var innerSelection, updateSelection;
+        innerSelection = d3.select(this);
+        updateSelection = innerSelection.selectAll('tspan').data(d.texts);
+        updateSelection.enter().append('tspan').attr({
+          'text-anchor': 'left',
+          'dominant-baseline': 'text-before-edge'
+        });
+        updateSelection.exit().remove();
+        return innerSelection.selectAll('tspan').text(function(t) {
+          return t.text;
+        }).attr({
+          x: -d.textWidth / 2,
+          dy: 20
+        });
       });
       return selection.select('rect').attr({
         x: function(u) {
@@ -617,7 +632,7 @@
   };
 
   makeGrid = function(graph, arg) {
-    var edges, maxTextLength, oldVertices, oldVerticesMap, pred, text, u, v, vertex, vertexText, vertices, verticesMap, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _m, _n, _o, _ref, _ref1, _ref2, _ref3;
+    var edges, maxTextLength, oldVertices, oldVerticesMap, pred, u, v, vertex, vertexText, vertices, verticesMap, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _m, _n, _o, _ref, _ref1, _ref2, _ref3;
     pred = arg.pred, oldVertices = arg.oldVertices, vertexText = arg.vertexText, maxTextLength = arg.maxTextLength;
     oldVerticesMap = {};
     for (_i = 0, _len = oldVertices.length; _i < _len; _i++) {
@@ -637,12 +652,17 @@
     });
     for (_j = 0, _len1 = vertices.length; _j < _len1; _j++) {
       vertex = vertices[_j];
-      text = vertexText(vertex.data);
-      if (text.length > maxTextLength) {
-        vertex.text = "" + (text.slice(0, maxTextLength)) + "...";
-      } else {
-        vertex.text = text;
-      }
+      vertex.texts = vertexText(vertex.data).split('\n').map(function(text) {
+        var originalText;
+        originalText = text;
+        if (text.length > maxTextLength) {
+          text = "" + (text.slice(0, maxTextLength - 1)) + "...";
+        }
+        return {
+          text: text,
+          originalText: originalText
+        };
+      });
     }
     verticesMap = {};
     for (_k = 0, _len2 = vertices.length; _k < _len2; _k++) {
@@ -736,7 +756,7 @@
           container: selection,
           vertexButtons: vertexButtons,
           clickVertexCallback: clickVertexCallback
-        })).on('mouseenter', onMouseEnterVertex(vertexText)).on('mouseleave', onMouseLeaveVertex()).on('touchstart', onMouseEnterVertex(vertexText)).on('touchmove', function() {
+        })).on('mouseenter', onMouseEnterVertex()).on('mouseleave', onMouseLeaveVertex()).on('touchstart', onMouseEnterVertex()).on('touchmove', function() {
           return d3.event.preventDefault();
         }).on('touchend', onMouseLeaveVertex());
         return contents.select('g.edges').selectAll('g.edge').data(edges, function(_arg) {
