@@ -10,20 +10,20 @@ onClickVertex = ({container, vertexButtons, clickVertexCallback}) ->
     return
 
 
-onMouseEnterVertex = (vertexText) ->
+onMouseEnterVertex = ->
   (vertex) ->
     d3.select @
-      .select 'text'
-      .text vertexText vertex.data
+      .selectAll 'tspan'
+      .text (d) -> d.originalText
 
 
 onMouseLeaveVertex = ->
   (vertex) ->
     d3.select @
-      .select 'text'
+      .selectAll 'tspan'
       .transition()
       .delay 1000
-      .text vertex.text
+      .text (d) -> d.text
 
 
 calculateTextSize = () ->
@@ -37,11 +37,22 @@ calculateTextSize = () ->
         'font-family': """'Lucida Grande', 'Hiragino Kaku Gothic ProN',
           'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif"""
         'font-size': '14px'
-    selection.each (u) ->
-      measureText.text u.text
+    selection.each (d) ->
+      measureText
+        .selectAll 'tspan'
+        .remove()
+      measureText
+        .selectAll 'tspan'
+        .data d.texts
+        .enter()
+        .append 'tspan'
+        .text (t) -> t.text
+        .attr
+          x: 0
+          dy: 20
       bbox = measureText.node().getBBox()
-      u.textWidth = bbox.width
-      u.textHeight = bbox.height
+      d.textWidth = bbox.width
+      d.textHeight = bbox.height
     measure.remove()
 
 
@@ -54,9 +65,6 @@ createVertex = () ->
         u.x = 0
         u.y = 0
         u.selected = false
-      .attr
-        'text-anchor': 'left'
-        'dominant-baseline': 'text-before-edge'
 
 
 updateVertices = (arg) ->
@@ -83,10 +91,27 @@ updateVertices = (arg) ->
         u.height = (u.originalHeight + strokeWidth) * u.scale
     selection
       .select 'text'
-      .text (u) -> u.text
-      .attr
-        x: (u) -> -u.textWidth / 2
-        y: (u) -> -u.textHeight / 2
+      .attr 'y', (d) -> -d.textHeight / 2 - 20
+      .each (d) ->
+        innerSelection = d3.select @
+        updateSelection = innerSelection
+          .selectAll 'tspan'
+          .data d.texts
+        updateSelection
+          .enter()
+          .append 'tspan'
+          .attr
+            'text-anchor': 'left'
+            'dominant-baseline': 'text-before-edge'
+        updateSelection
+          .exit()
+          .remove()
+        innerSelection
+          .selectAll 'tspan'
+          .text (t) -> t.text
+          .attr
+            x: -d.textWidth / 2
+            dy: 20
     selection
       .select 'rect'
       .attr
@@ -138,11 +163,14 @@ makeGrid = (graph, arg) ->
         key: u
         data: graph.get u
   for vertex in vertices
-    text = vertexText vertex.data
-    if text.length > maxTextLength
-      vertex.text = "#{text.slice 0, maxTextLength}..."
-    else
-      vertex.text = text
+    vertex.texts = vertexText vertex.data
+      .split '\n'
+      .map (text) ->
+        originalText = text
+        if text.length > maxTextLength
+          text = "#{text.slice 0, maxTextLength - 1}..."
+        text: text
+        originalText: originalText
   verticesMap = {}
   for u in vertices
     verticesMap[u.key] = u
@@ -225,9 +253,9 @@ module.exports = (graph, arg) ->
           container: selection
           vertexButtons: vertexButtons
           clickVertexCallback: clickVertexCallback
-        .on 'mouseenter', onMouseEnterVertex vertexText
+        .on 'mouseenter', onMouseEnterVertex()
         .on 'mouseleave', onMouseLeaveVertex()
-        .on 'touchstart', onMouseEnterVertex vertexText
+        .on 'touchstart', onMouseEnterVertex()
         .on 'touchmove', -> d3.event.preventDefault()
         .on 'touchend', onMouseLeaveVertex()
       contents
