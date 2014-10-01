@@ -8,6 +8,21 @@ module.exports = ->
       d3.select 'svg'
         .remove()
 
+    it 'should layout multiline text', ->
+      grid = egrid.core.grid()
+      grid.addConstruct 'first line\nsecond line'
+      egm = egrid.core.egm()
+      selection = d3.select 'svg'
+        .datum grid.graph()
+        .call egm
+      tspan1 = selection.select 'g.vertices>g.vertex>text>tspan:nth-child(1)'
+      tspan2 = selection.select 'g.vertices>g.vertex>text>tspan:nth-child(2)'
+      expect tspan1.text()
+        .to.be 'first line'
+      expect tspan2.text()
+        .to.be 'second line'
+
+
     describe 'vertexScale', ->
       it 'should change vertex scale', ->
         grid = egrid.core.grid()
