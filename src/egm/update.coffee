@@ -69,8 +69,9 @@ createVertex = () ->
 
 updateVertices = (arg) ->
   r = 5
-  strokeWidth = 1
-  {vertexScale} = arg
+  {vertexFontWeight,
+   vertexScale,
+   vertexStrokeWidth} = arg
 
   (selection) ->
     selection
@@ -83,12 +84,13 @@ updateVertices = (arg) ->
       .remove()
     selection
       .call calculateTextSize()
-      .each (u) ->
-        u.originalWidth = u.textWidth + 2 * r
-        u.originalHeight = u.textHeight + 2 * r
-        u.scale = vertexScale u.data, u.key
-        u.width = (u.originalWidth + strokeWidth) * u.scale
-        u.height = (u.originalHeight + strokeWidth) * u.scale
+      .each (d) ->
+        d.originalWidth = d.textWidth + 2 * r
+        d.originalHeight = d.textHeight + 2 * r
+        d.scale = vertexScale d.data, d.key
+        d.strokeWidth = vertexStrokeWidth d.data, d.key
+        d.width = (d.originalWidth + d.strokeWidth) * d.scale
+        d.height = (d.originalHeight + d.strokeWidth) * d.scale
     selection
       .select 'text'
       .attr 'y', (d) -> -d.textHeight / 2 - 20
@@ -112,14 +114,16 @@ updateVertices = (arg) ->
           .attr
             x: -d.textWidth / 2
             dy: 20
+            'font-weight': vertexFontWeight d.data, d.key
     selection
       .select 'rect'
       .attr
-        x: (u) -> -u.originalWidth / 2
-        y: (u) -> -u.originalHeight / 2
-        width: (u) -> u.originalWidth
-        height: (u) -> u.originalHeight
+        x: (d) -> -d.originalWidth / 2
+        y: (d) -> -d.originalHeight / 2
+        width: (d) -> d.originalWidth
+        height: (d) -> d.originalHeight
         rx: r
+        'stroke-width': (d) -> d.strokeWidth
 
 
 updateEdges = (arg) ->
@@ -148,7 +152,11 @@ updateEdges = (arg) ->
 
 
 makeGrid = (graph, arg) ->
-  {pred, oldVertices, vertexText, maxTextLength} = arg
+  {maxTextLength,
+   oldVertices,
+   pred,
+   textSeparator,
+   vertexText} = arg
   oldVerticesMap = {}
   for u in oldVertices
     oldVerticesMap[u.key] = u
@@ -163,8 +171,7 @@ makeGrid = (graph, arg) ->
         key: u
         data: graph.get u
   for vertex in vertices
-    vertex.texts = vertexText vertex.data
-      .split '\n'
+    vertex.texts = textSeparator vertexText vertex.data
       .map (text) ->
         originalText = text
         if text.length > maxTextLength
@@ -217,12 +224,20 @@ initContainer = (zoom) ->
 
 
 module.exports = (graph, arg) ->
-  {edgeText,
-   vertexScale, vertexText, vertexVisibility,
-   enableZoom, zoom, maxTextLength,
-   edgePointsSize, edgeLine,
+  {clickVertexCallback,
+   edgeLine,
+   edgePointsSize,
+   edgeText,
+   enableZoom,
+   maxTextLength,
+   textSeparator,
    vertexButtons,
-   clickVertexCallback} = arg
+   vertexFontWeight,
+   vertexScale,
+   vertexStrokeWidth,
+   vertexText,
+   vertexVisibility,
+   zoom} = arg
 
   (selection) ->
     if graph?
@@ -238,17 +253,20 @@ module.exports = (graph, arg) ->
           .on '.zoom', null
 
       {vertices, edges} = makeGrid graph,
-        pred: (u) -> vertexVisibility (graph.get u), u
-        oldVertices: selection.selectAll('g.vertex').data()
-        vertexText: vertexText
         maxTextLength: maxTextLength
+        oldVertices: selection.selectAll('g.vertex').data()
+        pred: (u) -> vertexVisibility (graph.get u), u
+        textSeparator: textSeparator
+        vertexText: vertexText
 
       contents
         .select 'g.vertices'
         .selectAll 'g.vertex'
         .data vertices, (u) -> u.key
         .call updateVertices
+          vertexFontWeight: vertexFontWeight
           vertexScale: vertexScale
+          vertexStrokeWidth: vertexStrokeWidth
         .on 'click', onClickVertex
           container: selection
           vertexButtons: vertexButtons

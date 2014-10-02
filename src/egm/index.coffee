@@ -89,17 +89,20 @@ module.exports = () ->
           upperStrokeColor: egm.upperStrokeColor()
           selectedStrokeColor: egm.selectedStrokeColor()
         .call update graph,
-          edgePointsSize: edgePointsSize
-          edgeLine: edgeLine
-          edgeText: egm.edgeText()
           clickVertexCallback: egm.onClickVertex()
+          edgeLine: edgeLine
+          edgePointsSize: edgePointsSize
+          edgeText: egm.edgeText()
+          enableZoom: egm.enableZoom()
+          maxTextLength: egm.maxTextLength()
+          textSeparator: egm.textSeparator()
           vertexButtons: egm.vertexButtons()
+          vertexFontWeight: egm.vertexFontWeight()
           vertexScale: egm.vertexScale()
+          vertexStrokeWidth: egm.vertexStrokeWidth()
           vertexText: egm.vertexText()
           vertexVisibility: egm.vertexVisibility()
-          enableZoom: egm.enableZoom()
           zoom: zoom
-          maxTextLength: egm.maxTextLength()
         .call egm.resize egm.size()[0], egm.size()[1]
         .call layout
           dagreEdgeSep: egm.dagreEdgeSep()
@@ -159,10 +162,13 @@ module.exports = () ->
     onClickVertex: ->
     selectedStrokeColor: 'purple'
     strokeColor: 'black'
+    textSeparator: (s) -> s.split '\n'
     vertexButtons: -> []
     vertexColor: -> ''
+    vertexFontWeight: -> 'normal'
     vertexOpacity: -> 1
     vertexScale: -> 1
+    vertexStrokeWidth: -> 1
     vertexText: (vertexData) -> vertexData.text
     vertexVisibility: -> true
     size: [1, 1]
