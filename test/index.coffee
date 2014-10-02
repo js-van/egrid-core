@@ -5,6 +5,7 @@ tests = [
   require './centrality'
   require './egm'
   require './graph'
+  require './grid'
 ]
 
 for test in tests
