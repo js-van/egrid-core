@@ -8,6 +8,78 @@ module.exports = ->
       d3.select 'svg'
         .remove()
 
+    it 'should draw diagram with graph', ->
+      grid = egrid.core.grid()
+      a = grid.addConstruct 'a'
+      b = grid.addConstruct 'b'
+      c = grid.addConstruct 'c'
+      d = grid.addConstruct 'd'
+      grid.addEdge a, b
+      grid.addEdge b, c
+      grid.addEdge c, d
+      egm = egrid.core.egm()
+      selection = d3.select 'svg'
+        .datum grid.graph()
+        .call egm
+      expect selection.selectAll('g.vertices>g.vertex>rect').size()
+        .to.be 4
+      expect selection.selectAll('g.vertices>g.vertex>text').size()
+        .to.be 4
+      expect selection.selectAll('g.edges>g.edge>path').size()
+        .to.be 3
+
+    it 'should clear diagram with empty datum', ->
+      grid = egrid.core.grid()
+      a = grid.addConstruct 'a'
+      b = grid.addConstruct 'b'
+      c = grid.addConstruct 'c'
+      d = grid.addConstruct 'd'
+      grid.addEdge a, b
+      grid.addEdge b, c
+      grid.addEdge c, d
+      egm = egrid.core.egm()
+      selection = d3.select 'svg'
+        .datum grid.graph()
+        .call egm
+      selection
+        .datum null
+        .call egm
+      expect selection.select('g.vertices').empty()
+        .to.be.ok()
+      expect selection.select('g.edges').empty()
+        .to.be.ok()
+
+    it 'should change text', ->
+      grid = egrid.core.grid()
+      a = grid.addConstruct 'OLD TEXT'
+      egm = egrid.core.egm()
+      selection = d3.select 'svg'
+        .datum grid.graph()
+        .call egm
+      text = selection.select 'g.vertices>g.vertex:nth-child(1)>text'
+      expect text.text()
+        .to.be 'OLD TEXT'
+      grid.graph().get(a).text = 'NEW TEXT'
+      selection.call egm
+      expect text.text()
+        .to.be 'NEW TEXT'
+
+    it 'should change text after reset vertex property', ->
+      grid = egrid.core.grid()
+      a = grid.addConstruct 'OLD TEXT'
+      egm = egrid.core.egm()
+      selection = d3.select 'svg'
+        .datum grid.graph()
+        .call egm
+      text = selection.select 'g.vertices>g.vertex:nth-child(1)>text'
+      expect text.text()
+        .to.be 'OLD TEXT'
+      grid.graph().set a,
+        text: 'NEW TEXT'
+      selection.call egm
+      expect text.text()
+        .to.be 'NEW TEXT'
+
     it 'should layout multiline text', ->
       grid = egrid.core.grid()
       grid.addConstruct 'first line\nsecond line'
@@ -22,6 +94,109 @@ module.exports = ->
       expect tspan2.text()
         .to.be 'second line'
 
+    it 'should keep order of vertices', ->
+      grid = egrid.core.grid()
+      a = grid.addConstruct 'a'
+      b = grid.addConstruct 'b'
+      c = grid.addConstruct 'c'
+      d = grid.addConstruct 'd'
+      grid.addEdge a, b
+      grid.addEdge b, c
+      grid.addEdge c, d
+      egm = egrid.core.egm()
+      selection = d3.select 'svg'
+        .datum grid.graph()
+        .call egm
+      positions = {}
+      selection.selectAll 'g.vertices>g.vertex'
+        .each (d) ->
+          positions[d.key] = [d.x, d.y]
+      grid.graph().get(c).visibility = false
+      selection.call egm
+      grid.graph().get(c).visibility = true
+      selection.call egm
+      selection.selectAll 'g.vertices>g.vertex'
+        .each (d) ->
+          expect d.x
+            .to.be positions[d.key][0]
+          expect d.y
+            .to.be positions[d.key][1]
+
+    describe 'vertexColor', ->
+      it 'should change fill style of vertex', ->
+        grid = egrid.core.grid()
+        grid.addConstruct 'a'
+        egm = egrid.core.egm()
+          .vertexColor -> '#ffc0cb'
+        selection = d3.select 'svg'
+          .datum grid.graph()
+          .call egm
+        rect = selection.select 'g.vertices>g.vertex:nth-child(1)>rect'
+        expect rect.style 'fill'
+          .to.be '#ffc0cb'
+
+    describe 'vertexOpacity', ->
+      it 'should change opacity style of vertex', ->
+        grid = egrid.core.grid()
+        grid.addConstruct 'a'
+        egm = egrid.core.egm()
+          .vertexOpacity -> '0.5'
+        selection = d3.select 'svg'
+          .datum grid.graph()
+          .call egm
+        rect = selection.select 'g.vertices>g.vertex:nth-child(1)'
+        expect rect.style 'opacity'
+          .to.be '0.5'
+
+    describe 'vertexText', ->
+      it 'should change accessor of vertex text', ->
+        grid = egrid.core.grid()
+        grid.addConstruct 'a'
+        egm = egrid.core.egm()
+          .vertexText -> 'hoge'
+        selection = d3.select 'svg'
+          .datum grid.graph()
+          .call egm
+        text = selection.select 'g.vertices>g.vertex:nth-child(1)>text'
+        expect text.text()
+          .to.be 'hoge'
+
+    describe 'vertexVisibility', ->
+      it 'should change vertex visibility', ->
+        grid = egrid.core.grid()
+        a = grid.addConstruct 'a'
+        b = grid.addConstruct 'b'
+        c = grid.addConstruct 'c'
+        d = grid.addConstruct 'd'
+        grid.addEdge a, b
+        grid.addEdge b, c
+        grid.addEdge c, d
+        egm = egrid.core.egm()
+          .vertexVisibility (_, u) -> u is a or u is d
+        selection = d3.select 'svg'
+          .datum grid.graph()
+          .call egm
+        expect selection.selectAll('g.vertices>g.vertex').size()
+          .to.be 2
+        # expect selection.selectAll('g.edges>g.edge').size()
+        #   .to.be 1
+
+    describe 'edgeText', ->
+      it 'should change edge text', ->
+        grid = egrid.core.grid()
+        a = grid.addConstruct 'a'
+        grid.ladderDown a, 'b'
+        egm = egrid.core.egm()
+          .edgeText (u, v) -> 'hoge'
+        selection = d3.select 'svg'
+          .datum grid.graph()
+          .call egm
+        expect selection.select('g.edges>g.edge>text').text()
+          .to.be 'hoge'
+        egm.edgeText (u, v) -> 'fuga'
+        selection.call egm
+        expect selection.select('g.edges>g.edge>text').text()
+          .to.be 'fuga'
 
     describe 'vertexScale', ->
       it 'should change vertex scale', ->
