@@ -156,17 +156,20 @@
           upperStrokeColor: egm.upperStrokeColor(),
           selectedStrokeColor: egm.selectedStrokeColor()
         })).call(update(graph, {
-          edgePointsSize: edgePointsSize,
-          edgeLine: edgeLine,
-          edgeText: egm.edgeText(),
           clickVertexCallback: egm.onClickVertex(),
+          edgeLine: edgeLine,
+          edgePointsSize: edgePointsSize,
+          edgeText: egm.edgeText(),
+          enableZoom: egm.enableZoom(),
+          maxTextLength: egm.maxTextLength(),
+          textSeparator: egm.textSeparator(),
           vertexButtons: egm.vertexButtons(),
+          vertexFontWeight: egm.vertexFontWeight(),
           vertexScale: egm.vertexScale(),
+          vertexStrokeWidth: egm.vertexStrokeWidth(),
           vertexText: egm.vertexText(),
           vertexVisibility: egm.vertexVisibility(),
-          enableZoom: egm.enableZoom(),
-          zoom: zoom,
-          maxTextLength: egm.maxTextLength()
+          zoom: zoom
         })).call(egm.resize(egm.size()[0], egm.size()[1])).call(layout({
           dagreEdgeSep: egm.dagreEdgeSep(),
           dagreNodeSep: egm.dagreNodeSep(),
@@ -238,16 +241,25 @@
       onClickVertex: function() {},
       selectedStrokeColor: 'purple',
       strokeColor: 'black',
+      textSeparator: function(s) {
+        return s.split('\n');
+      },
       vertexButtons: function() {
         return [];
       },
       vertexColor: function() {
         return '';
       },
+      vertexFontWeight: function() {
+        return 'normal';
+      },
       vertexOpacity: function() {
         return 1;
       },
       vertexScale: function() {
+        return 1;
+      },
+      vertexStrokeWidth: function() {
         return 1;
       },
       vertexText: function(vertexData) {
@@ -555,19 +567,19 @@
   };
 
   updateVertices = function(arg) {
-    var r, strokeWidth, vertexScale;
+    var r, vertexFontWeight, vertexScale, vertexStrokeWidth;
     r = 5;
-    strokeWidth = 1;
-    vertexScale = arg.vertexScale;
+    vertexFontWeight = arg.vertexFontWeight, vertexScale = arg.vertexScale, vertexStrokeWidth = arg.vertexStrokeWidth;
     return function(selection) {
       selection.enter().append('g').classed('vertex', true).call(createVertex());
       selection.exit().remove();
-      selection.call(calculateTextSize()).each(function(u) {
-        u.originalWidth = u.textWidth + 2 * r;
-        u.originalHeight = u.textHeight + 2 * r;
-        u.scale = vertexScale(u.data, u.key);
-        u.width = (u.originalWidth + strokeWidth) * u.scale;
-        return u.height = (u.originalHeight + strokeWidth) * u.scale;
+      selection.call(calculateTextSize()).each(function(d) {
+        d.originalWidth = d.textWidth + 2 * r;
+        d.originalHeight = d.textHeight + 2 * r;
+        d.scale = vertexScale(d.data, d.key);
+        d.strokeWidth = vertexStrokeWidth(d.data, d.key);
+        d.width = (d.originalWidth + d.strokeWidth) * d.scale;
+        return d.height = (d.originalHeight + d.strokeWidth) * d.scale;
       });
       selection.select('text').attr('y', function(d) {
         return -d.textHeight / 2 - 20;
@@ -584,23 +596,27 @@
           return t.text;
         }).attr({
           x: -d.textWidth / 2,
-          dy: 20
+          dy: 20,
+          'font-weight': vertexFontWeight(d.data, d.key)
         });
       });
       return selection.select('rect').attr({
-        x: function(u) {
-          return -u.originalWidth / 2;
+        x: function(d) {
+          return -d.originalWidth / 2;
         },
-        y: function(u) {
-          return -u.originalHeight / 2;
+        y: function(d) {
+          return -d.originalHeight / 2;
         },
-        width: function(u) {
-          return u.originalWidth;
+        width: function(d) {
+          return d.originalWidth;
         },
-        height: function(u) {
-          return u.originalHeight;
+        height: function(d) {
+          return d.originalHeight;
         },
-        rx: r
+        rx: r,
+        'stroke-width': function(d) {
+          return d.strokeWidth;
+        }
       });
     };
   };
@@ -632,8 +648,8 @@
   };
 
   makeGrid = function(graph, arg) {
-    var edges, maxTextLength, oldVertices, oldVerticesMap, pred, u, v, vertex, vertexText, vertices, verticesMap, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _m, _n, _o, _ref, _ref1, _ref2, _ref3;
-    pred = arg.pred, oldVertices = arg.oldVertices, vertexText = arg.vertexText, maxTextLength = arg.maxTextLength;
+    var edges, maxTextLength, oldVertices, oldVerticesMap, pred, textSeparator, u, v, vertex, vertexText, vertices, verticesMap, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _m, _n, _o, _ref, _ref1, _ref2, _ref3;
+    maxTextLength = arg.maxTextLength, oldVertices = arg.oldVertices, pred = arg.pred, textSeparator = arg.textSeparator, vertexText = arg.vertexText;
     oldVerticesMap = {};
     for (_i = 0, _len = oldVertices.length; _i < _len; _i++) {
       u = oldVertices[_i];
@@ -652,7 +668,7 @@
     });
     for (_j = 0, _len1 = vertices.length; _j < _len1; _j++) {
       vertex = vertices[_j];
-      vertex.texts = vertexText(vertex.data).split('\n').map(function(text) {
+      vertex.texts = textSeparator(vertexText(vertex.data)).map(function(text) {
         var originalText;
         originalText = text;
         if (text.length > maxTextLength) {
@@ -728,8 +744,8 @@
   };
 
   module.exports = function(graph, arg) {
-    var clickVertexCallback, edgeLine, edgePointsSize, edgeText, enableZoom, maxTextLength, vertexButtons, vertexScale, vertexText, vertexVisibility, zoom;
-    edgeText = arg.edgeText, vertexScale = arg.vertexScale, vertexText = arg.vertexText, vertexVisibility = arg.vertexVisibility, enableZoom = arg.enableZoom, zoom = arg.zoom, maxTextLength = arg.maxTextLength, edgePointsSize = arg.edgePointsSize, edgeLine = arg.edgeLine, vertexButtons = arg.vertexButtons, clickVertexCallback = arg.clickVertexCallback;
+    var clickVertexCallback, edgeLine, edgePointsSize, edgeText, enableZoom, maxTextLength, textSeparator, vertexButtons, vertexFontWeight, vertexScale, vertexStrokeWidth, vertexText, vertexVisibility, zoom;
+    clickVertexCallback = arg.clickVertexCallback, edgeLine = arg.edgeLine, edgePointsSize = arg.edgePointsSize, edgeText = arg.edgeText, enableZoom = arg.enableZoom, maxTextLength = arg.maxTextLength, textSeparator = arg.textSeparator, vertexButtons = arg.vertexButtons, vertexFontWeight = arg.vertexFontWeight, vertexScale = arg.vertexScale, vertexStrokeWidth = arg.vertexStrokeWidth, vertexText = arg.vertexText, vertexVisibility = arg.vertexVisibility, zoom = arg.zoom;
     return function(selection) {
       var contents, edges, vertices, _ref;
       if (graph != null) {
@@ -741,17 +757,20 @@
           selection.select('rect.background').on('.zoom', null);
         }
         _ref = makeGrid(graph, {
+          maxTextLength: maxTextLength,
+          oldVertices: selection.selectAll('g.vertex').data(),
           pred: function(u) {
             return vertexVisibility(graph.get(u), u);
           },
-          oldVertices: selection.selectAll('g.vertex').data(),
-          vertexText: vertexText,
-          maxTextLength: maxTextLength
+          textSeparator: textSeparator,
+          vertexText: vertexText
         }), vertices = _ref.vertices, edges = _ref.edges;
         contents.select('g.vertices').selectAll('g.vertex').data(vertices, function(u) {
           return u.key;
         }).call(updateVertices({
-          vertexScale: vertexScale
+          vertexFontWeight: vertexFontWeight,
+          vertexScale: vertexScale,
+          vertexStrokeWidth: vertexStrokeWidth
         })).on('click', onClickVertex({
           container: selection,
           vertexButtons: vertexButtons,
