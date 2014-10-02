@@ -219,3 +219,22 @@ module.exports = ->
           .to.be '#0000ff'
         expect selection.selectAll('g.vertices>g.vertex').style('opacity')
           .to.be '0.25'
+
+    describe 'textSeparator', ->
+      it 'should change text separator', ->
+        grid = egrid.core.grid()
+        grid.addConstruct 'first line, second line, third line'
+        egm = egrid.core.egm()
+          .textSeparator (s) -> s.split ', '
+        selection = d3.select 'svg'
+          .datum grid.graph()
+          .call egm
+        tspan1 = selection.select 'g.vertices>g.vertex>text>tspan:nth-child(1)'
+        tspan2 = selection.select 'g.vertices>g.vertex>text>tspan:nth-child(2)'
+        tspan3 = selection.select 'g.vertices>g.vertex>text>tspan:nth-child(3)'
+        expect tspan1.text()
+          .to.be 'first line'
+        expect tspan2.text()
+          .to.be 'second line'
+        expect tspan3.text()
+          .to.be 'third line'

@@ -148,7 +148,11 @@ updateEdges = (arg) ->
 
 
 makeGrid = (graph, arg) ->
-  {pred, oldVertices, vertexText, maxTextLength} = arg
+  {maxTextLength,
+   oldVertices,
+   pred,
+   textSeparator,
+   vertexText} = arg
   oldVerticesMap = {}
   for u in oldVertices
     oldVerticesMap[u.key] = u
@@ -163,8 +167,7 @@ makeGrid = (graph, arg) ->
         key: u
         data: graph.get u
   for vertex in vertices
-    vertex.texts = vertexText vertex.data
-      .split '\n'
+    vertex.texts = textSeparator vertexText vertex.data
       .map (text) ->
         originalText = text
         if text.length > maxTextLength
@@ -222,6 +225,7 @@ module.exports = (graph, arg) ->
    enableZoom, zoom, maxTextLength,
    edgePointsSize, edgeLine,
    vertexButtons,
+   textSeparator,
    clickVertexCallback} = arg
 
   (selection) ->
@@ -238,10 +242,11 @@ module.exports = (graph, arg) ->
           .on '.zoom', null
 
       {vertices, edges} = makeGrid graph,
-        pred: (u) -> vertexVisibility (graph.get u), u
-        oldVertices: selection.selectAll('g.vertex').data()
-        vertexText: vertexText
         maxTextLength: maxTextLength
+        oldVertices: selection.selectAll('g.vertex').data()
+        pred: (u) -> vertexVisibility (graph.get u), u
+        textSeparator: textSeparator
+        vertexText: vertexText
 
       contents
         .select 'g.vertices'
