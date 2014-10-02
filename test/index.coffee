@@ -4,6 +4,7 @@ mocha.reporter 'html'
 tests = [
   require './centrality'
   require './egm'
+  require './graph'
 ]
 
 for test in tests
