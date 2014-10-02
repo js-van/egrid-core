@@ -97,7 +97,9 @@ module.exports = () ->
           maxTextLength: egm.maxTextLength()
           textSeparator: egm.textSeparator()
           vertexButtons: egm.vertexButtons()
+          vertexFontWeight: egm.vertexFontWeight()
           vertexScale: egm.vertexScale()
+          vertexStrokeWidth: egm.vertexStrokeWidth()
           vertexText: egm.vertexText()
           vertexVisibility: egm.vertexVisibility()
           zoom: zoom

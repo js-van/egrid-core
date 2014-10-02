@@ -238,3 +238,43 @@ module.exports = ->
           .to.be 'second line'
         expect tspan3.text()
           .to.be 'third line'
+
+    describe 'vertexFontWeight', ->
+      it 'should change font-weight of vertex', ->
+        grid = egrid.core.grid()
+        a = grid.addConstruct 'first text'
+        b = grid.addConstruct 'second text'
+        fontWeight = {}
+        fontWeight[a] = 'bold'
+        fontWeight[b] = '300'
+        egm = egrid.core.egm()
+          .vertexFontWeight (d, u) -> fontWeight[u]
+        selection = d3.select 'svg'
+          .datum grid.graph()
+          .call egm
+        text1 = selection.select 'g.vertices>g.vertex:nth-child(1)>text>tspan'
+        text2 = selection.select 'g.vertices>g.vertex:nth-child(2)>text>tspan'
+        expect text1.attr 'font-weight'
+          .to.be 'bold'
+        expect text2.attr 'font-weight'
+          .to.be '300'
+
+    describe 'vertexStrokeWidth', ->
+      it 'should change stroke-width of vertex', ->
+        grid = egrid.core.grid()
+        a = grid.addConstruct 'a'
+        b = grid.addConstruct 'bb'
+        strokeWidth = {}
+        strokeWidth[a] = 2
+        strokeWidth[b] = 3
+        egm = egrid.core.egm()
+          .vertexStrokeWidth (d, u) -> d.text.length * strokeWidth[u]
+        selection = d3.select 'svg'
+          .datum grid.graph()
+          .call egm
+        rect1 = selection.select 'g.vertices>g.vertex:nth-child(1)>rect'
+        rect2 = selection.select 'g.vertices>g.vertex:nth-child(2)>rect'
+        expect rect1.attr 'stroke-width'
+          .to.be '2'
+        expect rect2.attr 'stroke-width'
+          .to.be '6'
