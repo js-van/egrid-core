@@ -217,6 +217,66 @@
 },{}],4:[function(require,module,exports){
 (function() {
   angular.module('egrid-core-example').config(function($stateProvider) {
+    return $stateProvider.state('community', {
+      controller: 'CommunityController',
+      resolve: {
+        data: function($http) {
+          return $http.get('data/travel.json');
+        }
+      },
+      templateUrl: 'partials/community.html',
+      url: '/community'
+    });
+  }).controller('CommunityController', function($scope, data) {
+    var color, egm1, egm2, graph, link, mergedGraph, node, _i, _j, _len, _len1, _ref, _ref1;
+    graph = egrid.core.graph.adjacencyList();
+    _ref = data.data.nodes;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      node = _ref[_i];
+      graph.addVertex(node);
+    }
+    _ref1 = data.data.links;
+    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+      link = _ref1[_j];
+      graph.addEdge(link.source, link.target);
+    }
+    mergedGraph = egrid.core.network.community.reduce(graph, function(vertices, c) {
+      var u, _k, _len2;
+      for (_k = 0, _len2 = vertices.length; _k < _len2; _k++) {
+        u = vertices[_k];
+        graph.get(u).community = c;
+      }
+      return {
+        text: vertices.map(function(u) {
+          return graph.get(u).text;
+        }).join('\n'),
+        vertices: vertices
+      };
+    });
+    color = d3.scale.category20();
+    egm1 = egrid.core.egm().contentsMargin(5).size([800, 800]).vertexColor(function(d) {
+      return color(d.community);
+    });
+    d3.select('svg.display1').datum(graph).call(egm1).call(egm1.center()).call(d3.downloadable({
+      filename: 'original',
+      width: 800,
+      height: 800
+    }));
+    egm2 = egrid.core.egm().contentsMargin(5).size([800, 800]).vertexColor(function(d, u) {
+      return color(u);
+    });
+    return d3.select('svg.display2').datum(mergedGraph).call(egm2).call(egm2.center()).call(d3.downloadable({
+      filename: 'merged',
+      width: 800,
+      height: 800
+    }));
+  });
+
+}).call(this);
+
+},{}],5:[function(require,module,exports){
+(function() {
+  angular.module('egrid-core-example').config(function($stateProvider) {
     return $stateProvider.state('css', {
       controller: 'CssController',
       templateUrl: 'partials/css.html',
@@ -251,7 +311,7 @@
 
 }).call(this);
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 (function() {
   angular.module('egrid-core-example').config(function($stateProvider) {
     return $stateProvider.state('simple', {
@@ -290,7 +350,7 @@
 
 }).call(this);
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 (function() {
   angular.module('egrid-core-example').config(function($stateProvider) {
     return $stateProvider.state('text-cutoff', {
@@ -318,7 +378,7 @@
 
 }).call(this);
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 (function() {
   angular.module('egrid-core-example').config(function($stateProvider) {
     return $stateProvider.state('ui', {
@@ -421,7 +481,7 @@
 
 }).call(this);
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 (function() {
   require('./app');
 
@@ -433,10 +493,12 @@
 
   require('./controllers/centrality');
 
+  require('./controllers/community');
+
   require('./controllers/text-cutoff');
 
   require('./controllers/ui');
 
 }).call(this);
 
-},{"./app":1,"./controllers/centrality":2,"./controllers/color":3,"./controllers/css":4,"./controllers/simple":5,"./controllers/text-cutoff":6,"./controllers/ui":7}]},{},[8]);
+},{"./app":1,"./controllers/centrality":2,"./controllers/color":3,"./controllers/community":4,"./controllers/css":5,"./controllers/simple":6,"./controllers/text-cutoff":7,"./controllers/ui":8}]},{},[9]);

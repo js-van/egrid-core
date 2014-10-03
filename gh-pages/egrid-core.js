@@ -46,7 +46,7 @@
 
 }).call(this);
 
-},{"../svg":21}],2:[function(require,module,exports){
+},{"../svg":25}],2:[function(require,module,exports){
 (function() {
   module.exports = function() {
     var egm, svgCss;
@@ -156,17 +156,20 @@
           upperStrokeColor: egm.upperStrokeColor(),
           selectedStrokeColor: egm.selectedStrokeColor()
         })).call(update(graph, {
-          edgePointsSize: edgePointsSize,
-          edgeLine: edgeLine,
-          edgeText: egm.edgeText(),
           clickVertexCallback: egm.onClickVertex(),
+          edgeLine: edgeLine,
+          edgePointsSize: edgePointsSize,
+          edgeText: egm.edgeText(),
+          enableZoom: egm.enableZoom(),
+          maxTextLength: egm.maxTextLength(),
+          textSeparator: egm.textSeparator(),
           vertexButtons: egm.vertexButtons(),
+          vertexFontWeight: egm.vertexFontWeight(),
           vertexScale: egm.vertexScale(),
+          vertexStrokeWidth: egm.vertexStrokeWidth(),
           vertexText: egm.vertexText(),
           vertexVisibility: egm.vertexVisibility(),
-          enableZoom: egm.enableZoom(),
-          zoom: zoom,
-          maxTextLength: egm.maxTextLength()
+          zoom: zoom
         })).call(egm.resize(egm.size()[0], egm.size()[1])).call(layout({
           dagreEdgeSep: egm.dagreEdgeSep(),
           dagreNodeSep: egm.dagreNodeSep(),
@@ -238,16 +241,25 @@
       onClickVertex: function() {},
       selectedStrokeColor: 'purple',
       strokeColor: 'black',
+      textSeparator: function(s) {
+        return s.split('\n');
+      },
       vertexButtons: function() {
         return [];
       },
       vertexColor: function() {
         return '';
       },
+      vertexFontWeight: function() {
+        return 'normal';
+      },
       vertexOpacity: function() {
         return 1;
       },
       vertexScale: function() {
+        return 1;
+      },
+      vertexStrokeWidth: function() {
         return 1;
       },
       vertexText: function(vertexData) {
@@ -272,13 +284,16 @@
 
 }).call(this);
 
-},{"../svg":21,"./center":1,"./css":2,"./resize":4,"./select":5,"./update":7,"./update-color":6}],4:[function(require,module,exports){
+},{"../svg":25,"./center":1,"./css":2,"./resize":4,"./select":5,"./update":7,"./update-color":6}],4:[function(require,module,exports){
 (function() {
   var resize;
 
   resize = function(width, height) {
     return function(selection) {
       selection.attr({
+        width: width,
+        height: height
+      }).style({
         width: width,
         height: height
       });
@@ -431,7 +446,7 @@
 
 }).call(this);
 
-},{"../graph/dijkstra":9,"../svg":21}],6:[function(require,module,exports){
+},{"../graph/dijkstra":9,"../svg":25}],6:[function(require,module,exports){
 (function() {
   var paint;
 
@@ -499,15 +514,19 @@
     };
   };
 
-  onMouseEnterVertex = function(vertexText) {
+  onMouseEnterVertex = function() {
     return function(vertex) {
-      return d3.select(this).select('text').text(vertexText(vertex.data));
+      return d3.select(this).selectAll('tspan').text(function(d) {
+        return d.originalText;
+      });
     };
   };
 
   onMouseLeaveVertex = function() {
     return function(vertex) {
-      return d3.select(this).select('text').transition().delay(1000).text(vertex.text);
+      return d3.select(this).selectAll('tspan').transition().delay(1000).text(function(d) {
+        return d.text;
+      });
     };
   };
 
@@ -519,12 +538,18 @@
         'font-family': "'Lucida Grande', 'Hiragino Kaku Gothic ProN',\n'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif",
         'font-size': '14px'
       });
-      selection.each(function(u) {
+      selection.each(function(d) {
         var bbox;
-        measureText.text(u.text);
+        measureText.selectAll('tspan').remove();
+        measureText.selectAll('tspan').data(d.texts).enter().append('tspan').text(function(t) {
+          return t.text;
+        }).attr({
+          x: 0,
+          dy: 20
+        });
         bbox = measureText.node().getBBox();
-        u.textWidth = bbox.width;
-        return u.textHeight = bbox.height;
+        d.textWidth = bbox.width;
+        return d.textHeight = bbox.height;
       });
       return measure.remove();
     };
@@ -537,52 +562,61 @@
         u.x = 0;
         u.y = 0;
         return u.selected = false;
-      }).attr({
-        'text-anchor': 'left',
-        'dominant-baseline': 'text-before-edge'
       });
     };
   };
 
   updateVertices = function(arg) {
-    var r, strokeWidth, vertexScale;
+    var r, vertexFontWeight, vertexScale, vertexStrokeWidth;
     r = 5;
-    strokeWidth = 1;
-    vertexScale = arg.vertexScale;
+    vertexFontWeight = arg.vertexFontWeight, vertexScale = arg.vertexScale, vertexStrokeWidth = arg.vertexStrokeWidth;
     return function(selection) {
       selection.enter().append('g').classed('vertex', true).call(createVertex());
       selection.exit().remove();
-      selection.call(calculateTextSize()).each(function(u) {
-        u.originalWidth = u.textWidth + 2 * r;
-        u.originalHeight = u.textHeight + 2 * r;
-        u.scale = vertexScale(u.data, u.key);
-        u.width = (u.originalWidth + strokeWidth) * u.scale;
-        return u.height = (u.originalHeight + strokeWidth) * u.scale;
+      selection.call(calculateTextSize()).each(function(d) {
+        d.originalWidth = d.textWidth + 2 * r;
+        d.originalHeight = d.textHeight + 2 * r;
+        d.scale = vertexScale(d.data, d.key);
+        d.strokeWidth = vertexStrokeWidth(d.data, d.key);
+        d.width = (d.originalWidth + d.strokeWidth) * d.scale;
+        return d.height = (d.originalHeight + d.strokeWidth) * d.scale;
       });
-      selection.select('text').text(function(u) {
-        return u.text;
-      }).attr({
-        x: function(u) {
-          return -u.textWidth / 2;
-        },
-        y: function(u) {
-          return -u.textHeight / 2;
-        }
+      selection.select('text').attr('y', function(d) {
+        return -d.textHeight / 2 - 20;
+      }).each(function(d) {
+        var innerSelection, updateSelection;
+        innerSelection = d3.select(this);
+        updateSelection = innerSelection.selectAll('tspan').data(d.texts);
+        updateSelection.enter().append('tspan').attr({
+          'text-anchor': 'left',
+          'dominant-baseline': 'text-before-edge'
+        });
+        updateSelection.exit().remove();
+        return innerSelection.selectAll('tspan').text(function(t) {
+          return t.text;
+        }).attr({
+          x: -d.textWidth / 2,
+          dy: 20,
+          'font-weight': vertexFontWeight(d.data, d.key)
+        });
       });
       return selection.select('rect').attr({
-        x: function(u) {
-          return -u.originalWidth / 2;
+        x: function(d) {
+          return -d.originalWidth / 2;
         },
-        y: function(u) {
-          return -u.originalHeight / 2;
+        y: function(d) {
+          return -d.originalHeight / 2;
         },
-        width: function(u) {
-          return u.originalWidth;
+        width: function(d) {
+          return d.originalWidth;
         },
-        height: function(u) {
-          return u.originalHeight;
+        height: function(d) {
+          return d.originalHeight;
         },
-        rx: r
+        rx: r,
+        'stroke-width': function(d) {
+          return d.strokeWidth;
+        }
       });
     };
   };
@@ -614,8 +648,8 @@
   };
 
   makeGrid = function(graph, arg) {
-    var edges, maxTextLength, oldVertices, oldVerticesMap, pred, text, u, v, vertex, vertexText, vertices, verticesMap, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _m, _n, _o, _ref, _ref1, _ref2, _ref3;
-    pred = arg.pred, oldVertices = arg.oldVertices, vertexText = arg.vertexText, maxTextLength = arg.maxTextLength;
+    var edges, maxTextLength, oldVertices, oldVerticesMap, pred, textSeparator, u, v, vertex, vertexText, vertices, verticesMap, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _m, _n, _o, _ref, _ref1, _ref2, _ref3;
+    maxTextLength = arg.maxTextLength, oldVertices = arg.oldVertices, pred = arg.pred, textSeparator = arg.textSeparator, vertexText = arg.vertexText;
     oldVerticesMap = {};
     for (_i = 0, _len = oldVertices.length; _i < _len; _i++) {
       u = oldVertices[_i];
@@ -634,12 +668,17 @@
     });
     for (_j = 0, _len1 = vertices.length; _j < _len1; _j++) {
       vertex = vertices[_j];
-      text = vertexText(vertex.data);
-      if (text.length > maxTextLength) {
-        vertex.text = "" + (text.slice(0, maxTextLength)) + "...";
-      } else {
-        vertex.text = text;
-      }
+      vertex.texts = textSeparator(vertexText(vertex.data)).map(function(text) {
+        var originalText;
+        originalText = text;
+        if (text.length > maxTextLength) {
+          text = "" + (text.slice(0, maxTextLength - 1)) + "...";
+        }
+        return {
+          text: text,
+          originalText: originalText
+        };
+      });
     }
     verticesMap = {};
     for (_k = 0, _len2 = vertices.length; _k < _len2; _k++) {
@@ -705,8 +744,8 @@
   };
 
   module.exports = function(graph, arg) {
-    var clickVertexCallback, edgeLine, edgePointsSize, edgeText, enableZoom, maxTextLength, vertexButtons, vertexScale, vertexText, vertexVisibility, zoom;
-    edgeText = arg.edgeText, vertexScale = arg.vertexScale, vertexText = arg.vertexText, vertexVisibility = arg.vertexVisibility, enableZoom = arg.enableZoom, zoom = arg.zoom, maxTextLength = arg.maxTextLength, edgePointsSize = arg.edgePointsSize, edgeLine = arg.edgeLine, vertexButtons = arg.vertexButtons, clickVertexCallback = arg.clickVertexCallback;
+    var clickVertexCallback, edgeLine, edgePointsSize, edgeText, enableZoom, maxTextLength, textSeparator, vertexButtons, vertexFontWeight, vertexScale, vertexStrokeWidth, vertexText, vertexVisibility, zoom;
+    clickVertexCallback = arg.clickVertexCallback, edgeLine = arg.edgeLine, edgePointsSize = arg.edgePointsSize, edgeText = arg.edgeText, enableZoom = arg.enableZoom, maxTextLength = arg.maxTextLength, textSeparator = arg.textSeparator, vertexButtons = arg.vertexButtons, vertexFontWeight = arg.vertexFontWeight, vertexScale = arg.vertexScale, vertexStrokeWidth = arg.vertexStrokeWidth, vertexText = arg.vertexText, vertexVisibility = arg.vertexVisibility, zoom = arg.zoom;
     return function(selection) {
       var contents, edges, vertices, _ref;
       if (graph != null) {
@@ -718,22 +757,25 @@
           selection.select('rect.background').on('.zoom', null);
         }
         _ref = makeGrid(graph, {
+          maxTextLength: maxTextLength,
+          oldVertices: selection.selectAll('g.vertex').data(),
           pred: function(u) {
             return vertexVisibility(graph.get(u), u);
           },
-          oldVertices: selection.selectAll('g.vertex').data(),
-          vertexText: vertexText,
-          maxTextLength: maxTextLength
+          textSeparator: textSeparator,
+          vertexText: vertexText
         }), vertices = _ref.vertices, edges = _ref.edges;
         contents.select('g.vertices').selectAll('g.vertex').data(vertices, function(u) {
           return u.key;
         }).call(updateVertices({
-          vertexScale: vertexScale
+          vertexFontWeight: vertexFontWeight,
+          vertexScale: vertexScale,
+          vertexStrokeWidth: vertexStrokeWidth
         })).on('click', onClickVertex({
           container: selection,
           vertexButtons: vertexButtons,
           clickVertexCallback: clickVertexCallback
-        })).on('mouseenter', onMouseEnterVertex(vertexText)).on('mouseleave', onMouseLeaveVertex()).on('touchstart', onMouseEnterVertex(vertexText)).on('touchmove', function() {
+        })).on('mouseenter', onMouseEnterVertex()).on('mouseleave', onMouseLeaveVertex()).on('touchstart', onMouseEnterVertex()).on('touchmove', function() {
           return d3.event.preventDefault();
         }).on('touchend', onMouseLeaveVertex());
         return contents.select('g.edges').selectAll('g.edge').data(edges, function(_arg) {
@@ -753,7 +795,7 @@
 
 }).call(this);
 
-},{"../svg":21,"./select":5}],8:[function(require,module,exports){
+},{"../svg":25,"./select":5}],8:[function(require,module,exports){
 (function() {
   module.exports = function(v, e) {
     var AdjacencyList, nextVertexId, vertices;
@@ -1444,7 +1486,7 @@
 }).call(this);
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./egm":3,"./graph":11,"./grid":13,"./network":20,"./ui":23}],15:[function(require,module,exports){
+},{"./egm":3,"./graph":11,"./grid":13,"./network":24,"./ui":27}],15:[function(require,module,exports){
 (function() {
   module.exports = function() {
     return function(graph) {
@@ -1659,12 +1701,201 @@
 },{}],20:[function(require,module,exports){
 (function() {
   module.exports = {
-    centrality: require('./centrality')
+    reduce: require('./reduce'),
+    modularity: require('./modularity'),
+    newman: require('./newman')
   };
 
 }).call(this);
 
-},{"./centrality":18}],21:[function(require,module,exports){
+},{"./modularity":21,"./newman":22,"./reduce":23}],21:[function(require,module,exports){
+(function() {
+  var degree;
+
+  degree = require('../centrality/degree');
+
+  module.exports = function(graph, communities) {
+    var i, j, k, m, n, s, _i, _j;
+    n = graph.numVertices();
+    m = graph.numEdges();
+    s = 0;
+    k = degree.degree(graph);
+    for (i = _i = 0; 0 <= n ? _i < n : _i > n; i = 0 <= n ? ++_i : --_i) {
+      for (j = _j = 0; 0 <= n ? _j < n : _j > n; j = 0 <= n ? ++_j : --_j) {
+        if (communities[i] === communities[j]) {
+          s += graph.edge(i, j) || graph.edge(j, i) ? 1 : 0;
+          s -= k[i] * k[j] / 2 / m;
+        }
+      }
+    }
+    return s / 2 / m;
+  };
+
+}).call(this);
+
+},{"../centrality/degree":17}],22:[function(require,module,exports){
+(function() {
+  var cleanupLabel, degree, modularity;
+
+  degree = require('../centrality/degree');
+
+  modularity = require('./modularity');
+
+  cleanupLabel = function(vertexCommunity) {
+    var c, result, u, vertices, _results;
+    result = {};
+    for (u in vertexCommunity) {
+      c = vertexCommunity[u];
+      if (result[c] === void 0) {
+        result[c] = [];
+      }
+      result[c].push(+u);
+    }
+    _results = [];
+    for (c in result) {
+      vertices = result[c];
+      _results.push(vertices);
+    }
+    return _results;
+  };
+
+  module.exports = function(graph) {
+    var c, c1, c2, ck, communities, community, deltaQ, deltaQMax, i, j, k, keys, m, maxU, maxV, n, nb, nc, q, qMax, result, sum, u, v, vertexCommunity, _i, _j, _k, _l, _len, _len1, _len2, _len3, _m, _n, _o, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+    n = graph.numVertices();
+    m = graph.numEdges();
+    k = degree.degree(graph);
+    communities = {};
+    vertexCommunity = {};
+    _ref = graph.vertices();
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      u = _ref[_i];
+      communities[u] = d3.set([u]);
+      vertexCommunity[u] = u;
+    }
+    qMax = -Infinity;
+    result = {};
+    for (nc = _j = n; n <= 1 ? _j < 1 : _j > 1; nc = n <= 1 ? ++_j : --_j) {
+      ck = {};
+      for (c in communities) {
+        community = communities[c];
+        sum = 0;
+        _ref1 = community.values();
+        for (_k = 0, _len1 = _ref1.length; _k < _len1; _k++) {
+          u = _ref1[_k];
+          sum += k[u];
+        }
+        ck[c] = sum;
+      }
+      nb = {};
+      for (c1 in communities) {
+        nb[c1] = {};
+        for (c2 in communities) {
+          nb[c1][c2] = 0;
+        }
+      }
+      _ref2 = graph.edges();
+      for (_l = 0, _len2 = _ref2.length; _l < _len2; _l++) {
+        _ref3 = _ref2[_l], u = _ref3[0], v = _ref3[1];
+        nb[vertexCommunity[u]][vertexCommunity[v]] += 1;
+        nb[vertexCommunity[v]][vertexCommunity[u]] += 1;
+      }
+      keys = Object.keys(communities);
+      deltaQMax = -Infinity;
+      maxU;
+      maxV;
+      for (i = _m = 0; 0 <= nc ? _m < nc : _m > nc; i = 0 <= nc ? ++_m : --_m) {
+        for (j = _n = _ref4 = i + 1; _ref4 <= nc ? _n < nc : _n > nc; j = _ref4 <= nc ? ++_n : --_n) {
+          deltaQ = (nb[keys[i]][keys[j]] - ck[keys[i]] * ck[keys[j]] / 2 / m) / m;
+          if (deltaQ > deltaQMax) {
+            deltaQMax = deltaQ;
+            maxU = keys[i];
+            maxV = keys[j];
+          }
+        }
+      }
+      _ref5 = communities[maxV].values();
+      for (_o = 0, _len3 = _ref5.length; _o < _len3; _o++) {
+        u = _ref5[_o];
+        communities[maxU].add(u);
+        vertexCommunity[u] = +maxU;
+      }
+      delete communities[maxV];
+      q = modularity(graph, vertexCommunity);
+      if (q > qMax) {
+        qMax = q;
+        for (u in vertexCommunity) {
+          c = vertexCommunity[u];
+          result[u] = c;
+        }
+      }
+    }
+    return cleanupLabel(result);
+  };
+
+}).call(this);
+
+},{"../centrality/degree":17,"./modularity":21}],23:[function(require,module,exports){
+(function() {
+  var adjacencyList, newman;
+
+  newman = require('./newman');
+
+  adjacencyList = require('../../graph/adjacency-list');
+
+  module.exports = function(graph, f) {
+    var communities, community, community1, community2, i, j, mergedData, mergedGraph, mergedVertices, u, v, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref;
+    if (f == null) {
+      f = function(vertices) {
+        var u, _i, _len, _results;
+        _results = [];
+        for (_i = 0, _len = vertices.length; _i < _len; _i++) {
+          u = vertices[_i];
+          _results.push(graph.get(u));
+        }
+        return _results;
+      };
+    }
+    communities = newman(graph);
+    mergedGraph = adjacencyList();
+    mergedVertices = [];
+    for (i = _i = 0, _len = communities.length; _i < _len; i = ++_i) {
+      community = communities[i];
+      mergedData = f(community, i);
+      mergedVertices.push(mergedGraph.addVertex(mergedData));
+    }
+    for (i = _j = 0, _len1 = communities.length; _j < _len1; i = ++_j) {
+      community1 = communities[i];
+      _ref = communities.slice(i + 1);
+      for (j = _k = 0, _len2 = _ref.length; _k < _len2; j = ++_k) {
+        community2 = _ref[j];
+        for (_l = 0, _len3 = community1.length; _l < _len3; _l++) {
+          u = community1[_l];
+          for (_m = 0, _len4 = community2.length; _m < _len4; _m++) {
+            v = community2[_m];
+            if (graph.edge(u, v)) {
+              mergedGraph.addEdge(i, j);
+            } else if (graph.edge(v, u)) {
+              mergedGraph.addEdge(j, i);
+            }
+          }
+        }
+      }
+    }
+    return mergedGraph;
+  };
+
+}).call(this);
+
+},{"../../graph/adjacency-list":8,"./newman":22}],24:[function(require,module,exports){
+(function() {
+  module.exports = {
+    centrality: require('./centrality'),
+    community: require('./community')
+  };
+
+}).call(this);
+
+},{"./centrality":18,"./community":20}],25:[function(require,module,exports){
 (function() {
   module.exports = {
     transform: require('./transform')
@@ -1672,7 +1903,7 @@
 
 }).call(this);
 
-},{"./transform":22}],22:[function(require,module,exports){
+},{"./transform":26}],26:[function(require,module,exports){
 (function() {
   var Scale, Translate,
     __slice = [].slice;
@@ -1726,7 +1957,7 @@
 
 }).call(this);
 
-},{}],23:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 (function() {
   module.exports = {
     removeButton: function(grid, callback) {
