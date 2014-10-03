@@ -2,10 +2,11 @@ mocha.ui 'bdd'
 mocha.reporter 'html'
 
 tests = [
-  require './centrality'
   require './egm'
   require './graph'
   require './grid'
+  require './network/centrality'
+  require './network/community'
 ]
 
 for test in tests
