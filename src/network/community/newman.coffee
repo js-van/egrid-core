@@ -1,14 +1,6 @@
 degree = require '../centrality/degree'
 modularity = require './modularity'
 
-numBridges = (graph, community1, community2) ->
-  nb = 0
-  for u in community1
-    for v in community2
-      if graph.edge(u, v) or graph.edge(v, u)
-        nb += 1
-  nb
-
 cleanupLabel = (vertexCommunity) ->
   result = {}
   for u, c of vertexCommunity
@@ -31,22 +23,27 @@ module.exports = (graph) ->
   qMax = - Infinity
   result = {}
   for nc in [n...1]
-    ck ={}
+    ck = {}
     for c, community of communities
       sum = 0
       for u in community.values()
         sum += k[u]
       ck[c] = sum
+    nb = {}
+    for c1 of communities
+      nb[c1] = {}
+      for c2 of communities
+        nb[c1][c2] = 0
+    for [u, v] in graph.edges()
+      nb[vertexCommunity[u]][vertexCommunity[v]] += 1
+      nb[vertexCommunity[v]][vertexCommunity[u]] += 1
     keys = Object.keys communities
     deltaQMax = - Infinity
     maxU
     maxV
     for i in [0...nc]
       for j in [i + 1...nc]
-        nb = numBridges graph,
-                        communities[keys[i]].values(),
-                        communities[keys[j]].values()
-        deltaQ = nb / m - ck[keys[i]] * ck[keys[j]] / 2 / m / m
+        deltaQ = (nb[keys[i]][keys[j]] - ck[keys[i]] * ck[keys[j]] / 2 / m) / m
         if deltaQ > deltaQMax
           deltaQMax = deltaQ
           maxU = keys[i]
