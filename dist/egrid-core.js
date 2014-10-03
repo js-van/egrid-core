@@ -46,7 +46,7 @@
 
 }).call(this);
 
-},{"../svg":21}],2:[function(require,module,exports){
+},{"../svg":25}],2:[function(require,module,exports){
 (function() {
   module.exports = function() {
     var egm, svgCss;
@@ -284,7 +284,7 @@
 
 }).call(this);
 
-},{"../svg":21,"./center":1,"./css":2,"./resize":4,"./select":5,"./update":7,"./update-color":6}],4:[function(require,module,exports){
+},{"../svg":25,"./center":1,"./css":2,"./resize":4,"./select":5,"./update":7,"./update-color":6}],4:[function(require,module,exports){
 (function() {
   var resize;
 
@@ -446,7 +446,7 @@
 
 }).call(this);
 
-},{"../graph/dijkstra":9,"../svg":21}],6:[function(require,module,exports){
+},{"../graph/dijkstra":9,"../svg":25}],6:[function(require,module,exports){
 (function() {
   var paint;
 
@@ -795,7 +795,7 @@
 
 }).call(this);
 
-},{"../svg":21,"./select":5}],8:[function(require,module,exports){
+},{"../svg":25,"./select":5}],8:[function(require,module,exports){
 (function() {
   module.exports = function(v, e) {
     var AdjacencyList, nextVertexId, vertices;
@@ -1486,7 +1486,7 @@
 }).call(this);
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./egm":3,"./graph":11,"./grid":13,"./network":20,"./ui":23}],15:[function(require,module,exports){
+},{"./egm":3,"./graph":11,"./grid":13,"./network":24,"./ui":27}],15:[function(require,module,exports){
 (function() {
   module.exports = function() {
     return function(graph) {
@@ -1701,12 +1701,201 @@
 },{}],20:[function(require,module,exports){
 (function() {
   module.exports = {
-    centrality: require('./centrality')
+    reduce: require('./reduce'),
+    modularity: require('./modularity'),
+    newman: require('./newman')
   };
 
 }).call(this);
 
-},{"./centrality":18}],21:[function(require,module,exports){
+},{"./modularity":21,"./newman":22,"./reduce":23}],21:[function(require,module,exports){
+(function() {
+  var degree;
+
+  degree = require('../centrality/degree');
+
+  module.exports = function(graph, communities) {
+    var i, j, k, m, n, s, _i, _j;
+    n = graph.numVertices();
+    m = graph.numEdges();
+    s = 0;
+    k = degree.degree(graph);
+    for (i = _i = 0; 0 <= n ? _i < n : _i > n; i = 0 <= n ? ++_i : --_i) {
+      for (j = _j = 0; 0 <= n ? _j < n : _j > n; j = 0 <= n ? ++_j : --_j) {
+        if (communities[i] === communities[j]) {
+          s += graph.edge(i, j) || graph.edge(j, i) ? 1 : 0;
+          s -= k[i] * k[j] / 2 / m;
+        }
+      }
+    }
+    return s / 2 / m;
+  };
+
+}).call(this);
+
+},{"../centrality/degree":17}],22:[function(require,module,exports){
+(function() {
+  var cleanupLabel, degree, modularity;
+
+  degree = require('../centrality/degree');
+
+  modularity = require('./modularity');
+
+  cleanupLabel = function(vertexCommunity) {
+    var c, result, u, vertices, _results;
+    result = {};
+    for (u in vertexCommunity) {
+      c = vertexCommunity[u];
+      if (result[c] === void 0) {
+        result[c] = [];
+      }
+      result[c].push(+u);
+    }
+    _results = [];
+    for (c in result) {
+      vertices = result[c];
+      _results.push(vertices);
+    }
+    return _results;
+  };
+
+  module.exports = function(graph) {
+    var c, c1, c2, ck, communities, community, deltaQ, deltaQMax, i, j, k, keys, m, maxU, maxV, n, nb, nc, q, qMax, result, sum, u, v, vertexCommunity, _i, _j, _k, _l, _len, _len1, _len2, _len3, _m, _n, _o, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+    n = graph.numVertices();
+    m = graph.numEdges();
+    k = degree.degree(graph);
+    communities = {};
+    vertexCommunity = {};
+    _ref = graph.vertices();
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      u = _ref[_i];
+      communities[u] = d3.set([u]);
+      vertexCommunity[u] = u;
+    }
+    qMax = -Infinity;
+    result = {};
+    for (nc = _j = n; n <= 1 ? _j < 1 : _j > 1; nc = n <= 1 ? ++_j : --_j) {
+      ck = {};
+      for (c in communities) {
+        community = communities[c];
+        sum = 0;
+        _ref1 = community.values();
+        for (_k = 0, _len1 = _ref1.length; _k < _len1; _k++) {
+          u = _ref1[_k];
+          sum += k[u];
+        }
+        ck[c] = sum;
+      }
+      nb = {};
+      for (c1 in communities) {
+        nb[c1] = {};
+        for (c2 in communities) {
+          nb[c1][c2] = 0;
+        }
+      }
+      _ref2 = graph.edges();
+      for (_l = 0, _len2 = _ref2.length; _l < _len2; _l++) {
+        _ref3 = _ref2[_l], u = _ref3[0], v = _ref3[1];
+        nb[vertexCommunity[u]][vertexCommunity[v]] += 1;
+        nb[vertexCommunity[v]][vertexCommunity[u]] += 1;
+      }
+      keys = Object.keys(communities);
+      deltaQMax = -Infinity;
+      maxU;
+      maxV;
+      for (i = _m = 0; 0 <= nc ? _m < nc : _m > nc; i = 0 <= nc ? ++_m : --_m) {
+        for (j = _n = _ref4 = i + 1; _ref4 <= nc ? _n < nc : _n > nc; j = _ref4 <= nc ? ++_n : --_n) {
+          deltaQ = (nb[keys[i]][keys[j]] - ck[keys[i]] * ck[keys[j]] / 2 / m) / m;
+          if (deltaQ > deltaQMax) {
+            deltaQMax = deltaQ;
+            maxU = keys[i];
+            maxV = keys[j];
+          }
+        }
+      }
+      _ref5 = communities[maxV].values();
+      for (_o = 0, _len3 = _ref5.length; _o < _len3; _o++) {
+        u = _ref5[_o];
+        communities[maxU].add(u);
+        vertexCommunity[u] = +maxU;
+      }
+      delete communities[maxV];
+      q = modularity(graph, vertexCommunity);
+      if (q > qMax) {
+        qMax = q;
+        for (u in vertexCommunity) {
+          c = vertexCommunity[u];
+          result[u] = c;
+        }
+      }
+    }
+    return cleanupLabel(result);
+  };
+
+}).call(this);
+
+},{"../centrality/degree":17,"./modularity":21}],23:[function(require,module,exports){
+(function() {
+  var adjacencyList, newman;
+
+  newman = require('./newman');
+
+  adjacencyList = require('../../graph/adjacency-list');
+
+  module.exports = function(graph, f) {
+    var communities, community, community1, community2, i, j, mergedData, mergedGraph, mergedVertices, u, v, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref;
+    if (f == null) {
+      f = function(vertices) {
+        var u, _i, _len, _results;
+        _results = [];
+        for (_i = 0, _len = vertices.length; _i < _len; _i++) {
+          u = vertices[_i];
+          _results.push(graph.get(u));
+        }
+        return _results;
+      };
+    }
+    communities = newman(graph);
+    mergedGraph = adjacencyList();
+    mergedVertices = [];
+    for (i = _i = 0, _len = communities.length; _i < _len; i = ++_i) {
+      community = communities[i];
+      mergedData = f(community, i);
+      mergedVertices.push(mergedGraph.addVertex(mergedData));
+    }
+    for (i = _j = 0, _len1 = communities.length; _j < _len1; i = ++_j) {
+      community1 = communities[i];
+      _ref = communities.slice(i + 1);
+      for (j = _k = 0, _len2 = _ref.length; _k < _len2; j = ++_k) {
+        community2 = _ref[j];
+        for (_l = 0, _len3 = community1.length; _l < _len3; _l++) {
+          u = community1[_l];
+          for (_m = 0, _len4 = community2.length; _m < _len4; _m++) {
+            v = community2[_m];
+            if (graph.edge(u, v)) {
+              mergedGraph.addEdge(i, j);
+            } else if (graph.edge(v, u)) {
+              mergedGraph.addEdge(j, i);
+            }
+          }
+        }
+      }
+    }
+    return mergedGraph;
+  };
+
+}).call(this);
+
+},{"../../graph/adjacency-list":8,"./newman":22}],24:[function(require,module,exports){
+(function() {
+  module.exports = {
+    centrality: require('./centrality'),
+    community: require('./community')
+  };
+
+}).call(this);
+
+},{"./centrality":18,"./community":20}],25:[function(require,module,exports){
 (function() {
   module.exports = {
     transform: require('./transform')
@@ -1714,7 +1903,7 @@
 
 }).call(this);
 
-},{"./transform":22}],22:[function(require,module,exports){
+},{"./transform":26}],26:[function(require,module,exports){
 (function() {
   var Scale, Translate,
     __slice = [].slice;
@@ -1768,7 +1957,7 @@
 
 }).call(this);
 
-},{}],23:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 (function() {
   module.exports = {
     removeButton: function(grid, callback) {
