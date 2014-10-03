@@ -15,25 +15,11 @@ angular.module 'egrid-core-example'
     for link in data.data.links
       graph.addEdge link.source, link.target
 
-    communities = egrid.core.network.community.newman graph
-    console.log communities
-
-    mergedGraph = egrid.core.graph.adjacencyList()
-    mergedVertices = []
-    for community, i in communities
-      for u in community
-        graph.get(u).community = i
-      mergedVertices.push mergedGraph.addVertex
-        text: community.map((u) -> graph.get(u).text).join('\n')
-
-    for community1, i in communities
-      for community2, j in communities[i + 1..-1]
-        for u in community1
-          for v in community2
-            if graph.edge(u, v)
-              mergedGraph.addEdge i, j
-            else if graph.edge(v, u)
-              mergedGraph.addEdge j, i
+    mergedGraph = egrid.core.network.community.reduce graph, (vertices, c) ->
+      for u in vertices
+        graph.get(u).community = c
+      text: vertices.map((u) -> graph.get(u).text).join('\n')
+      vertices: vertices
 
     color = d3.scale.category20()
     egm1 = egrid.core.egm()
