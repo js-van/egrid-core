@@ -5,12 +5,13 @@ angular.module 'egrid-core-example'
         controller: 'CommunityController'
         resolve:
           data: ($http) ->
-            $http.get 'data/travel.json'
+            $http.get 'data/pen2.json'
         templateUrl: 'partials/community.html'
         url: '/community'
   .controller 'CommunityController', ($scope, data) ->
     graph = egrid.core.graph.adjacencyList()
     for node in data.data.nodes
+      node.visibility = false
       graph.addVertex node
     for link in data.data.links
       graph.addEdge link.source, link.target
@@ -26,7 +27,8 @@ angular.module 'egrid-core-example'
       .contentsMargin 5
       .size [800, 800]
       .vertexColor (d) -> color d.community
-    d3.select 'svg.display1'
+      .vertexVisibility (d) -> d.visibility
+    display1 = d3.select 'svg.display1'
       .datum graph
       .call egm1
       .call egm1.center()
@@ -36,8 +38,18 @@ angular.module 'egrid-core-example'
         height: 800
     egm2 = egrid.core.egm()
       .contentsMargin 5
+      .onClickVertex (d) ->
+        for u in d.vertices
+          du = graph.get(u)
+          du.visibility = not du.visibility
+        display1
+          .transition()
+          .call egm1
+          .call egm1.center()
+        return
       .size [800, 800]
-      .vertexColor (d, u) -> color u
+      .vertexColor (d, u) ->
+        color u
     d3.select 'svg.display2'
       .datum mergedGraph
       .call egm2

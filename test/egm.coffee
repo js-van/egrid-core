@@ -178,8 +178,8 @@ module.exports = ->
           .call egm
         expect selection.selectAll('g.vertices>g.vertex').size()
           .to.be 2
-        # expect selection.selectAll('g.edges>g.edge').size()
-        #   .to.be 1
+        expect selection.selectAll('g.edges>g.edge').size()
+          .to.be 1
 
     describe 'edgeText', ->
       it 'should change edge text', ->
