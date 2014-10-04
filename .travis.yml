@@ -12,7 +12,7 @@ before_script:
 after_success:
   - git clone https://github.com/likr/egrid-core.git --branch=gh-pages tmp
   - grunt gh-pages
-  - cp -R gh-pages tmp
+  - cp -R gh-pages/* tmp
   - pushd tmp
   - git add -A
   - git commit -m 'update'
