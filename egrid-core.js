@@ -1,6 +1,72 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 (function() {
-  var edgeLine, edgePointsSize, layout, paint, resize, select, svg, transition, update;
+  var svg;
+
+  svg = require('../svg');
+
+  module.exports = function(zoom) {
+    return function(arg) {
+      var egm, margin, maxScale, scale, _ref;
+      if (arg == null) {
+        arg = {};
+      }
+      egm = this;
+      scale = (_ref = arg.scale) != null ? _ref : 1;
+      margin = egm.contentsMargin();
+      maxScale = egm.contentsScaleMax();
+      return function(selection) {
+        selection.each(function() {
+          var bottom, container, contentScale, height, left, right, s, t, top, vertices, width, x, y, _ref1, _ref2, _ref3, _ref4, _ref5;
+          container = d3.select(this);
+          _ref1 = egm.size(), width = _ref1[0], height = _ref1[1];
+          vertices = container.selectAll('g.vertex').data();
+          left = (_ref2 = d3.min(vertices, function(vertex) {
+            return vertex.x - vertex.width / 2;
+          })) != null ? _ref2 : 0;
+          right = (_ref3 = d3.max(vertices, function(vertex) {
+            return vertex.x + vertex.width / 2;
+          })) != null ? _ref3 : 0;
+          top = (_ref4 = d3.min(vertices, function(vertex) {
+            return vertex.y - vertex.height / 2;
+          })) != null ? _ref4 : 0;
+          bottom = (_ref5 = d3.max(vertices, function(vertex) {
+            return vertex.y + vertex.height / 2;
+          })) != null ? _ref5 : 0;
+          contentScale = scale * d3.min([(width - 2 * margin) / (right - left), (height - 2 * margin) / (bottom - top), maxScale]);
+          x = ((width - 2 * margin) - (right - left) * contentScale) / 2 + margin;
+          y = ((height - 2 * margin) - (bottom - top) * contentScale) / 2 + margin;
+          zoom.scale(contentScale).translate([x, y]);
+          t = svg.transform.translate(x, y);
+          s = svg.transform.scale(contentScale);
+          selection.select('g.contents').attr('transform', svg.transform.compose(t, s));
+        });
+      };
+    };
+  };
+
+}).call(this);
+
+},{"../svg":25}],2:[function(require,module,exports){
+(function() {
+  module.exports = function() {
+    var egm, svgCss;
+    egm = this;
+    svgCss = "g.vertex > rect, rect.background {\n  fill: " + (egm.backgroundColor()) + ";\n}\ng.edge > path {\n  fill: none;\n}\ng.vertex > rect, g.edge > path {\n  stroke: " + (egm.strokeColor()) + ";\n}\ng.vertex > text {\n  fill: " + (egm.strokeColor()) + ";\n  font-family: 'Lucida Grande', 'Hiragino Kaku Gothic ProN',\n    'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif;\n  font-size: 14px;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex.lower > rect, g.edge.lower > path {\n  stroke: " + (egm.lowerStrokeColor()) + ";\n}\ng.vertex.upper > rect, g.edge.upper > path {\n  stroke: " + (egm.upperStrokeColor()) + ";\n}\ng.vertex.upper.lower>rect, g.edge.upper.lower>path {\n  stroke: " + (egm.selectedStrokeColor()) + ";\n}\nrect.background {\n  cursor: move;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex {\n  cursor: pointer;\n}\ng.vertex-buttons {\n  opacity: 0.7;\n}\ng.vertex-button {\n  cursor: pointer;\n}\ng.vertex-button>rect {\n  fill: #fff;\n  stroke: #adadad\n}\ng.vertex-button.hover>rect {\n  fill: #ebebeb;\n}";
+    return function(selection) {
+      return selection.each(function() {
+        var container;
+        container = d3.select(this);
+        container.selectAll('defs.egrid-style').remove();
+        return container.append('defs').classed('egrid-style', true).append('style').text(svgCss);
+      });
+    };
+  };
+
+}).call(this);
+
+},{}],3:[function(require,module,exports){
+(function() {
+  var edgeLine, edgePointsSize, layout, select, svg, transition, update;
 
   svg = require('../svg');
 
@@ -58,7 +124,7 @@
     };
   };
 
-  transition = function(arg) {
+  transition = function(egm, arg) {
     return function(selection) {
       selection.selectAll('g.vertices > g.vertex').attr('transform', function(u) {
         return svg.transform.compose(svg.transform.translate(u.x, u.y), svg.transform.scale(u.scale));
@@ -69,82 +135,48 @@
       selection.selectAll('g.edges>g.edge').select('text').attr('transform', function(e) {
         return svg.transform.translate(e.points[1][0], e.points[1][1]);
       });
-      return selection.call(paint(arg));
+      return selection.call(egm.updateColor());
     };
   };
 
-  paint = function(arg) {
-    var edgeColor, edgeOpacity, edgeWidth, vertexColor, vertexOpacity;
-    vertexOpacity = arg.vertexOpacity, vertexColor = arg.vertexColor, edgeColor = arg.edgeColor, edgeOpacity = arg.edgeOpacity, edgeWidth = arg.edgeWidth;
-    return function(selection) {
-      selection.selectAll('g.vertices>g.vertex').style('opacity', function(vertex) {
-        return vertexOpacity(vertex.data, vertex.key);
-      });
-      selection.selectAll('g.vertices>g.vertex>rect').style('fill', function(vertex) {
-        return vertexColor(vertex.data, vertex.key);
-      });
-      return selection.selectAll('g.edges>g.edge>path').style({
-        opacity: function(_arg) {
-          var source, target;
-          source = _arg.source, target = _arg.target;
-          return edgeOpacity(source.key, target.key);
-        },
-        stroke: function(_arg) {
-          var source, target;
-          source = _arg.source, target = _arg.target;
-          return edgeColor(source.key, target.key);
-        },
-        'stroke-width': function(_arg) {
-          var source, target;
-          source = _arg.source, target = _arg.target;
-          return edgeWidth(source.key, target.key);
-        }
-      });
-    };
-  };
-
-  resize = function(width, height) {
-    return function(selection) {
-      selection.attr({
-        width: width,
-        height: height
-      });
-      selection.select('rect.background').attr({
-        width: width,
-        height: height
-      });
-    };
-  };
-
-  module.exports = function(options) {
+  module.exports = function() {
     var accessor, attr, egm, optionAttributes, val, zoom;
-    if (options == null) {
-      options = {};
-    }
     zoom = d3.behavior.zoom().scaleExtent([0, 1]);
     egm = function(selection) {
+      var margin, scaleMax;
+      margin = egm.contentsMargin();
+      scaleMax = egm.contentsScaleMax();
       selection.each(function(graph) {
         var bottom, container, height, left, right, scale, top, vertices, width, _ref;
         container = d3.select(this);
-        container.call(update(graph, {
-          edgePointsSize: edgePointsSize,
-          edgeLine: edgeLine,
-          edgeText: egm.edgeText(),
+        container.call(egm.css({
+          backgroundColor: egm.backgroundColor(),
+          strokeColor: egm.strokeColor(),
+          lowerStrokeColor: egm.lowerStrokeColor(),
+          upperStrokeColor: egm.upperStrokeColor(),
+          selectedStrokeColor: egm.selectedStrokeColor()
+        })).call(update(graph, {
           clickVertexCallback: egm.onClickVertex(),
+          edgeLine: edgeLine,
+          edgePointsSize: edgePointsSize,
+          edgeText: egm.edgeText(),
+          enableZoom: egm.enableZoom(),
+          maxTextLength: egm.maxTextLength(),
+          textSeparator: egm.textSeparator(),
           vertexButtons: egm.vertexButtons(),
+          vertexFontWeight: egm.vertexFontWeight(),
           vertexScale: egm.vertexScale(),
+          vertexStrokeWidth: egm.vertexStrokeWidth(),
           vertexText: egm.vertexText(),
           vertexVisibility: egm.vertexVisibility(),
-          enableZoom: egm.enableZoom(),
-          zoom: zoom,
-          maxTextLength: egm.maxTextLength()
-        })).call(resize(egm.size()[0], egm.size()[1])).call(layout({
+          zoom: zoom
+        })).call(egm.resize(egm.size()[0], egm.size()[1])).call(layout({
           dagreEdgeSep: egm.dagreEdgeSep(),
           dagreNodeSep: egm.dagreNodeSep(),
           dagreRankDir: egm.dagreRankDir(),
           dagreRankSep: egm.dagreRankSep()
         }));
-        selection.call(transition({
+        selection.call(transition(egm, {
           edgeColor: egm.edgeColor(),
           edgeOpacity: egm.edgeOpacity(),
           edgeWidth: egm.edgeWidth(),
@@ -166,8 +198,8 @@
         bottom = d3.max(vertices, function(vertex) {
           return vertex.y + vertex.height / 2;
         });
-        scale = d3.min([Math.min(width / (right - left), height / (bottom - top), 1)]);
-        zoom.scaleExtent([scale, 1]);
+        scale = d3.min([(width - 2 * margin) / (right - left), (height - 2 * margin) / (bottom - top), 1]);
+        zoom.scaleExtent([scale, scaleMax]);
       });
     };
     accessor = function(defaultVal) {
@@ -183,6 +215,9 @@
       };
     };
     optionAttributes = {
+      backgroundColor: 'whitesmoke',
+      contentsMargin: 0,
+      contentsScaleMax: 1,
       dagreEdgeSep: 10,
       dagreNodeSep: 20,
       dagreRankDir: 'LR',
@@ -201,18 +236,30 @@
       },
       enableClickVertex: true,
       enableZoom: true,
+      lowerStrokeColor: 'red',
       maxTextLength: Infinity,
       onClickVertex: function() {},
+      selectedStrokeColor: 'purple',
+      strokeColor: 'black',
+      textSeparator: function(s) {
+        return s.split('\n');
+      },
       vertexButtons: function() {
         return [];
       },
       vertexColor: function() {
         return '';
       },
+      vertexFontWeight: function() {
+        return 'normal';
+      },
       vertexOpacity: function() {
         return 1;
       },
       vertexScale: function() {
+        return 1;
+      },
+      vertexStrokeWidth: function() {
         return 1;
       },
       vertexText: function(vertexData) {
@@ -221,91 +268,50 @@
       vertexVisibility: function() {
         return true;
       },
-      size: [1, 1]
-    };
-    egm.css = function(options) {
-      var svgCss, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
-      if (options == null) {
-        options = {};
-      }
-      svgCss = "g.vertex > rect, rect.background {\n  fill: " + ((_ref = options.backgroundColor) != null ? _ref : 'whitesmoke') + ";\n}\ng.edge > path {\n  fill: none;\n}\ng.vertex > rect, g.edge > path {\n  stroke: " + ((_ref1 = options.strokeColor) != null ? _ref1 : 'black') + ";\n}\ng.vertex > text {\n  fill: " + ((_ref2 = options.strokeColor) != null ? _ref2 : 'black') + ";\n  font-family: 'Lucida Grande', 'Hiragino Kaku Gothic ProN',\n    'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif;\n  font-size: 14px;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex.lower > rect, g.edge.lower > path {\n  stroke: " + ((_ref3 = options.lowerStrokeColor) != null ? _ref3 : 'red') + ";\n}\ng.vertex.upper > rect, g.edge.upper > path {\n  stroke: " + ((_ref4 = options.upperStrokeColor) != null ? _ref4 : 'blue') + ";\n}\ng.vertex.upper.lower>rect, g.edge.upper.lower>path {\n  stroke: " + ((_ref5 = options.selectedStrokeColor) != null ? _ref5 : 'purple') + ";\n}\nrect.background {\n  cursor: move;\n  user-select: none;\n  -moz-user-select: none;\n  -webkit-user-select: none;\n  -ms-user-select: none;\n}\ng.vertex {\n  cursor: pointer;\n}\ng.vertex-buttons {\n  opacity: 0.7;\n}\ng.vertex-button {\n  cursor: pointer;\n}\ng.vertex-button>rect {\n  fill: #fff;\n  stroke: #adadad\n}\ng.vertex-button.hover>rect {\n  fill: #ebebeb;\n}";
-      return function(selection) {
-        return selection.each(function() {
-          var container;
-          container = d3.select(this);
-          container.selectAll('defs.egrid-style').remove();
-          return container.append('defs').classed('egrid-style', true).append('style').text(svgCss);
-        });
-      };
-    };
-    egm.resize = function(width, height) {
-      egm.size([width, height]);
-      return resize(width, height);
-    };
-    egm.center = function(arg) {
-      var margin, maxScale, scale, _ref, _ref1, _ref2;
-      if (arg == null) {
-        arg = {};
-      }
-      scale = (_ref = arg.scale) != null ? _ref : 1;
-      margin = (_ref1 = arg.margin) != null ? _ref1 : 0;
-      maxScale = (_ref2 = arg.maxScale) != null ? _ref2 : 1;
-      return function(selection) {
-        selection.each(function() {
-          var bottom, container, contentScale, height, left, right, s, t, top, vertices, width, x, y, _ref3, _ref4, _ref5, _ref6, _ref7;
-          container = d3.select(this);
-          _ref3 = egm.size(), width = _ref3[0], height = _ref3[1];
-          vertices = container.selectAll('g.vertex').data();
-          left = (_ref4 = d3.min(vertices, function(vertex) {
-            return vertex.x - vertex.width / 2;
-          })) != null ? _ref4 : 0;
-          right = (_ref5 = d3.max(vertices, function(vertex) {
-            return vertex.x + vertex.width / 2;
-          })) != null ? _ref5 : 0;
-          top = (_ref6 = d3.min(vertices, function(vertex) {
-            return vertex.y - vertex.height / 2;
-          })) != null ? _ref6 : 0;
-          bottom = (_ref7 = d3.max(vertices, function(vertex) {
-            return vertex.y + vertex.height / 2;
-          })) != null ? _ref7 : 0;
-          contentScale = scale * d3.min([(width - 2 * margin) / (right - left), (height - 2 * margin) / (bottom - top), maxScale]);
-          x = ((width - 2 * margin) - (right - left) * contentScale) / 2;
-          y = ((height - 2 * margin) - (bottom - top) * contentScale) / 2;
-          zoom.scale(contentScale).translate([x, y]);
-          t = svg.transform.translate(x, y);
-          s = svg.transform.scale(contentScale);
-          selection.select('g.contents').attr('transform', svg.transform.compose(t, s));
-        });
-      };
-    };
-    egm.updateColor = function() {
-      return function(selection) {
-        return selection.call(paint({
-          edgeColor: egm.edgeColor(),
-          edgeOpacity: egm.edgeOpacity(),
-          edgeWidth: egm.edgeWidth(),
-          vertexColor: egm.vertexColor(),
-          vertexOpacity: egm.vertexOpacity()
-        }));
-      };
-    };
-    egm.options = function(options) {
-      var attr;
-      for (attr in optionAttributes) {
-        egm[attr](options[attr]);
-      }
-      return egm;
+      size: [1, 1],
+      upperStrokeColor: 'blue'
     };
     for (attr in optionAttributes) {
       val = optionAttributes[attr];
       egm[attr] = accessor(val);
     }
-    return egm.options(options);
+    egm.center = require('./center')(zoom);
+    egm.css = require('./css');
+    egm.resize = require('./resize');
+    egm.updateColor = require('./update-color');
+    return egm;
   };
 
 }).call(this);
 
-},{"../svg":17,"./select":2,"./update":3}],2:[function(require,module,exports){
+},{"../svg":25,"./center":1,"./css":2,"./resize":4,"./select":5,"./update":7,"./update-color":6}],4:[function(require,module,exports){
+(function() {
+  var resize;
+
+  resize = function(width, height) {
+    return function(selection) {
+      selection.attr({
+        width: width,
+        height: height
+      }).style({
+        width: width,
+        height: height
+      });
+      selection.select('rect.background').attr({
+        width: width,
+        height: height
+      });
+    };
+  };
+
+  module.exports = function(width, height) {
+    this.size([width, height]);
+    return resize(width, height);
+  };
+
+}).call(this);
+
+},{}],5:[function(require,module,exports){
 (function() {
   var dijkstra, svg, updateButtons, updateSelectedVertex;
 
@@ -440,7 +446,57 @@
 
 }).call(this);
 
-},{"../graph/dijkstra":5,"../svg":17}],3:[function(require,module,exports){
+},{"../graph/dijkstra":9,"../svg":25}],6:[function(require,module,exports){
+(function() {
+  var paint;
+
+  paint = function(arg) {
+    var edgeColor, edgeOpacity, edgeWidth, vertexColor, vertexOpacity;
+    vertexOpacity = arg.vertexOpacity, vertexColor = arg.vertexColor, edgeColor = arg.edgeColor, edgeOpacity = arg.edgeOpacity, edgeWidth = arg.edgeWidth;
+    return function(selection) {
+      selection.selectAll('g.vertices>g.vertex').style('opacity', function(vertex) {
+        return vertexOpacity(vertex.data, vertex.key);
+      });
+      selection.selectAll('g.vertices>g.vertex>rect').style('fill', function(vertex) {
+        return vertexColor(vertex.data, vertex.key);
+      });
+      return selection.selectAll('g.edges>g.edge>path').style({
+        opacity: function(_arg) {
+          var source, target;
+          source = _arg.source, target = _arg.target;
+          return edgeOpacity(source.key, target.key);
+        },
+        stroke: function(_arg) {
+          var source, target;
+          source = _arg.source, target = _arg.target;
+          return edgeColor(source.key, target.key);
+        },
+        'stroke-width': function(_arg) {
+          var source, target;
+          source = _arg.source, target = _arg.target;
+          return edgeWidth(source.key, target.key);
+        }
+      });
+    };
+  };
+
+  module.exports = function() {
+    var egm;
+    egm = this;
+    return function(selection) {
+      return selection.call(paint({
+        edgeColor: egm.edgeColor(),
+        edgeOpacity: egm.edgeOpacity(),
+        edgeWidth: egm.edgeWidth(),
+        vertexColor: egm.vertexColor(),
+        vertexOpacity: egm.vertexOpacity()
+      }));
+    };
+  };
+
+}).call(this);
+
+},{}],7:[function(require,module,exports){
 (function() {
   var calculateTextSize, createVertex, initContainer, makeGrid, onClickVertex, onMouseEnterVertex, onMouseLeaveVertex, select, svg, updateEdges, updateVertices;
 
@@ -454,19 +510,23 @@
     return function(vertex) {
       vertex.selected = !vertex.selected;
       container.call(select(vertexButtons));
-      clickVertexCallback();
+      clickVertexCallback.bind(this)(vertex.data, vertex.key);
     };
   };
 
-  onMouseEnterVertex = function(vertexText) {
+  onMouseEnterVertex = function() {
     return function(vertex) {
-      return d3.select(this).select('text').text(vertexText(vertex.data));
+      return d3.select(this).selectAll('tspan').text(function(d) {
+        return d.originalText;
+      });
     };
   };
 
   onMouseLeaveVertex = function() {
     return function(vertex) {
-      return d3.select(this).select('text').transition().delay(1000).text(vertex.text);
+      return d3.select(this).selectAll('tspan').transition().delay(1000).text(function(d) {
+        return d.text;
+      });
     };
   };
 
@@ -478,12 +538,18 @@
         'font-family': "'Lucida Grande', 'Hiragino Kaku Gothic ProN',\n'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif",
         'font-size': '14px'
       });
-      selection.each(function(u) {
+      selection.each(function(d) {
         var bbox;
-        measureText.text(u.text);
+        measureText.selectAll('tspan').remove();
+        measureText.selectAll('tspan').data(d.texts).enter().append('tspan').text(function(t) {
+          return t.text;
+        }).attr({
+          x: 0,
+          dy: 20
+        });
         bbox = measureText.node().getBBox();
-        u.textWidth = bbox.width;
-        return u.textHeight = bbox.height;
+        d.textWidth = bbox.width;
+        return d.textHeight = bbox.height;
       });
       return measure.remove();
     };
@@ -496,52 +562,61 @@
         u.x = 0;
         u.y = 0;
         return u.selected = false;
-      }).attr({
-        'text-anchor': 'left',
-        'dominant-baseline': 'text-before-edge'
       });
     };
   };
 
   updateVertices = function(arg) {
-    var r, strokeWidth, vertexScale;
+    var r, vertexFontWeight, vertexScale, vertexStrokeWidth;
     r = 5;
-    strokeWidth = 1;
-    vertexScale = arg.vertexScale;
+    vertexFontWeight = arg.vertexFontWeight, vertexScale = arg.vertexScale, vertexStrokeWidth = arg.vertexStrokeWidth;
     return function(selection) {
       selection.enter().append('g').classed('vertex', true).call(createVertex());
       selection.exit().remove();
-      selection.call(calculateTextSize()).each(function(u) {
-        u.originalWidth = u.textWidth + 2 * r;
-        u.originalHeight = u.textHeight + 2 * r;
-        u.scale = vertexScale(u.data, u.key);
-        u.width = (u.originalWidth + strokeWidth) * u.scale;
-        return u.height = (u.originalHeight + strokeWidth) * u.scale;
+      selection.call(calculateTextSize()).each(function(d) {
+        d.originalWidth = d.textWidth + 2 * r;
+        d.originalHeight = d.textHeight + 2 * r;
+        d.scale = vertexScale(d.data, d.key);
+        d.strokeWidth = vertexStrokeWidth(d.data, d.key);
+        d.width = (d.originalWidth + d.strokeWidth) * d.scale;
+        return d.height = (d.originalHeight + d.strokeWidth) * d.scale;
       });
-      selection.select('text').text(function(u) {
-        return u.text;
-      }).attr({
-        x: function(u) {
-          return -u.textWidth / 2;
-        },
-        y: function(u) {
-          return -u.textHeight / 2;
-        }
+      selection.select('text').attr('y', function(d) {
+        return -d.textHeight / 2 - 20;
+      }).each(function(d) {
+        var innerSelection, updateSelection;
+        innerSelection = d3.select(this);
+        updateSelection = innerSelection.selectAll('tspan').data(d.texts);
+        updateSelection.enter().append('tspan').attr({
+          'text-anchor': 'left',
+          'dominant-baseline': 'text-before-edge'
+        });
+        updateSelection.exit().remove();
+        return innerSelection.selectAll('tspan').text(function(t) {
+          return t.text;
+        }).attr({
+          x: -d.textWidth / 2,
+          dy: 20,
+          'font-weight': vertexFontWeight(d.data, d.key)
+        });
       });
       return selection.select('rect').attr({
-        x: function(u) {
-          return -u.originalWidth / 2;
+        x: function(d) {
+          return -d.originalWidth / 2;
         },
-        y: function(u) {
-          return -u.originalHeight / 2;
+        y: function(d) {
+          return -d.originalHeight / 2;
         },
-        width: function(u) {
-          return u.originalWidth;
+        width: function(d) {
+          return d.originalWidth;
         },
-        height: function(u) {
-          return u.originalHeight;
+        height: function(d) {
+          return d.originalHeight;
         },
-        rx: r
+        rx: r,
+        'stroke-width': function(d) {
+          return d.strokeWidth;
+        }
       });
     };
   };
@@ -573,8 +648,8 @@
   };
 
   makeGrid = function(graph, arg) {
-    var edges, maxTextLength, oldVertices, oldVerticesMap, pred, text, u, v, vertex, vertexText, vertices, verticesMap, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _m, _n, _o, _ref, _ref1, _ref2, _ref3;
-    pred = arg.pred, oldVertices = arg.oldVertices, vertexText = arg.vertexText, maxTextLength = arg.maxTextLength;
+    var adjacencyMatrix, edges, maxTextLength, oldVertices, oldVerticesMap, pred, textSeparator, u, v, vertex, vertexText, vertices, verticesMap, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
+    maxTextLength = arg.maxTextLength, oldVertices = arg.oldVertices, pred = arg.pred, textSeparator = arg.textSeparator, vertexText = arg.vertexText;
     oldVerticesMap = {};
     for (_i = 0, _len = oldVertices.length; _i < _len; _i++) {
       u = oldVertices[_i];
@@ -593,47 +668,68 @@
     });
     for (_j = 0, _len1 = vertices.length; _j < _len1; _j++) {
       vertex = vertices[_j];
-      text = vertexText(vertex.data);
-      if (text.length > maxTextLength) {
-        vertex.text = "" + (text.slice(0, maxTextLength)) + "...";
-      } else {
-        vertex.text = text;
-      }
+      vertex.texts = textSeparator(vertexText(vertex.data)).map(function(text) {
+        var originalText;
+        originalText = text;
+        if (text.length > maxTextLength) {
+          text = "" + (text.slice(0, maxTextLength - 1)) + "...";
+        }
+        return {
+          text: text,
+          originalText: originalText
+        };
+      });
     }
+    edges = [];
     verticesMap = {};
     for (_k = 0, _len2 = vertices.length; _k < _len2; _k++) {
       u = vertices[_k];
       verticesMap[u.key] = u;
     }
-    edges = [];
-    _ref = graph.vertices();
+    adjacencyMatrix = graph.vertices().map(function() {
+      return graph.vertices().map(function() {
+        return 0;
+      });
+    });
+    _ref = graph.edges();
     for (_l = 0, _len3 = _ref.length; _l < _len3; _l++) {
-      u = _ref[_l];
-      if (pred(u)) {
-        _ref1 = graph.adjacentVertices(u);
-        for (_m = 0, _len4 = _ref1.length; _m < _len4; _m++) {
-          v = _ref1[_m];
-          if (pred(v)) {
-            edges.push({
-              source: verticesMap[u],
-              target: verticesMap[v]
-            });
-          }
-        }
-      } else {
-        _ref2 = graph.adjacentVertices(u);
-        for (_n = 0, _len5 = _ref2.length; _n < _len5; _n++) {
-          v = _ref2[_n];
-          _ref3 = graph.invAdjacentVertices(u);
-          for (_o = 0, _len6 = _ref3.length; _o < _len6; _o++) {
-            w = _ref3[_o];
-            if ((pred(v)) && (pred(w))) {
-              edges.push({
-                source: verticesMap[w],
-                target: verticesMap[v]
-              });
+      _ref1 = _ref[_l], u = _ref1[0], v = _ref1[1];
+      adjacencyMatrix[u][v] = 1;
+    }
+    _ref2 = graph.vertices();
+    for (_m = 0, _len4 = _ref2.length; _m < _len4; _m++) {
+      u = _ref2[_m];
+      if (!pred(u)) {
+        _ref3 = graph.vertices();
+        for (_n = 0, _len5 = _ref3.length; _n < _len5; _n++) {
+          v = _ref3[_n];
+          _ref4 = graph.vertices();
+          for (_o = 0, _len6 = _ref4.length; _o < _len6; _o++) {
+            w = _ref4[_o];
+            if (adjacencyMatrix[v][u] && adjacencyMatrix[u][w]) {
+              adjacencyMatrix[v][w] = 1;
             }
           }
+        }
+        _ref5 = graph.vertices();
+        for (_p = 0, _len7 = _ref5.length; _p < _len7; _p++) {
+          v = _ref5[_p];
+          adjacencyMatrix[u][v] = 0;
+          adjacencyMatrix[v][u] = 0;
+        }
+      }
+    }
+    _ref6 = graph.vertices();
+    for (_q = 0, _len8 = _ref6.length; _q < _len8; _q++) {
+      u = _ref6[_q];
+      _ref7 = graph.vertices();
+      for (_r = 0, _len9 = _ref7.length; _r < _len9; _r++) {
+        v = _ref7[_r];
+        if (adjacencyMatrix[u][v]) {
+          edges.push({
+            source: verticesMap[u],
+            target: verticesMap[v]
+          });
         }
       }
     }
@@ -664,8 +760,8 @@
   };
 
   module.exports = function(graph, arg) {
-    var clickVertexCallback, edgeLine, edgePointsSize, edgeText, enableZoom, maxTextLength, vertexButtons, vertexScale, vertexText, vertexVisibility, zoom;
-    edgeText = arg.edgeText, vertexScale = arg.vertexScale, vertexText = arg.vertexText, vertexVisibility = arg.vertexVisibility, enableZoom = arg.enableZoom, zoom = arg.zoom, maxTextLength = arg.maxTextLength, edgePointsSize = arg.edgePointsSize, edgeLine = arg.edgeLine, vertexButtons = arg.vertexButtons, clickVertexCallback = arg.clickVertexCallback;
+    var clickVertexCallback, edgeLine, edgePointsSize, edgeText, enableZoom, maxTextLength, textSeparator, vertexButtons, vertexFontWeight, vertexScale, vertexStrokeWidth, vertexText, vertexVisibility, zoom;
+    clickVertexCallback = arg.clickVertexCallback, edgeLine = arg.edgeLine, edgePointsSize = arg.edgePointsSize, edgeText = arg.edgeText, enableZoom = arg.enableZoom, maxTextLength = arg.maxTextLength, textSeparator = arg.textSeparator, vertexButtons = arg.vertexButtons, vertexFontWeight = arg.vertexFontWeight, vertexScale = arg.vertexScale, vertexStrokeWidth = arg.vertexStrokeWidth, vertexText = arg.vertexText, vertexVisibility = arg.vertexVisibility, zoom = arg.zoom;
     return function(selection) {
       var contents, edges, vertices, _ref;
       if (graph != null) {
@@ -677,22 +773,25 @@
           selection.select('rect.background').on('.zoom', null);
         }
         _ref = makeGrid(graph, {
+          maxTextLength: maxTextLength,
+          oldVertices: selection.selectAll('g.vertex').data(),
           pred: function(u) {
             return vertexVisibility(graph.get(u), u);
           },
-          oldVertices: selection.selectAll('g.vertex').data(),
-          vertexText: vertexText,
-          maxTextLength: maxTextLength
+          textSeparator: textSeparator,
+          vertexText: vertexText
         }), vertices = _ref.vertices, edges = _ref.edges;
         contents.select('g.vertices').selectAll('g.vertex').data(vertices, function(u) {
           return u.key;
         }).call(updateVertices({
-          vertexScale: vertexScale
+          vertexFontWeight: vertexFontWeight,
+          vertexScale: vertexScale,
+          vertexStrokeWidth: vertexStrokeWidth
         })).on('click', onClickVertex({
           container: selection,
           vertexButtons: vertexButtons,
           clickVertexCallback: clickVertexCallback
-        })).on('mouseenter', onMouseEnterVertex(vertexText)).on('mouseleave', onMouseLeaveVertex()).on('touchstart', onMouseEnterVertex(vertexText)).on('touchmove', function() {
+        })).on('mouseenter', onMouseEnterVertex()).on('mouseleave', onMouseLeaveVertex()).on('touchstart', onMouseEnterVertex()).on('touchmove', function() {
           return d3.event.preventDefault();
         }).on('touchend', onMouseLeaveVertex());
         return contents.select('g.edges').selectAll('g.edge').data(edges, function(_arg) {
@@ -712,7 +811,7 @@
 
 }).call(this);
 
-},{"../svg":17,"./select":2}],4:[function(require,module,exports){
+},{"../svg":25,"./select":5}],8:[function(require,module,exports){
 (function() {
   module.exports = function(v, e) {
     var AdjacencyList, nextVertexId, vertices;
@@ -923,7 +1022,7 @@
 
 }).call(this);
 
-},{}],5:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 (function() {
   module.exports = function() {
     var dijkstra, inv, weight;
@@ -983,7 +1082,7 @@
 
 }).call(this);
 
-},{}],6:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 (function() {
   var adjacencyList;
 
@@ -1021,7 +1120,7 @@
 
 }).call(this);
 
-},{"./adjacency-list":4}],7:[function(require,module,exports){
+},{"./adjacency-list":8}],11:[function(require,module,exports){
 (function() {
   module.exports = {
     graph: require('./graph'),
@@ -1032,7 +1131,7 @@
 
 }).call(this);
 
-},{"./adjacency-list":4,"./dijkstra":5,"./graph":6,"./warshall-floyd":8}],8:[function(require,module,exports){
+},{"./adjacency-list":8,"./dijkstra":9,"./graph":10,"./warshall-floyd":12}],12:[function(require,module,exports){
 (function() {
   module.exports = function() {
     var warshallFloyd, weight;
@@ -1089,7 +1188,7 @@
 
 }).call(this);
 
-},{}],9:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 (function() {
   var factory;
 
@@ -1387,7 +1486,7 @@
 
 }).call(this);
 
-},{"../graph/graph":6}],10:[function(require,module,exports){
+},{"../graph/graph":10}],14:[function(require,module,exports){
 (function (global){
 (function() {
   global.window.egrid = {
@@ -1403,7 +1502,7 @@
 }).call(this);
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./egm":1,"./graph":7,"./grid":9,"./network":16,"./ui":19}],11:[function(require,module,exports){
+},{"./egm":3,"./graph":11,"./grid":13,"./network":24,"./ui":27}],15:[function(require,module,exports){
 (function() {
   module.exports = function() {
     return function(graph) {
@@ -1467,7 +1566,7 @@
 
 }).call(this);
 
-},{}],12:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 (function() {
   module.exports = function(weight) {
     var warshallFloyd;
@@ -1496,7 +1595,7 @@
 
 }).call(this);
 
-},{"../../graph/warshall-floyd":8}],13:[function(require,module,exports){
+},{"../../graph/warshall-floyd":12}],17:[function(require,module,exports){
 (function() {
   module.exports = {
     inDegree: function(graph) {
@@ -1533,7 +1632,7 @@
 
 }).call(this);
 
-},{}],14:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 (function() {
   var degree;
 
@@ -1550,7 +1649,7 @@
 
 }).call(this);
 
-},{"./betweenness":11,"./closeness":12,"./degree":13,"./katz":15}],15:[function(require,module,exports){
+},{"./betweenness":15,"./closeness":16,"./degree":17,"./katz":19}],19:[function(require,module,exports){
 (function() {
   var dictFromKeys;
 
@@ -1615,15 +1714,203 @@
 
 }).call(this);
 
-},{}],16:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 (function() {
   module.exports = {
-    centrality: require('./centrality')
+    reduce: require('./reduce'),
+    modularity: require('./modularity'),
+    newman: require('./newman')
   };
 
 }).call(this);
 
-},{"./centrality":14}],17:[function(require,module,exports){
+},{"./modularity":21,"./newman":22,"./reduce":23}],21:[function(require,module,exports){
+(function() {
+  var degree;
+
+  degree = require('../centrality/degree');
+
+  module.exports = function(graph, communities) {
+    var i, j, k, m, n, s, _i, _j;
+    n = graph.numVertices();
+    m = graph.numEdges();
+    s = 0;
+    k = degree.degree(graph);
+    for (i = _i = 0; 0 <= n ? _i < n : _i > n; i = 0 <= n ? ++_i : --_i) {
+      for (j = _j = 0; 0 <= n ? _j < n : _j > n; j = 0 <= n ? ++_j : --_j) {
+        if (communities[i] === communities[j]) {
+          s += graph.edge(i, j) || graph.edge(j, i) ? 1 : 0;
+          s -= k[i] * k[j] / 2 / m;
+        }
+      }
+    }
+    return s / 2 / m;
+  };
+
+}).call(this);
+
+},{"../centrality/degree":17}],22:[function(require,module,exports){
+(function() {
+  var cleanupLabel, degree, modularity;
+
+  degree = require('../centrality/degree');
+
+  modularity = require('./modularity');
+
+  cleanupLabel = function(vertexCommunity) {
+    var c, result, u, vertices, _results;
+    result = {};
+    for (u in vertexCommunity) {
+      c = vertexCommunity[u];
+      if (result[c] === void 0) {
+        result[c] = [];
+      }
+      result[c].push(+u);
+    }
+    _results = [];
+    for (c in result) {
+      vertices = result[c];
+      _results.push(vertices);
+    }
+    return _results;
+  };
+
+  module.exports = function(graph) {
+    var c, c1, c2, ck, communities, community, deltaQ, deltaQMax, i, j, k, keys, m, maxU, maxV, n, nb, nc, q, qMax, result, sum, u, v, vertexCommunity, _i, _j, _k, _l, _len, _len1, _len2, _len3, _m, _n, _o, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+    n = graph.numVertices();
+    m = graph.numEdges();
+    k = degree.degree(graph);
+    communities = {};
+    vertexCommunity = {};
+    _ref = graph.vertices();
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      u = _ref[_i];
+      communities[u] = d3.set([u]);
+      vertexCommunity[u] = u;
+    }
+    qMax = -Infinity;
+    result = {};
+    for (nc = _j = n; n <= 1 ? _j < 1 : _j > 1; nc = n <= 1 ? ++_j : --_j) {
+      ck = {};
+      for (c in communities) {
+        community = communities[c];
+        sum = 0;
+        _ref1 = community.values();
+        for (_k = 0, _len1 = _ref1.length; _k < _len1; _k++) {
+          u = _ref1[_k];
+          sum += k[u];
+        }
+        ck[c] = sum;
+      }
+      nb = {};
+      for (c1 in communities) {
+        nb[c1] = {};
+        for (c2 in communities) {
+          nb[c1][c2] = 0;
+        }
+      }
+      _ref2 = graph.edges();
+      for (_l = 0, _len2 = _ref2.length; _l < _len2; _l++) {
+        _ref3 = _ref2[_l], u = _ref3[0], v = _ref3[1];
+        nb[vertexCommunity[u]][vertexCommunity[v]] += 1;
+        nb[vertexCommunity[v]][vertexCommunity[u]] += 1;
+      }
+      keys = Object.keys(communities);
+      deltaQMax = -Infinity;
+      maxU;
+      maxV;
+      for (i = _m = 0; 0 <= nc ? _m < nc : _m > nc; i = 0 <= nc ? ++_m : --_m) {
+        for (j = _n = _ref4 = i + 1; _ref4 <= nc ? _n < nc : _n > nc; j = _ref4 <= nc ? ++_n : --_n) {
+          deltaQ = (nb[keys[i]][keys[j]] - ck[keys[i]] * ck[keys[j]] / 2 / m) / m;
+          if (deltaQ > deltaQMax) {
+            deltaQMax = deltaQ;
+            maxU = keys[i];
+            maxV = keys[j];
+          }
+        }
+      }
+      _ref5 = communities[maxV].values();
+      for (_o = 0, _len3 = _ref5.length; _o < _len3; _o++) {
+        u = _ref5[_o];
+        communities[maxU].add(u);
+        vertexCommunity[u] = +maxU;
+      }
+      delete communities[maxV];
+      q = modularity(graph, vertexCommunity);
+      if (q > qMax) {
+        qMax = q;
+        for (u in vertexCommunity) {
+          c = vertexCommunity[u];
+          result[u] = c;
+        }
+      }
+    }
+    return cleanupLabel(result);
+  };
+
+}).call(this);
+
+},{"../centrality/degree":17,"./modularity":21}],23:[function(require,module,exports){
+(function() {
+  var adjacencyList, newman;
+
+  newman = require('./newman');
+
+  adjacencyList = require('../../graph/adjacency-list');
+
+  module.exports = function(graph, f) {
+    var communities, community, community1, community2, i, j, mergedData, mergedGraph, mergedVertices, u, v, _i, _j, _k, _l, _len, _len1, _len2, _len3, _m, _ref, _ref1;
+    if (f == null) {
+      f = function(vertices) {
+        var u, _i, _len, _results;
+        _results = [];
+        for (_i = 0, _len = vertices.length; _i < _len; _i++) {
+          u = vertices[_i];
+          _results.push(graph.get(u));
+        }
+        return _results;
+      };
+    }
+    communities = newman(graph);
+    mergedGraph = adjacencyList();
+    mergedVertices = [];
+    for (i = _i = 0, _len = communities.length; _i < _len; i = ++_i) {
+      community = communities[i];
+      mergedData = f(community, i);
+      mergedVertices.push(mergedGraph.addVertex(mergedData));
+    }
+    for (i = _j = 0, _len1 = communities.length; _j < _len1; i = ++_j) {
+      community1 = communities[i];
+      for (j = _k = _ref = i + 1, _ref1 = communities.length; _ref <= _ref1 ? _k < _ref1 : _k > _ref1; j = _ref <= _ref1 ? ++_k : --_k) {
+        community2 = communities[j];
+        for (_l = 0, _len2 = community1.length; _l < _len2; _l++) {
+          u = community1[_l];
+          for (_m = 0, _len3 = community2.length; _m < _len3; _m++) {
+            v = community2[_m];
+            if (graph.edge(u, v)) {
+              mergedGraph.addEdge(i, j);
+            } else if (graph.edge(v, u)) {
+              mergedGraph.addEdge(j, i);
+            }
+          }
+        }
+      }
+    }
+    return mergedGraph;
+  };
+
+}).call(this);
+
+},{"../../graph/adjacency-list":8,"./newman":22}],24:[function(require,module,exports){
+(function() {
+  module.exports = {
+    centrality: require('./centrality'),
+    community: require('./community')
+  };
+
+}).call(this);
+
+},{"./centrality":18,"./community":20}],25:[function(require,module,exports){
 (function() {
   module.exports = {
     transform: require('./transform')
@@ -1631,7 +1918,7 @@
 
 }).call(this);
 
-},{"./transform":18}],18:[function(require,module,exports){
+},{"./transform":26}],26:[function(require,module,exports){
 (function() {
   var Scale, Translate,
     __slice = [].slice;
@@ -1685,7 +1972,7 @@
 
 }).call(this);
 
-},{}],19:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 (function() {
   module.exports = {
     removeButton: function(grid, callback) {
@@ -1740,4 +2027,4 @@
 
 }).call(this);
 
-},{}]},{},[10]);
+},{}]},{},[14]);
