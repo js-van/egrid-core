@@ -510,7 +510,7 @@
     return function(vertex) {
       vertex.selected = !vertex.selected;
       container.call(select(vertexButtons));
-      clickVertexCallback();
+      clickVertexCallback.bind(this)(vertex.data, vertex.key);
     };
   };
 
@@ -648,7 +648,7 @@
   };
 
   makeGrid = function(graph, arg) {
-    var edges, maxTextLength, oldVertices, oldVerticesMap, pred, textSeparator, u, v, vertex, vertexText, vertices, verticesMap, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _m, _n, _o, _ref, _ref1, _ref2, _ref3;
+    var adjacencyMatrix, edges, maxTextLength, oldVertices, oldVerticesMap, pred, textSeparator, u, v, vertex, vertexText, vertices, verticesMap, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
     maxTextLength = arg.maxTextLength, oldVertices = arg.oldVertices, pred = arg.pred, textSeparator = arg.textSeparator, vertexText = arg.vertexText;
     oldVerticesMap = {};
     for (_i = 0, _len = oldVertices.length; _i < _len; _i++) {
@@ -680,40 +680,56 @@
         };
       });
     }
+    edges = [];
     verticesMap = {};
     for (_k = 0, _len2 = vertices.length; _k < _len2; _k++) {
       u = vertices[_k];
       verticesMap[u.key] = u;
     }
-    edges = [];
-    _ref = graph.vertices();
+    adjacencyMatrix = graph.vertices().map(function() {
+      return graph.vertices().map(function() {
+        return 0;
+      });
+    });
+    _ref = graph.edges();
     for (_l = 0, _len3 = _ref.length; _l < _len3; _l++) {
-      u = _ref[_l];
-      if (pred(u)) {
-        _ref1 = graph.adjacentVertices(u);
-        for (_m = 0, _len4 = _ref1.length; _m < _len4; _m++) {
-          v = _ref1[_m];
-          if (pred(v)) {
-            edges.push({
-              source: verticesMap[u],
-              target: verticesMap[v]
-            });
-          }
-        }
-      } else {
-        _ref2 = graph.adjacentVertices(u);
-        for (_n = 0, _len5 = _ref2.length; _n < _len5; _n++) {
-          v = _ref2[_n];
-          _ref3 = graph.invAdjacentVertices(u);
-          for (_o = 0, _len6 = _ref3.length; _o < _len6; _o++) {
-            w = _ref3[_o];
-            if ((pred(v)) && (pred(w))) {
-              edges.push({
-                source: verticesMap[w],
-                target: verticesMap[v]
-              });
+      _ref1 = _ref[_l], u = _ref1[0], v = _ref1[1];
+      adjacencyMatrix[u][v] = 1;
+    }
+    _ref2 = graph.vertices();
+    for (_m = 0, _len4 = _ref2.length; _m < _len4; _m++) {
+      u = _ref2[_m];
+      if (!pred(u)) {
+        _ref3 = graph.vertices();
+        for (_n = 0, _len5 = _ref3.length; _n < _len5; _n++) {
+          v = _ref3[_n];
+          _ref4 = graph.vertices();
+          for (_o = 0, _len6 = _ref4.length; _o < _len6; _o++) {
+            w = _ref4[_o];
+            if (adjacencyMatrix[v][u] && adjacencyMatrix[u][w]) {
+              adjacencyMatrix[v][w] = 1;
             }
           }
+        }
+        _ref5 = graph.vertices();
+        for (_p = 0, _len7 = _ref5.length; _p < _len7; _p++) {
+          v = _ref5[_p];
+          adjacencyMatrix[u][v] = 0;
+          adjacencyMatrix[v][u] = 0;
+        }
+      }
+    }
+    _ref6 = graph.vertices();
+    for (_q = 0, _len8 = _ref6.length; _q < _len8; _q++) {
+      u = _ref6[_q];
+      _ref7 = graph.vertices();
+      for (_r = 0, _len9 = _ref7.length; _r < _len9; _r++) {
+        v = _ref7[_r];
+        if (adjacencyMatrix[u][v]) {
+          edges.push({
+            source: verticesMap[u],
+            target: verticesMap[v]
+          });
         }
       }
     }
@@ -1843,7 +1859,7 @@
   adjacencyList = require('../../graph/adjacency-list');
 
   module.exports = function(graph, f) {
-    var communities, community, community1, community2, i, j, mergedData, mergedGraph, mergedVertices, u, v, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref;
+    var communities, community, community1, community2, i, j, mergedData, mergedGraph, mergedVertices, u, v, _i, _j, _k, _l, _len, _len1, _len2, _len3, _m, _ref, _ref1;
     if (f == null) {
       f = function(vertices) {
         var u, _i, _len, _results;
@@ -1865,12 +1881,11 @@
     }
     for (i = _j = 0, _len1 = communities.length; _j < _len1; i = ++_j) {
       community1 = communities[i];
-      _ref = communities.slice(i + 1);
-      for (j = _k = 0, _len2 = _ref.length; _k < _len2; j = ++_k) {
-        community2 = _ref[j];
-        for (_l = 0, _len3 = community1.length; _l < _len3; _l++) {
+      for (j = _k = _ref = i + 1, _ref1 = communities.length; _ref <= _ref1 ? _k < _ref1 : _k > _ref1; j = _ref <= _ref1 ? ++_k : --_k) {
+        community2 = communities[j];
+        for (_l = 0, _len2 = community1.length; _l < _len2; _l++) {
           u = community1[_l];
-          for (_m = 0, _len4 = community2.length; _m < _len4; _m++) {
+          for (_m = 0, _len3 = community2.length; _m < _len3; _m++) {
             v = community2[_m];
             if (graph.edge(u, v)) {
               mergedGraph.addEdge(i, j);
