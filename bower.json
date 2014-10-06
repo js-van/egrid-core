@@ -1,7 +1,7 @@
 {
   "name": "egrid-core",
   "main": "egrid-core.js",
-  "version": "1.0.29",
+  "version": "1.0.30",
   "homepage": "https://github.com/likr/egrid-core",
   "authors": [
     "Yosuke ONOUE <onoue@likr-lab.com>"
