@@ -1,5 +1,6 @@
 svg = require '../svg'
 select = require './select'
+adjacencyList = require '../graph/adjacency-list'
 
 
 onClickVertex = ({container, vertexButtons, clickVertexCallback}) ->
@@ -179,28 +180,23 @@ makeGrid = (graph, arg) ->
         text: text
         originalText: originalText
 
-  edges = []
   verticesMap = {}
   for u in vertices
     verticesMap[u.key] = u
-  adjacencyMatrix = graph.vertices().map -> graph.vertices().map -> 0
+  tmpGraph = adjacencyList()
+  for u in graph.vertices()
+    tmpGraph.addVertex {}, u
   for [u, v] in graph.edges()
-    adjacencyMatrix[u][v] = 1
-  for u in graph.vertices()
+    tmpGraph.addEdge u, v
+  for u in tmpGraph.vertices()
     if not pred u
-      for v in graph.vertices()
-        for w in graph.vertices()
-          if adjacencyMatrix[v][u] and adjacencyMatrix[u][w]
-            adjacencyMatrix[v][w] = 1
-      for v in graph.vertices()
-        adjacencyMatrix[u][v] = 0
-        adjacencyMatrix[v][u] = 0
-  for u in graph.vertices()
-    for v in graph.vertices()
-      if adjacencyMatrix[u][v]
-        edges.push
-          source: verticesMap[u]
-          target: verticesMap[v]
+      for v in tmpGraph.adjacentVertices u
+        for w in tmpGraph.invAdjacentVertices u
+          tmpGraph.addEdge w, v
+      tmpGraph.clearVertex u
+  edges = tmpGraph.edges().map ([u, v]) ->
+    source: verticesMap[u]
+    target: verticesMap[v]
 
   vertices: vertices
   edges: edges
