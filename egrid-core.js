@@ -498,11 +498,13 @@
 
 },{}],7:[function(require,module,exports){
 (function() {
-  var calculateTextSize, createVertex, initContainer, makeGrid, onClickVertex, onMouseEnterVertex, onMouseLeaveVertex, select, svg, updateEdges, updateVertices;
+  var adjacencyList, calculateTextSize, createVertex, initContainer, makeGrid, onClickVertex, onMouseEnterVertex, onMouseLeaveVertex, select, svg, updateEdges, updateVertices;
 
   svg = require('../svg');
 
   select = require('./select');
+
+  adjacencyList = require('../graph/adjacency-list');
 
   onClickVertex = function(_arg) {
     var clickVertexCallback, container, vertexButtons;
@@ -648,7 +650,7 @@
   };
 
   makeGrid = function(graph, arg) {
-    var adjacencyMatrix, edges, maxTextLength, oldVertices, oldVerticesMap, pred, textSeparator, u, v, vertex, vertexText, vertices, verticesMap, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
+    var edges, maxTextLength, oldVertices, oldVerticesMap, pred, textSeparator, tmpGraph, u, v, vertex, vertexText, vertices, verticesMap, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _m, _n, _o, _p, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
     maxTextLength = arg.maxTextLength, oldVertices = arg.oldVertices, pred = arg.pred, textSeparator = arg.textSeparator, vertexText = arg.vertexText;
     oldVerticesMap = {};
     for (_i = 0, _len = oldVertices.length; _i < _len; _i++) {
@@ -680,59 +682,46 @@
         };
       });
     }
-    edges = [];
     verticesMap = {};
     for (_k = 0, _len2 = vertices.length; _k < _len2; _k++) {
       u = vertices[_k];
       verticesMap[u.key] = u;
     }
-    adjacencyMatrix = graph.vertices().map(function() {
-      return graph.vertices().map(function() {
-        return 0;
-      });
-    });
-    _ref = graph.edges();
+    tmpGraph = adjacencyList();
+    _ref = graph.vertices();
     for (_l = 0, _len3 = _ref.length; _l < _len3; _l++) {
-      _ref1 = _ref[_l], u = _ref1[0], v = _ref1[1];
-      adjacencyMatrix[u][v] = 1;
+      u = _ref[_l];
+      tmpGraph.addVertex({}, u);
     }
-    _ref2 = graph.vertices();
-    for (_m = 0, _len4 = _ref2.length; _m < _len4; _m++) {
-      u = _ref2[_m];
+    _ref1 = graph.edges();
+    for (_m = 0, _len4 = _ref1.length; _m < _len4; _m++) {
+      _ref2 = _ref1[_m], u = _ref2[0], v = _ref2[1];
+      tmpGraph.addEdge(u, v);
+    }
+    _ref3 = tmpGraph.vertices();
+    for (_n = 0, _len5 = _ref3.length; _n < _len5; _n++) {
+      u = _ref3[_n];
       if (!pred(u)) {
-        _ref3 = graph.vertices();
-        for (_n = 0, _len5 = _ref3.length; _n < _len5; _n++) {
-          v = _ref3[_n];
-          _ref4 = graph.vertices();
-          for (_o = 0, _len6 = _ref4.length; _o < _len6; _o++) {
-            w = _ref4[_o];
-            if (adjacencyMatrix[v][u] && adjacencyMatrix[u][w]) {
-              adjacencyMatrix[v][w] = 1;
-            }
+        _ref4 = tmpGraph.adjacentVertices(u);
+        for (_o = 0, _len6 = _ref4.length; _o < _len6; _o++) {
+          v = _ref4[_o];
+          _ref5 = tmpGraph.invAdjacentVertices(u);
+          for (_p = 0, _len7 = _ref5.length; _p < _len7; _p++) {
+            w = _ref5[_p];
+            tmpGraph.addEdge(w, v);
           }
         }
-        _ref5 = graph.vertices();
-        for (_p = 0, _len7 = _ref5.length; _p < _len7; _p++) {
-          v = _ref5[_p];
-          adjacencyMatrix[u][v] = 0;
-          adjacencyMatrix[v][u] = 0;
-        }
+        tmpGraph.clearVertex(u);
       }
     }
-    _ref6 = graph.vertices();
-    for (_q = 0, _len8 = _ref6.length; _q < _len8; _q++) {
-      u = _ref6[_q];
-      _ref7 = graph.vertices();
-      for (_r = 0, _len9 = _ref7.length; _r < _len9; _r++) {
-        v = _ref7[_r];
-        if (adjacencyMatrix[u][v]) {
-          edges.push({
-            source: verticesMap[u],
-            target: verticesMap[v]
-          });
-        }
-      }
-    }
+    edges = tmpGraph.edges().map(function(_arg) {
+      var u, v;
+      u = _arg[0], v = _arg[1];
+      return {
+        source: verticesMap[u],
+        target: verticesMap[v]
+      };
+    });
     return {
       vertices: vertices,
       edges: edges
@@ -811,7 +800,7 @@
 
 }).call(this);
 
-},{"../svg":25,"./select":5}],8:[function(require,module,exports){
+},{"../graph/adjacency-list":8,"../svg":25,"./select":5}],8:[function(require,module,exports){
 (function() {
   module.exports = function(v, e) {
     var AdjacencyList, nextVertexId, vertices;
