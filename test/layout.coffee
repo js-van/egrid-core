@@ -22,7 +22,7 @@ module.exports = ->
       graph.addEdge d, c
       graph.addEdge d, e
 
-      layout = egrid.core.layout()
+      layout = egrid.core.layout.layout()
 
       pos = layout graph
 
@@ -42,9 +42,31 @@ module.exports = ->
       graph.addEdge b, c
       graph.addEdge d, c
       graph.addEdge d, e
-      layers = egrid.core.layout().layerAssignment graph
+      layers = egrid.core.layout.layerAssignment graph
       expect(layers[a]).to.be 0
       expect(layers[b]).to.be 1
       expect(layers[c]).to.be 2
       expect(layers[d]).to.be 0
       expect(layers[e]).to.be 1
+
+  describe 'crossingReduction', ->
+    describe 'cross', ->
+      it 'should return number of crosses', ->
+        graph = egrid.core.graph.adjacencyList()
+        a = graph.addVertex()
+        b = graph.addVertex()
+        c = graph.addVertex()
+        d = graph.addVertex()
+        e = graph.addVertex()
+        f = graph.addVertex()
+        g = graph.addVertex()
+        graph.addEdge a, f
+        graph.addEdge b, f
+        graph.addEdge b, g
+        graph.addEdge c, e
+        graph.addEdge c, g
+        graph.addEdge d, f
+        expect egrid.core.layout.crossingReduction.cross(graph,
+                                                         [a, b, c, d],
+                                                         [e, f, g])
+          .to.be 5
