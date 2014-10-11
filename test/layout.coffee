@@ -29,3 +29,22 @@ module.exports = ->
       expect(pos.vertices[a]).to.eql
         x: 0
         y: 0
+
+  describe 'layerAssignment', ->
+    it 'should return layers', ->
+      graph = egrid.core.graph.adjacencyList()
+      a = graph.addVertex()
+      b = graph.addVertex()
+      c = graph.addVertex()
+      d = graph.addVertex()
+      e = graph.addVertex()
+      graph.addEdge a, b
+      graph.addEdge b, c
+      graph.addEdge d, c
+      graph.addEdge d, e
+      layers = egrid.core.layout().layerAssignment graph
+      expect(layers[a]).to.be 0
+      expect(layers[b]).to.be 1
+      expect(layers[c]).to.be 2
+      expect(layers[d]).to.be 0
+      expect(layers[e]).to.be 1

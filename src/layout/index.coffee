@@ -27,4 +27,6 @@ module.exports =  ->
     else
       scope.heightAccessor
 
+  layout.layerAssignment = require './layer-assignment'
+
   layout
