@@ -70,3 +70,24 @@ module.exports = ->
                                                          [a, b, c, d],
                                                          [e, f, g])
           .to.be 5
+
+    describe 'barycenter', ->
+      it 'should return ordered vertices', ->
+        graph = egrid.core.graph.adjacencyList()
+        a = graph.addVertex()
+        b = graph.addVertex()
+        c = graph.addVertex()
+        d = graph.addVertex()
+        e = graph.addVertex()
+        f = graph.addVertex()
+        g = graph.addVertex()
+        graph.addEdge a, f
+        graph.addEdge b, f
+        graph.addEdge b, g
+        graph.addEdge c, e
+        graph.addEdge c, g
+        graph.addEdge d, f
+        expect egrid.core.layout.crossingReduction.barycenter(graph,
+                                                              [a, b, c, d],
+                                                              [e, f, g])
+          .to.eql [f, g, e]
