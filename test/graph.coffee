@@ -125,3 +125,19 @@ module.exports = ->
           text: 'NEW TEXT'
         expect graph.get(u).text
           .to.be 'NEW TEXT'
+
+  describe 'copy', ->
+    it 'should copy graph', ->
+      graph = egrid.core.graph.adjacencyList()
+      a = graph.addVertex 'a'
+      b = graph.addVertex 'b'
+      c = graph.addVertex 'c'
+      graph.addEdge a, b
+      graph.addEdge c, a
+      newGraph = egrid.core.graph.copy graph
+      for u in graph.vertices()
+        expect newGraph.get u
+          .to.eql graph.get u
+      for [u, v] in graph.edges()
+        expect newGraph.edge u, v
+          .to.be.ok()
