@@ -91,3 +91,29 @@ module.exports = ->
                                                               [a, b, c, d],
                                                               [e, f, g])
           .to.eql [f, g, e]
+
+    describe 'normalize', ->
+      it 'should return normalized graph', ->
+        graph = egrid.core.graph.adjacencyList()
+        a = graph.addVertex()
+        b = graph.addVertex()
+        c = graph.addVertex()
+        d = graph.addVertex()
+        e = graph.addVertex()
+        graph.addEdge a, c
+        graph.addEdge a, d
+        graph.addEdge b, c
+        graph.addEdge b, e
+        graph.addEdge c, d
+        graph.addEdge c, e
+        layers = {}
+        layers[a] = 0
+        layers[b] = 0
+        layers[c] = 1
+        layers[d] = 2
+        layers[e] = 2
+        normalizedGraph = egrid.core.layout.normalize graph, layers
+        expect normalizedGraph.vertices().length
+          .to.be 7
+        expect normalizedGraph.edges().length
+          .to.be 8

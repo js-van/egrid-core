@@ -1,6 +1,10 @@
 module.exports = (v, e) ->
-  nextVertexId = 0
   vertices = {}
+  idOffset = 0
+  nextVertexId = ->
+    while vertices[idOffset]
+      idOffset++
+    idOffset++
 
   class AdjacencyList
     constructor: (vertices=[], edges=[]) ->
@@ -50,7 +54,7 @@ module.exports = (v, e) ->
       return
 
     addVertex: (prop, u) ->
-      vertexId = if u? then u else nextVertexId++
+      vertexId = if u? then u else nextVertexId()
       vertices[vertexId] =
         outAdjacencies: {}
         inAdjacencies: {}
