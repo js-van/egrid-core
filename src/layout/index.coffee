@@ -3,3 +3,4 @@ module.exports =
   layerAssignment: require './layer-assignment'
   crossingReduction: require './crossing-reduction'
   normalize: require './normalize'
+  cycleRemoval: require './cycle-removal'

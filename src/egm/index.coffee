@@ -1,6 +1,9 @@
 svg = require '../svg'
 update = require './update'
 select = require './select'
+adjacencyList = require '../graph/adjacency-list'
+cycleRemoval = require '../layout/cycle-removal'
+layerAssignment = require '../layout/layer-assignment'
 
 
 edgeLine = d3.svg.line().interpolate('linear')
@@ -22,33 +25,59 @@ layout = (arg) ->
         vertices.sort (u, v) -> d3.ascending(u.key, v.key)
         edges.sort (e1, e2) -> d3.ascending([e1.source.key, e1.target.key],
                                             [e2.source.key, e2.target.key])
-        dagre.layout()
-          .nodes vertices
-          .edges edges
-          .lineUpTop true
-          .lineUpBottom true
-          .rankDir dagreRankDir
-          .nodeSep dagreNodeSep
-          .rankSep dagreRankSep
-          .edgeSep dagreEdgeSep
-          .run()
-        for u in vertices
-          u.x = u.dagre.x
-          u.y = u.dagre.y
-        for e in edges
-          e.points = []
-          e.points.push if dagreRankDir is 'LR'
-            [e.source.x + e.source.width / 2, e.source.y]
+
+        graph = adjacencyList()
+        for vertex in vertices
+          graph.addVertex vertex, vertex.key
+        for edge in edges
+          graph.addEdge edge.source.key, edge.target.key
+        cycleRemoval graph
+        layers = layerAssignment graph
+        height = d3.max(graph.vertices(), (u) -> layers[u]) + 1
+
+        g = new dagre.graphlib.Graph()
+        g.setGraph
+          edgesep: dagreEdgeSep
+          nodesep: dagreNodeSep
+          ranker: 'longest-path'
+          rankdir: dagreRankDir
+          ranksep: dagreRankSep
+        g.setDefaultEdgeLabel -> {}
+        for vertex in vertices
+          g.setNode vertex.key.toString(),
+            width: vertex.width
+            height: vertex.height
+        for edge in edges
+          if graph.adjacentVertices(edge.target.key).length is 0
+            minlen = height - layers[edge.source.key] - 1
+          else if graph.invAdjacentVertices(edge.source.key).length is 0
+            minlen = layers[edge.target.key]
           else
-            [e.source.x, e.source.y + e.source.height / 2]
-          for point in e.dagre.points
-            e.points.push [point.x, point.y]
-          e.points.push if dagreRankDir is 'LR'
-            [e.target.x - e.target.width / 2, e.target.y]
+            minlen = 1
+          g.setEdge edge.source.key.toString(), edge.target.key.toString(),
+            minlen: minlen
+
+        dagre.layout g
+
+        for vertex in vertices
+          node = g.node vertex.key
+          vertex.x = node.x
+          vertex.y = node.y
+        for edge in edges
+          source = edge.source
+          target = edge.target
+          edge.points = g.edge v: source.key, w: target.key
+            .points
+            .map ({x, y}) -> [x, y]
+          n = edge.points.length
+          if dagreRankDir is 'LR'
+            edge.points[0] = [source.x + source.width / 2, source.y]
+            edge.points[n - 1] = [target.x - target.width / 2, target.y]
           else
-            [e.target.x, e.target.y - e.target.height / 2]
-          for i in [1..edgePointsSize - e.points.length]
-            e.points.push e.points[e.points.length - 1]
+            edge.points[0] = [source.x, source.y + source.height / 2]
+            edge.points[n - 1] = [target.x, target.y - target.height / 2]
+
+        return
 
 
 transition = (egm, arg) ->

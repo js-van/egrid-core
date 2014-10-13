@@ -131,3 +131,16 @@ module.exports = ->
           .to.be 7
         expect normalizedGraph.edges().length
           .to.be 8
+
+    describe 'cycleRemoval', ->
+      it 'should remove cycle', ->
+        graph = egrid.core.graph.adjacencyList()
+        a = graph.addVertex()
+        b = graph.addVertex()
+        c = graph.addVertex()
+        graph.addEdge a, b
+        graph.addEdge b, c
+        graph.addEdge c, a
+        egrid.core.layout.cycleRemoval graph
+        expect graph.edge a, c
+          .to.be.ok()
