@@ -2,25 +2,39 @@ module.exports = ->
   describe 'layout', ->
     it 'should return positions', ->
       graph = egrid.core.graph.adjacencyList()
-      a = graph.addVertex
-        width: 100
-        height: 40
-      b = graph.addVertex
-        width: 100
-        height: 40
-      c = graph.addVertex
-        width: 100
-        height: 40
-      d = graph.addVertex
-        width: 100
-        height: 40
-      e = graph.addVertex
-        width: 100
-        height: 40
-      graph.addEdge a, b
+      a = graph.addVertex {}
+      b = graph.addVertex {}
+      c = graph.addVertex {}
+      d = graph.addVertex {}
+      e = graph.addVertex {}
+      f = graph.addVertex {}
+      g = graph.addVertex {}
+      h = graph.addVertex {}
+      i = graph.addVertex {}
+      j = graph.addVertex {}
+      k = graph.addVertex {}
+      l = graph.addVertex {}
+      m = graph.addVertex {}
+      n = graph.addVertex {}
+      o = graph.addVertex {}
+      for u in graph.vertices()
+        graph.get(u).width = 100
+        graph.get(u).height = 40
+      graph.addEdge a, d
       graph.addEdge b, c
-      graph.addEdge d, c
-      graph.addEdge d, e
+      graph.addEdge c, d
+      graph.addEdge c, e
+      graph.addEdge c, f
+      graph.addEdge d, g
+      graph.addEdge d, h
+      graph.addEdge e, m
+      graph.addEdge f, n
+      graph.addEdge f, i
+      graph.addEdge g, j
+      graph.addEdge g, l
+      graph.addEdge h, l
+      graph.addEdge i, o
+      graph.addEdge j, k
 
       layout = egrid.core.layout.layout()
 
