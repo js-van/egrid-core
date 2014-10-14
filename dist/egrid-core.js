@@ -46,7 +46,7 @@
 
 }).call(this);
 
-},{"../svg":25}],2:[function(require,module,exports){
+},{"../svg":35}],2:[function(require,module,exports){
 (function() {
   module.exports = function() {
     var egm, svgCss;
@@ -66,7 +66,7 @@
 
 },{}],3:[function(require,module,exports){
 (function() {
-  var edgeLine, edgePointsSize, layout, select, svg, transition, update;
+  var adjacencyList, cycleRemoval, edgeLine, edgePointsSize, layerAssignment, layout, select, svg, transition, update;
 
   svg = require('../svg');
 
@@ -74,16 +74,22 @@
 
   select = require('./select');
 
+  adjacencyList = require('../graph/adjacency-list');
+
+  cycleRemoval = require('../layout/cycle-removal');
+
+  layerAssignment = require('../layout/layer-assignment');
+
   edgeLine = d3.svg.line().interpolate('linear');
 
   edgePointsSize = 20;
 
   layout = function(arg) {
-    var dagreEdgeSep, dagreNodeSep, dagreRankDir, dagreRankSep;
-    dagreEdgeSep = arg.dagreEdgeSep, dagreNodeSep = arg.dagreNodeSep, dagreRankSep = arg.dagreRankSep, dagreRankDir = arg.dagreRankDir;
+    var dagreEdgeSep, dagreNodeSep, dagreRankDir, dagreRankSep, layerGroup;
+    dagreEdgeSep = arg.dagreEdgeSep, dagreNodeSep = arg.dagreNodeSep, dagreRankSep = arg.dagreRankSep, dagreRankDir = arg.dagreRankDir, layerGroup = arg.layerGroup;
     return function(selection) {
       return selection.each(function() {
-        var container, e, edges, i, point, u, vertices, _i, _j, _k, _len, _len1, _len2, _ref, _results;
+        var adjacentVertices, container, edge, edges, g, graph, invAdjacentVertices, layerGroups, node, pred, result, u, vertex, vertexLayerGroup, vertices, _i, _j, _k, _l, _len, _len1, _len2, _len3;
         container = d3.select(this);
         vertices = container.selectAll('g.vertex').data();
         edges = container.selectAll('g.edge').data();
@@ -93,33 +99,71 @@
         edges.sort(function(e1, e2) {
           return d3.ascending([e1.source.key, e1.target.key], [e2.source.key, e2.target.key]);
         });
-        dagre.layout().nodes(vertices).edges(edges).lineUpTop(true).lineUpBottom(true).rankDir(dagreRankDir).nodeSep(dagreNodeSep).rankSep(dagreRankSep).edgeSep(dagreEdgeSep).run();
+        graph = adjacencyList();
+        vertexLayerGroup = {};
+        layerGroups = d3.set();
         for (_i = 0, _len = vertices.length; _i < _len; _i++) {
-          u = vertices[_i];
-          u.x = u.dagre.x;
-          u.y = u.dagre.y;
+          vertex = vertices[_i];
+          graph.addVertex(vertex, vertex.key);
+          vertexLayerGroup[vertex.key] = layerGroup(vertex.data, vertex.key);
+          layerGroups.add(vertexLayerGroup[vertex.key]);
         }
-        _results = [];
         for (_j = 0, _len1 = edges.length; _j < _len1; _j++) {
-          e = edges[_j];
-          e.points = [];
-          e.points.push(dagreRankDir === 'LR' ? [e.source.x + e.source.width / 2, e.source.y] : [e.source.x, e.source.y + e.source.height / 2]);
-          _ref = e.dagre.points;
-          for (_k = 0, _len2 = _ref.length; _k < _len2; _k++) {
-            point = _ref[_k];
-            e.points.push([point.x, point.y]);
-          }
-          e.points.push(dagreRankDir === 'LR' ? [e.target.x - e.target.width / 2, e.target.y] : [e.target.x, e.target.y - e.target.height / 2]);
-          _results.push((function() {
-            var _l, _ref1, _results1;
-            _results1 = [];
-            for (i = _l = 1, _ref1 = edgePointsSize - e.points.length; 1 <= _ref1 ? _l <= _ref1 : _l >= _ref1; i = 1 <= _ref1 ? ++_l : --_l) {
-              _results1.push(e.points.push(e.points[e.points.length - 1]));
-            }
-            return _results1;
-          })());
+          edge = edges[_j];
+          graph.addEdge(edge.source.key, edge.target.key, edge);
         }
-        return _results;
+        g = new dagre.Digraph();
+        for (_k = 0, _len2 = vertices.length; _k < _len2; _k++) {
+          vertex = vertices[_k];
+          node = {
+            width: vertex.width,
+            height: vertex.height
+          };
+          u = vertex.key;
+          adjacentVertices = graph.adjacentVertices(u);
+          invAdjacentVertices = graph.invAdjacentVertices(u);
+          pred = function(v) {
+            return vertexLayerGroup[u] !== vertexLayerGroup[v];
+          };
+          if (adjacentVertices.length === 0) {
+            node.rank = "same_" + vertexLayerGroup[u] + "_sink";
+          } else if (invAdjacentVertices.length === 0) {
+            node.rank = "same_" + vertexLayerGroup[u] + "_source";
+          } else if (adjacentVertices.every(pred)) {
+            node.rank = "same_" + vertexLayerGroup[u] + "_sink";
+          } else if (invAdjacentVertices.every(pred)) {
+            node.rank = "same_" + vertexLayerGroup[u] + "_source";
+          }
+          g.addNode(vertex.key.toString(), node);
+        }
+        for (_l = 0, _len3 = edges.length; _l < _len3; _l++) {
+          edge = edges[_l];
+          g.addEdge(null, edge.source.key.toString(), edge.target.key.toString());
+        }
+        result = dagre.layout().edgeSep(dagreEdgeSep).nodeSep(dagreNodeSep).rankDir(dagreRankDir).rankSep(dagreRankSep).run(g);
+        result.eachNode(function(u, node) {
+          vertex = graph.get(u);
+          vertex.x = node.x;
+          vertex.y = node.y;
+        });
+        result.eachEdge(function(_, u, v, e) {
+          var n, source, target;
+          edge = graph.get(u, v);
+          source = edge.source, target = edge.target;
+          edge.points = e.points.map(function(_arg) {
+            var x, y;
+            x = _arg.x, y = _arg.y;
+            return [x, y];
+          });
+          n = edge.points.length;
+          if (dagreRankDir === 'LR') {
+            edge.points.unshift([source.x + source.width / 2, source.y]);
+            edge.points.push([target.x - target.width / 2, target.y]);
+          } else {
+            edge.points.unshift([source.x, source.y + source.height / 2]);
+            edge.points.push([target.x, target.y - target.height / 2]);
+          }
+        });
       });
     };
   };
@@ -174,7 +218,8 @@
           dagreEdgeSep: egm.dagreEdgeSep(),
           dagreNodeSep: egm.dagreNodeSep(),
           dagreRankDir: egm.dagreRankDir(),
-          dagreRankSep: egm.dagreRankSep()
+          dagreRankSep: egm.dagreRankSep(),
+          layerGroup: egm.layerGroup()
         }));
         selection.call(transition(egm, {
           edgeColor: egm.edgeColor(),
@@ -236,6 +281,9 @@
       },
       enableClickVertex: true,
       enableZoom: true,
+      layerGroup: function() {
+        return '';
+      },
       lowerStrokeColor: 'red',
       maxTextLength: Infinity,
       onClickVertex: function() {},
@@ -284,7 +332,7 @@
 
 }).call(this);
 
-},{"../svg":25,"./center":1,"./css":2,"./resize":4,"./select":5,"./update":7,"./update-color":6}],4:[function(require,module,exports){
+},{"../graph/adjacency-list":8,"../layout/cycle-removal":20,"../layout/layer-assignment":22,"../svg":35,"./center":1,"./css":2,"./resize":4,"./select":5,"./update":7,"./update-color":6}],4:[function(require,module,exports){
 (function() {
   var resize;
 
@@ -446,7 +494,7 @@
 
 }).call(this);
 
-},{"../graph/dijkstra":9,"../svg":25}],6:[function(require,module,exports){
+},{"../graph/dijkstra":10,"../svg":35}],6:[function(require,module,exports){
 (function() {
   var paint;
 
@@ -800,12 +848,18 @@
 
 }).call(this);
 
-},{"../graph/adjacency-list":8,"../svg":25,"./select":5}],8:[function(require,module,exports){
+},{"../graph/adjacency-list":8,"../svg":35,"./select":5}],8:[function(require,module,exports){
 (function() {
   module.exports = function(v, e) {
-    var AdjacencyList, nextVertexId, vertices;
-    nextVertexId = 0;
+    var AdjacencyList, idOffset, nextVertexId, vertices;
     vertices = {};
+    idOffset = 0;
+    nextVertexId = function() {
+      while (vertices[idOffset]) {
+        idOffset++;
+      }
+      return idOffset++;
+    };
     AdjacencyList = (function() {
       function AdjacencyList(vertices, edges) {
         var source, target, vertex, _i, _j, _len, _len1, _ref;
@@ -936,7 +990,7 @@
 
       AdjacencyList.prototype.addVertex = function(prop, u) {
         var vertexId;
-        vertexId = u != null ? u : nextVertexId++;
+        vertexId = u != null ? u : nextVertexId();
         vertices[vertexId] = {
           outAdjacencies: {},
           inAdjacencies: {},
@@ -1013,6 +1067,30 @@
 
 },{}],9:[function(require,module,exports){
 (function() {
+  var adjacencyList;
+
+  adjacencyList = require('./adjacency-list');
+
+  module.exports = function(graph) {
+    var newGraph, u, v, _i, _j, _len, _len1, _ref, _ref1, _ref2;
+    newGraph = adjacencyList();
+    _ref = graph.vertices();
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      u = _ref[_i];
+      newGraph.addVertex(graph.get(u), u);
+    }
+    _ref1 = graph.edges();
+    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+      _ref2 = _ref1[_j], u = _ref2[0], v = _ref2[1];
+      newGraph.addEdge(u, v);
+    }
+    return newGraph;
+  };
+
+}).call(this);
+
+},{"./adjacency-list":8}],10:[function(require,module,exports){
+(function() {
   module.exports = function() {
     var dijkstra, inv, weight;
     weight = function(p) {
@@ -1071,7 +1149,7 @@
 
 }).call(this);
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 (function() {
   var adjacencyList;
 
@@ -1109,18 +1187,56 @@
 
 }).call(this);
 
-},{"./adjacency-list":8}],11:[function(require,module,exports){
+},{"./adjacency-list":8}],12:[function(require,module,exports){
 (function() {
   module.exports = {
     graph: require('./graph'),
     adjacencyList: require('./adjacency-list'),
     dijkstra: require('./dijkstra'),
-    warshallFloyd: require('./warshall-floyd')
+    warshallFloyd: require('./warshall-floyd'),
+    copy: require('./copy'),
+    reduce: require('./reduce')
   };
 
 }).call(this);
 
-},{"./adjacency-list":8,"./dijkstra":9,"./graph":10,"./warshall-floyd":12}],12:[function(require,module,exports){
+},{"./adjacency-list":8,"./copy":9,"./dijkstra":10,"./graph":11,"./reduce":13,"./warshall-floyd":14}],13:[function(require,module,exports){
+(function() {
+  var adjacencyList;
+
+  adjacencyList = require('./adjacency-list');
+
+  module.exports = function(graph, groups, f) {
+    var i, j, mergedData, mergedGraph, u, v, vertices, vertices1, vertices2, _i, _j, _k, _l, _len, _len1, _len2, _len3, _m, _ref, _ref1;
+    mergedGraph = adjacencyList();
+    for (i = _i = 0, _len = groups.length; _i < _len; i = ++_i) {
+      vertices = groups[i];
+      mergedData = f(vertices, i);
+      mergedGraph.addVertex(mergedData);
+    }
+    for (i = _j = 0, _len1 = groups.length; _j < _len1; i = ++_j) {
+      vertices1 = groups[i];
+      for (j = _k = _ref = i + 1, _ref1 = groups.length; _ref <= _ref1 ? _k < _ref1 : _k > _ref1; j = _ref <= _ref1 ? ++_k : --_k) {
+        vertices2 = groups[j];
+        for (_l = 0, _len2 = vertices1.length; _l < _len2; _l++) {
+          u = vertices1[_l];
+          for (_m = 0, _len3 = vertices2.length; _m < _len3; _m++) {
+            v = vertices2[_m];
+            if (graph.edge(u, v)) {
+              mergedGraph.addEdge(i, j);
+            } else if (graph.edge(v, u)) {
+              mergedGraph.addEdge(j, i);
+            }
+          }
+        }
+      }
+    }
+    return mergedGraph;
+  };
+
+}).call(this);
+
+},{"./adjacency-list":8}],14:[function(require,module,exports){
 (function() {
   module.exports = function() {
     var warshallFloyd, weight;
@@ -1177,7 +1293,7 @@
 
 }).call(this);
 
-},{}],13:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 (function() {
   var factory;
 
@@ -1475,7 +1591,7 @@
 
 }).call(this);
 
-},{"../graph/graph":10}],14:[function(require,module,exports){
+},{"../graph/graph":11}],16:[function(require,module,exports){
 (function (global){
 (function() {
   global.window.egrid = {
@@ -1483,6 +1599,7 @@
       egm: require('./egm'),
       grid: require('./grid'),
       graph: require('./graph'),
+      layout: require('./layout'),
       network: require('./network'),
       ui: require('./ui')
     }
@@ -1491,7 +1608,282 @@
 }).call(this);
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./egm":3,"./graph":11,"./grid":13,"./network":24,"./ui":27}],15:[function(require,module,exports){
+},{"./egm":3,"./graph":12,"./grid":15,"./layout":21,"./network":34,"./ui":37}],17:[function(require,module,exports){
+(function() {
+  module.exports = function(graph, vertices1, vertices2) {
+    var adj, barycenter, i, positions, result, sum, u, v, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref;
+    positions = {};
+    for (i = _i = 0, _len = vertices1.length; _i < _len; i = ++_i) {
+      u = vertices1[i];
+      positions[u] = i;
+    }
+    adj = {};
+    for (_j = 0, _len1 = vertices2.length; _j < _len1; _j++) {
+      u = vertices2[_j];
+      adj[u] = [];
+      for (_k = 0, _len2 = vertices1.length; _k < _len2; _k++) {
+        v = vertices1[_k];
+        if (graph.edge(v, u)) {
+          adj[u].push(v);
+        }
+      }
+    }
+    barycenter = {};
+    for (_l = 0, _len3 = vertices2.length; _l < _len3; _l++) {
+      u = vertices2[_l];
+      sum = 0;
+      _ref = adj[u];
+      for (_m = 0, _len4 = _ref.length; _m < _len4; _m++) {
+        v = _ref[_m];
+        sum += positions[v];
+      }
+      barycenter[u] = sum / adj[u].length;
+    }
+    result = vertices2.slice(0, vertices2.length);
+    result.sort(function(u, v) {
+      return barycenter[u] - barycenter[v];
+    });
+    return result;
+  };
+
+}).call(this);
+
+},{}],18:[function(require,module,exports){
+(function() {
+  module.exports = function(graph, vertices1, vertices2) {
+    var cross, i, j, n1, n2, u1, u2, v1, v2, _i, _j, _k, _l, _len, _len1, _ref, _ref1;
+    cross = 0;
+    n1 = vertices1.length;
+    n2 = vertices2.length;
+    for (i = _i = 0, _ref = n2 - 1; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
+      u2 = vertices2[i];
+      for (j = _j = _ref1 = i + 1; _ref1 <= n2 ? _j < n2 : _j > n2; j = _ref1 <= n2 ? ++_j : --_j) {
+        v2 = vertices2[j];
+        for (_k = 0, _len = vertices1.length; _k < _len; _k++) {
+          u1 = vertices1[_k];
+          if (graph.edge(u1, u2)) {
+            for (_l = 0, _len1 = vertices1.length; _l < _len1; _l++) {
+              v1 = vertices1[_l];
+              if (u1 === v1) {
+                break;
+              }
+              if (graph.edge(v1, v2)) {
+                cross += 1;
+              }
+            }
+          }
+        }
+      }
+    }
+    return cross;
+  };
+
+}).call(this);
+
+},{}],19:[function(require,module,exports){
+(function() {
+  module.exports = {
+    barycenter: require('./barycenter'),
+    cross: require('./cross')
+  };
+
+}).call(this);
+
+},{"./barycenter":17,"./cross":18}],20:[function(require,module,exports){
+(function() {
+  module.exports = function(graph) {
+    var dfs, result, stack, u, v, visited, _i, _j, _len, _len1, _ref, _ref1, _results;
+    stack = {};
+    visited = {};
+    result = [];
+    dfs = function(u) {
+      var v, _i, _len, _ref;
+      if (visited[u]) {
+        return;
+      }
+      visited[u] = true;
+      stack[u] = true;
+      _ref = graph.adjacentVertices(u);
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        v = _ref[_i];
+        if (stack[v]) {
+          result.push([u, v]);
+        } else {
+          dfs(v);
+        }
+      }
+      return delete stack[u];
+    };
+    _ref = graph.vertices();
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      u = _ref[_i];
+      dfs(u);
+    }
+    _results = [];
+    for (_j = 0, _len1 = result.length; _j < _len1; _j++) {
+      _ref1 = result[_j], u = _ref1[0], v = _ref1[1];
+      graph.removeEdge(u, v);
+      _results.push(graph.addEdge(v, u));
+    }
+    return _results;
+  };
+
+}).call(this);
+
+},{}],21:[function(require,module,exports){
+(function() {
+  module.exports = {
+    layout: require('./layout'),
+    layerAssignment: require('./layer-assignment'),
+    crossingReduction: require('./crossing-reduction'),
+    normalize: require('./normalize'),
+    cycleRemoval: require('./cycle-removal')
+  };
+
+}).call(this);
+
+},{"./crossing-reduction":19,"./cycle-removal":20,"./layer-assignment":22,"./layout":23,"./normalize":24}],22:[function(require,module,exports){
+(function() {
+  module.exports = function(graph) {
+    var layers, queue, source, u, v, _i, _j, _len, _len1, _ref;
+    layers = {};
+    source = graph.vertices().filter(function(u) {
+      return graph.invAdjacentVertices(u).length === 0;
+    });
+    queue = [];
+    for (_i = 0, _len = source.length; _i < _len; _i++) {
+      u = source[_i];
+      layers[u] = 0;
+      queue.push(u);
+    }
+    while (queue.length > 0) {
+      u = queue.shift();
+      _ref = graph.adjacentVertices(u);
+      for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+        v = _ref[_j];
+        if (layers[v] === void 0 || layers[v] < layers[u] + 1) {
+          layers[v] = layers[u] + 1;
+        }
+        queue.push(v);
+      }
+    }
+    return layers;
+  };
+
+}).call(this);
+
+},{}],23:[function(require,module,exports){
+(function() {
+  var crossingReduction, layerAssignment, normalize;
+
+  layerAssignment = require('./layer-assignment');
+
+  normalize = require('./normalize');
+
+  crossingReduction = require('./crossing-reduction');
+
+  module.exports = function() {
+    var layout, scope;
+    scope = {
+      widthAccessor: function(d, u) {
+        return d.width;
+      },
+      heightAccessor: function(d, u) {
+        return d.height;
+      }
+    };
+    layout = function(graph) {
+      var g, height, i, layers, pos, u, vertexLayer, width, _i, _j, _k, _len, _ref, _results;
+      vertexLayer = layerAssignment(graph);
+      height = (d3.max(graph.vertices(), function(u) {
+        return vertexLayer[u];
+      })) + 1;
+      layers = (function() {
+        _results = [];
+        for (var _i = 0; 0 <= height ? _i < height : _i > height; 0 <= height ? _i++ : _i--){ _results.push(_i); }
+        return _results;
+      }).apply(this).map(function(l) {
+        return graph.vertices().filter(function(u) {
+          return vertexLayer[u] === l;
+        });
+      });
+      width = d3.max(layers, function(layer) {
+        return layer.length;
+      });
+      g = normalize(graph, vertexLayer);
+      for (i = _j = 1; 1 <= height ? _j < height : _j > height; i = 1 <= height ? ++_j : --_j) {
+        layers[i] = crossingReduction.barycenter(g, layers[i - 1], layers[i]);
+      }
+      pos = {
+        vertices: {},
+        edges: {}
+      };
+      _ref = graph.vertices();
+      for (_k = 0, _len = _ref.length; _k < _len; _k++) {
+        u = _ref[_k];
+        pos.vertices[u] = {
+          x: 0,
+          y: 0
+        };
+      }
+      return pos;
+    };
+    layout.width = function(arg) {
+      if (arg != null) {
+        scope.widthAccessor = arg;
+        return layout;
+      } else {
+        return scope.widthAccessor;
+      }
+    };
+    layout.height = function(arg) {
+      if (arg != null) {
+        scope.heightAccessor = arg;
+        return layout;
+      } else {
+        return scope.heightAccessor;
+      }
+    };
+    return layout;
+  };
+
+}).call(this);
+
+},{"./crossing-reduction":19,"./layer-assignment":22,"./normalize":24}],24:[function(require,module,exports){
+(function() {
+  var adjacencyList;
+
+  adjacencyList = require('../graph/adjacency-list');
+
+  module.exports = function(graph, layers) {
+    var layer, newGraph, source, target, u, v, _i, _j, _k, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4;
+    newGraph = adjacencyList();
+    _ref = graph.vertices();
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      u = _ref[_i];
+      newGraph.addVertex({
+        layer: layers[u]
+      }, u);
+    }
+    _ref1 = graph.edges();
+    for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+      _ref2 = _ref1[_j], u = _ref2[0], v = _ref2[1];
+      source = u;
+      for (layer = _k = _ref3 = layers[u] + 1, _ref4 = layers[v]; _ref3 <= _ref4 ? _k < _ref4 : _k > _ref4; layer = _ref3 <= _ref4 ? ++_k : --_k) {
+        target = newGraph.addVertex({
+          layer: layer
+        });
+        newGraph.addEdge(source, target);
+        source = target;
+      }
+      newGraph.addEdge(source, v);
+    }
+    return newGraph;
+  };
+
+}).call(this);
+
+},{"../graph/adjacency-list":8}],25:[function(require,module,exports){
 (function() {
   module.exports = function() {
     return function(graph) {
@@ -1555,7 +1947,7 @@
 
 }).call(this);
 
-},{}],16:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 (function() {
   module.exports = function(weight) {
     var warshallFloyd;
@@ -1584,7 +1976,7 @@
 
 }).call(this);
 
-},{"../../graph/warshall-floyd":12}],17:[function(require,module,exports){
+},{"../../graph/warshall-floyd":14}],27:[function(require,module,exports){
 (function() {
   module.exports = {
     inDegree: function(graph) {
@@ -1621,7 +2013,7 @@
 
 }).call(this);
 
-},{}],18:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 (function() {
   var degree;
 
@@ -1638,7 +2030,7 @@
 
 }).call(this);
 
-},{"./betweenness":15,"./closeness":16,"./degree":17,"./katz":19}],19:[function(require,module,exports){
+},{"./betweenness":25,"./closeness":26,"./degree":27,"./katz":29}],29:[function(require,module,exports){
 (function() {
   var dictFromKeys;
 
@@ -1703,7 +2095,7 @@
 
 }).call(this);
 
-},{}],20:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 (function() {
   module.exports = {
     reduce: require('./reduce'),
@@ -1713,7 +2105,7 @@
 
 }).call(this);
 
-},{"./modularity":21,"./newman":22,"./reduce":23}],21:[function(require,module,exports){
+},{"./modularity":31,"./newman":32,"./reduce":33}],31:[function(require,module,exports){
 (function() {
   var degree;
 
@@ -1738,7 +2130,7 @@
 
 }).call(this);
 
-},{"../centrality/degree":17}],22:[function(require,module,exports){
+},{"../centrality/degree":27}],32:[function(require,module,exports){
 (function() {
   var cleanupLabel, degree, modularity;
 
@@ -1839,16 +2231,16 @@
 
 }).call(this);
 
-},{"../centrality/degree":17,"./modularity":21}],23:[function(require,module,exports){
+},{"../centrality/degree":27,"./modularity":31}],33:[function(require,module,exports){
 (function() {
-  var adjacencyList, newman;
+  var newman, reduce;
 
   newman = require('./newman');
 
-  adjacencyList = require('../../graph/adjacency-list');
+  reduce = require('../../graph/reduce');
 
   module.exports = function(graph, f) {
-    var communities, community, community1, community2, i, j, mergedData, mergedGraph, mergedVertices, u, v, _i, _j, _k, _l, _len, _len1, _len2, _len3, _m, _ref, _ref1;
+    var communities;
     if (f == null) {
       f = function(vertices) {
         var u, _i, _len, _results;
@@ -1861,36 +2253,12 @@
       };
     }
     communities = newman(graph);
-    mergedGraph = adjacencyList();
-    mergedVertices = [];
-    for (i = _i = 0, _len = communities.length; _i < _len; i = ++_i) {
-      community = communities[i];
-      mergedData = f(community, i);
-      mergedVertices.push(mergedGraph.addVertex(mergedData));
-    }
-    for (i = _j = 0, _len1 = communities.length; _j < _len1; i = ++_j) {
-      community1 = communities[i];
-      for (j = _k = _ref = i + 1, _ref1 = communities.length; _ref <= _ref1 ? _k < _ref1 : _k > _ref1; j = _ref <= _ref1 ? ++_k : --_k) {
-        community2 = communities[j];
-        for (_l = 0, _len2 = community1.length; _l < _len2; _l++) {
-          u = community1[_l];
-          for (_m = 0, _len3 = community2.length; _m < _len3; _m++) {
-            v = community2[_m];
-            if (graph.edge(u, v)) {
-              mergedGraph.addEdge(i, j);
-            } else if (graph.edge(v, u)) {
-              mergedGraph.addEdge(j, i);
-            }
-          }
-        }
-      }
-    }
-    return mergedGraph;
+    return reduce(graph, communities, f);
   };
 
 }).call(this);
 
-},{"../../graph/adjacency-list":8,"./newman":22}],24:[function(require,module,exports){
+},{"../../graph/reduce":13,"./newman":32}],34:[function(require,module,exports){
 (function() {
   module.exports = {
     centrality: require('./centrality'),
@@ -1899,7 +2267,7 @@
 
 }).call(this);
 
-},{"./centrality":18,"./community":20}],25:[function(require,module,exports){
+},{"./centrality":28,"./community":30}],35:[function(require,module,exports){
 (function() {
   module.exports = {
     transform: require('./transform')
@@ -1907,7 +2275,7 @@
 
 }).call(this);
 
-},{"./transform":26}],26:[function(require,module,exports){
+},{"./transform":36}],36:[function(require,module,exports){
 (function() {
   var Scale, Translate,
     __slice = [].slice;
@@ -1961,7 +2329,7 @@
 
 }).call(this);
 
-},{}],27:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 (function() {
   module.exports = {
     removeButton: function(grid, callback) {
@@ -2016,4 +2384,4 @@
 
 }).call(this);
 
-},{}]},{},[14])
+},{}]},{},[16])

@@ -1,7 +1,7 @@
 {
   "name": "egrid-core",
   "main": "egrid-core.js",
-  "version": "1.0.30",
+  "version": "1.1.0",
   "homepage": "https://github.com/likr/egrid-core",
   "authors": [
     "Yosuke ONOUE <onoue@likr-lab.com>"
@@ -21,7 +21,8 @@
     "gh-pages"
   ],
   "dependencies": {
-    "d3": "~3.4.11"
+    "d3": "~3.4.11",
+    "dagre": "v0.4.6"
   },
   "devDependencies": {
     "mocha": "~1.20.1",

@@ -28,6 +28,25 @@ module.exports = ->
       expect selection.selectAll('g.edges>g.edge>path').size()
         .to.be 3
 
+    it 'should draw diagram with graph having long edge', ->
+      grid = egrid.core.grid()
+      a = grid.addConstruct 'a'
+      b = grid.addConstruct 'b'
+      c = grid.addConstruct 'c'
+      grid.addEdge a, b
+      grid.addEdge b, c
+      grid.addEdge a, c
+      egm = egrid.core.egm()
+      selection = d3.select 'svg'
+        .datum grid.graph()
+        .call egm
+      expect selection.selectAll('g.vertices>g.vertex>rect').size()
+        .to.be 3
+      expect selection.selectAll('g.vertices>g.vertex>text').size()
+        .to.be 3
+      expect selection.selectAll('g.edges>g.edge>path').size()
+        .to.be 3
+
     it 'should clear diagram with empty datum', ->
       grid = egrid.core.grid()
       a = grid.addConstruct 'a'

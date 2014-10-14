@@ -1,6 +1,9 @@
 svg = require '../svg'
 update = require './update'
 select = require './select'
+adjacencyList = require '../graph/adjacency-list'
+cycleRemoval = require '../layout/cycle-removal'
+layerAssignment = require '../layout/layer-assignment'
 
 
 edgeLine = d3.svg.line().interpolate('linear')
@@ -8,7 +11,7 @@ edgePointsSize = 20
 
 
 layout = (arg) ->
-  {dagreEdgeSep, dagreNodeSep, dagreRankSep, dagreRankDir} = arg
+  {dagreEdgeSep, dagreNodeSep, dagreRankSep, dagreRankDir, layerGroup} = arg
   (selection) ->
     selection
       .each ->
@@ -22,33 +25,64 @@ layout = (arg) ->
         vertices.sort (u, v) -> d3.ascending(u.key, v.key)
         edges.sort (e1, e2) -> d3.ascending([e1.source.key, e1.target.key],
                                             [e2.source.key, e2.target.key])
-        dagre.layout()
-          .nodes vertices
-          .edges edges
-          .lineUpTop true
-          .lineUpBottom true
-          .rankDir dagreRankDir
-          .nodeSep dagreNodeSep
-          .rankSep dagreRankSep
+
+        graph = adjacencyList()
+        vertexLayerGroup = {}
+        layerGroups = d3.set()
+        for vertex in vertices
+          graph.addVertex vertex, vertex.key
+          vertexLayerGroup[vertex.key] = layerGroup vertex.data, vertex.key
+          layerGroups.add vertexLayerGroup[vertex.key]
+        for edge in edges
+          graph.addEdge edge.source.key, edge.target.key, edge
+
+        g = new dagre.Digraph()
+        for vertex in vertices
+          node =
+            width: vertex.width
+            height: vertex.height
+          u = vertex.key
+          adjacentVertices = graph.adjacentVertices u
+          invAdjacentVertices = graph.invAdjacentVertices u
+          pred = (v) -> vertexLayerGroup[u] isnt vertexLayerGroup[v]
+          if adjacentVertices.length is 0
+            node.rank = "same_#{vertexLayerGroup[u]}_sink"
+          else if invAdjacentVertices.length is 0
+            node.rank = "same_#{vertexLayerGroup[u]}_source"
+          else if adjacentVertices.every pred
+            node.rank = "same_#{vertexLayerGroup[u]}_sink"
+          else if invAdjacentVertices.every pred
+            node.rank = "same_#{vertexLayerGroup[u]}_source"
+          g.addNode vertex.key.toString(), node
+        for edge in edges
+          g.addEdge null, edge.source.key.toString(), edge.target.key.toString()
+
+        result = dagre.layout()
           .edgeSep dagreEdgeSep
-          .run()
-        for u in vertices
-          u.x = u.dagre.x
-          u.y = u.dagre.y
-        for e in edges
-          e.points = []
-          e.points.push if dagreRankDir is 'LR'
-            [e.source.x + e.source.width / 2, e.source.y]
+          .nodeSep dagreNodeSep
+          .rankDir dagreRankDir
+          .rankSep dagreRankSep
+          .run g
+
+        result.eachNode (u, node) ->
+          vertex = graph.get u
+          vertex.x = node.x
+          vertex.y = node.y
+          return
+        result.eachEdge (_, u, v, e) ->
+          edge = graph.get u, v
+          {source, target} = edge
+          edge.points = e.points.map ({x, y}) -> [x, y]
+          n = edge.points.length
+          if dagreRankDir is 'LR'
+            edge.points.unshift [source.x + source.width / 2, source.y]
+            edge.points.push [target.x - target.width / 2, target.y]
           else
-            [e.source.x, e.source.y + e.source.height / 2]
-          for point in e.dagre.points
-            e.points.push [point.x, point.y]
-          e.points.push if dagreRankDir is 'LR'
-            [e.target.x - e.target.width / 2, e.target.y]
-          else
-            [e.target.x, e.target.y - e.target.height / 2]
-          for i in [1..edgePointsSize - e.points.length]
-            e.points.push e.points[e.points.length - 1]
+            edge.points.unshift [source.x, source.y + source.height / 2]
+            edge.points.push [target.x, target.y - target.height / 2]
+          return
+
+        return
 
 
 transition = (egm, arg) ->
@@ -109,6 +143,7 @@ module.exports = () ->
           dagreNodeSep: egm.dagreNodeSep()
           dagreRankDir: egm.dagreRankDir()
           dagreRankSep: egm.dagreRankSep()
+          layerGroup: egm.layerGroup()
       selection
         .call transition egm,
           edgeColor: egm.edgeColor()
@@ -157,6 +192,7 @@ module.exports = () ->
     edgeWidth: -> 1
     enableClickVertex: true
     enableZoom: true
+    layerGroup: -> ''
     lowerStrokeColor: 'red'
     maxTextLength: Infinity
     onClickVertex: ->
