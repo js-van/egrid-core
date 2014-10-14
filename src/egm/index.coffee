@@ -30,52 +30,45 @@ layout = (arg) ->
         for vertex in vertices
           graph.addVertex vertex, vertex.key
         for edge in edges
-          graph.addEdge edge.source.key, edge.target.key
-        cycleRemoval graph
-        layers = layerAssignment graph
-        height = d3.max(graph.vertices(), (u) -> layers[u]) + 1
+          graph.addEdge edge.source.key, edge.target.key, edge
 
-        g = new dagre.graphlib.Graph()
-        g.setGraph
-          edgesep: dagreEdgeSep
-          nodesep: dagreNodeSep
-          ranker: 'longest-path'
-          rankdir: dagreRankDir
-          ranksep: dagreRankSep
-        g.setDefaultEdgeLabel -> {}
+        g = new dagre.Digraph()
         for vertex in vertices
-          g.setNode vertex.key.toString(),
+          node =
             width: vertex.width
             height: vertex.height
+          if graph.adjacentVertices(vertex.key).length is 0
+            node.rank = 'max'
+          else if graph.invAdjacentVertices(vertex.key).length is 0
+            node.rank = 'min'
+          g.addNode vertex.key.toString(), node
         for edge in edges
-          if graph.adjacentVertices(edge.target.key).length is 0
-            minlen = height - layers[edge.source.key] - 1
-          else if graph.invAdjacentVertices(edge.source.key).length is 0
-            minlen = layers[edge.target.key]
-          else
-            minlen = 1
-          g.setEdge edge.source.key.toString(), edge.target.key.toString(),
-            minlen: minlen
+          g.addEdge null, edge.source.key.toString(), edge.target.key.toString()
 
-        dagre.layout g
+        result = dagre.layout()
+          .edgeSep dagreEdgeSep
+          .nodeSep dagreNodeSep
+          .rankDir dagreRankDir
+          .rankSep dagreRankSep
+          .run g
 
-        for vertex in vertices
-          node = g.node vertex.key
+        result.eachNode (u, node) ->
+          vertex = graph.get u
           vertex.x = node.x
           vertex.y = node.y
-        for edge in edges
-          source = edge.source
-          target = edge.target
-          edge.points = g.edge v: source.key, w: target.key
-            .points
-            .map ({x, y}) -> [x, y]
+          return
+        result.eachEdge (_, u, v, e) ->
+          edge = graph.get u, v
+          {source, target} = edge
+          edge.points = e.points.map ({x, y}) -> [x, y]
           n = edge.points.length
           if dagreRankDir is 'LR'
-            edge.points[0] = [source.x + source.width / 2, source.y]
-            edge.points[n - 1] = [target.x - target.width / 2, target.y]
+            edge.points.unshift [source.x + source.width / 2, source.y]
+            edge.points.push [target.x - target.width / 2, target.y]
           else
-            edge.points[0] = [source.x, source.y + source.height / 2]
-            edge.points[n - 1] = [target.x, target.y - target.height / 2]
+            edge.points.unshift [source.x, source.y + source.height / 2]
+            edge.points.push [target.x, target.y - target.height / 2]
+          return
 
         return
 
