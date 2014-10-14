@@ -11,7 +11,7 @@ edgePointsSize = 20
 
 
 layout = (arg) ->
-  {dagreEdgeSep, dagreNodeSep, dagreRankSep, dagreRankDir} = arg
+  {dagreEdgeSep, dagreNodeSep, dagreRankSep, dagreRankDir, layerGroup} = arg
   (selection) ->
     selection
       .each ->
@@ -27,8 +27,12 @@ layout = (arg) ->
                                             [e2.source.key, e2.target.key])
 
         graph = adjacencyList()
+        vertexLayerGroup = {}
+        layerGroups = d3.set()
         for vertex in vertices
           graph.addVertex vertex, vertex.key
+          vertexLayerGroup[vertex.key] = layerGroup vertex.data, vertex.key
+          layerGroups.add vertexLayerGroup[vertex.key]
         for edge in edges
           graph.addEdge edge.source.key, edge.target.key, edge
 
@@ -37,10 +41,18 @@ layout = (arg) ->
           node =
             width: vertex.width
             height: vertex.height
-          if graph.adjacentVertices(vertex.key).length is 0
-            node.rank = 'max'
-          else if graph.invAdjacentVertices(vertex.key).length is 0
-            node.rank = 'min'
+          u = vertex.key
+          adjacentVertices = graph.adjacentVertices u
+          invAdjacentVertices = graph.invAdjacentVertices u
+          pred = (v) -> vertexLayerGroup[u] isnt vertexLayerGroup[v]
+          if adjacentVertices.length is 0
+            node.rank = "same_#{vertexLayerGroup[u]}_sink"
+          else if invAdjacentVertices.length is 0
+            node.rank = "same_#{vertexLayerGroup[u]}_source"
+          else if adjacentVertices.every pred
+            node.rank = "same_#{vertexLayerGroup[u]}_sink"
+          else if invAdjacentVertices.every pred
+            node.rank = "same_#{vertexLayerGroup[u]}_source"
           g.addNode vertex.key.toString(), node
         for edge in edges
           g.addEdge null, edge.source.key.toString(), edge.target.key.toString()
@@ -131,6 +143,7 @@ module.exports = () ->
           dagreNodeSep: egm.dagreNodeSep()
           dagreRankDir: egm.dagreRankDir()
           dagreRankSep: egm.dagreRankSep()
+          layerGroup: egm.layerGroup()
       selection
         .call transition egm,
           edgeColor: egm.edgeColor()
@@ -179,6 +192,7 @@ module.exports = () ->
     edgeWidth: -> 1
     enableClickVertex: true
     enableZoom: true
+    layerGroup: -> ''
     lowerStrokeColor: 'red'
     maxTextLength: Infinity
     onClickVertex: ->

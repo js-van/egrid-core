@@ -4,3 +4,4 @@ module.exports =
   dijkstra: require './dijkstra'
   warshallFloyd: require './warshall-floyd'
   copy: require './copy'
+  reduce: require './reduce'
