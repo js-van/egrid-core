@@ -221,14 +221,15 @@
       controller: 'CommunityController',
       resolve: {
         data: function($http) {
-          return $http.get('data/pen2.json');
+          return $http.get('data/pen.json');
         }
       },
       templateUrl: 'partials/community.html',
       url: '/community'
     });
   }).controller('CommunityController', function($scope, data) {
-    var color, display1, egm1, egm2, graph, link, mergedGraph, node, _i, _j, _len, _len1, _ref, _ref1;
+    var color, community, display1, display2, egm1, egm2, graph, group, groupColor, groups, i, key, link, mergedGraph, node, u, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3;
+    $scope.paint = 'layer';
     graph = egrid.core.graph.adjacencyList();
     _ref = data.data.nodes;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -241,22 +242,50 @@
       link = _ref1[_j];
       graph.addEdge(link.source, link.target);
     }
-    mergedGraph = egrid.core.network.community.reduce(graph, function(vertices, c) {
-      var u, _k, _len2;
-      for (_k = 0, _len2 = vertices.length; _k < _len2; _k++) {
-        u = vertices[_k];
-        graph.get(u).community = c;
+    groups = [];
+    _ref2 = egrid.core.network.community.newman(graph);
+    for (i = _k = 0, _len2 = _ref2.length; _k < _len2; i = ++_k) {
+      community = _ref2[i];
+      for (_l = 0, _len3 = community.length; _l < _len3; _l++) {
+        u = community[_l];
+        graph.get(u).community = i;
       }
+      _ref3 = ['lower', 'middle', 'upper'];
+      for (_m = 0, _len4 = _ref3.length; _m < _len4; _m++) {
+        key = _ref3[_m];
+        group = community.filter(function(u) {
+          return graph.get(u).group === key;
+        });
+        if (group.length > 0) {
+          groups.push(group);
+        }
+      }
+    }
+    mergedGraph = egrid.core.graph.reduce(graph, groups, function(vertices, c) {
       return {
         text: vertices.map(function(u) {
           return graph.get(u).text;
         }).join('\n'),
-        vertices: vertices
+        vertices: vertices,
+        community: graph.get(vertices[0]).community,
+        group: graph.get(vertices[0]).group,
+        selected: false
       };
     });
+    groupColor = {
+      upper: '#6ff',
+      middle: '#cf6',
+      lower: '#fc6'
+    };
     color = d3.scale.category20();
-    egm1 = egrid.core.egm().contentsMargin(5).size([800, 800]).vertexColor(function(d) {
-      return color(d.community);
+    egm1 = egrid.core.egm().contentsMargin(5).size([800, 800]).layerGroup(function(d) {
+      return d.group;
+    }).vertexColor(function(d) {
+      if ($scope.paint === 'layer') {
+        return groupColor[d.group];
+      } else {
+        return color(d.community);
+      }
     }).vertexVisibility(function(d) {
       return d.visibility;
     });
@@ -266,22 +295,42 @@
       height: 800
     }));
     egm2 = egrid.core.egm().contentsMargin(5).onClickVertex(function(d) {
-      var du, u, _k, _len2, _ref2;
-      _ref2 = d.vertices;
-      for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
-        u = _ref2[_k];
+      var du, _len5, _n, _ref4;
+      d.selected = !d.selected;
+      _ref4 = graph.vertices();
+      for (_n = 0, _len5 = _ref4.length; _n < _len5; _n++) {
+        u = _ref4[_n];
         du = graph.get(u);
-        du.visibility = !du.visibility;
+        if (du.community === d.community) {
+          du.visibility = !du.visibility;
+        }
       }
       display1.transition().call(egm1).call(egm1.center());
-    }).size([800, 800]).vertexColor(function(d, u) {
-      return color(u);
+      display2.transition().call(egm2.updateColor());
+    }).size([800, 800]).vertexColor(function(d) {
+      if ($scope.paint === 'layer') {
+        return groupColor[d.group];
+      } else {
+        return color(d.community);
+      }
+    }).vertexOpacity(function(d) {
+      if (d.selected) {
+        return '1';
+      } else {
+        return '0.8';
+      }
     });
-    return d3.select('svg.display2').datum(mergedGraph).call(egm2).call(egm2.center()).call(d3.downloadable({
+    display2 = d3.select('svg.display2').datum(mergedGraph).call(egm2).call(egm2.center()).call(d3.downloadable({
       filename: 'merged',
       width: 800,
       height: 800
     }));
+    return $scope.$watch('paint', function(newValue, oldValue) {
+      if (newValue !== oldValue) {
+        display1.transition().call(egm1.updateColor());
+        return display2.transition().call(egm2.updateColor());
+      }
+    });
   });
 
 }).call(this);
