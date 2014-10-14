@@ -7,6 +7,7 @@ tests = [
   require './grid'
   require './network/centrality'
   require './network/community'
+  require './layout'
 ]
 
 for test in tests

@@ -21,7 +21,8 @@
     "gh-pages"
   ],
   "dependencies": {
-    "d3": "~3.4.11"
+    "d3": "~3.4.11",
+    "dagre": "v0.4.6"
   },
   "devDependencies": {
     "mocha": "~1.20.1",
