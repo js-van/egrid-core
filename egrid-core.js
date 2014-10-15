@@ -46,7 +46,7 @@
 
 }).call(this);
 
-},{"../svg":35}],2:[function(require,module,exports){
+},{"../svg":36}],2:[function(require,module,exports){
 (function() {
   module.exports = function() {
     var egm, svgCss;
@@ -190,6 +190,7 @@
       var margin, scaleMax;
       margin = egm.contentsMargin();
       scaleMax = egm.contentsScaleMax();
+      edgeLine.interpolate(egm.edgeInterpolate()).tension(egm.edgeTension());
       selection.each(function(graph) {
         var bottom, container, height, left, right, scale, top, vertices, width, _ref;
         container = d3.select(this);
@@ -270,9 +271,11 @@
       edgeColor: function() {
         return '';
       },
+      edgeInterpolate: 'linear',
       edgeOpacity: function() {
         return 1;
       },
+      edgeTension: 0.7,
       edgeText: function() {
         return '';
       },
@@ -332,7 +335,7 @@
 
 }).call(this);
 
-},{"../graph/adjacency-list":8,"../layout/cycle-removal":20,"../layout/layer-assignment":22,"../svg":35,"./center":1,"./css":2,"./resize":4,"./select":5,"./update":7,"./update-color":6}],4:[function(require,module,exports){
+},{"../graph/adjacency-list":8,"../layout/cycle-removal":21,"../layout/layer-assignment":23,"../svg":36,"./center":1,"./css":2,"./resize":4,"./select":5,"./update":7,"./update-color":6}],4:[function(require,module,exports){
 (function() {
   var resize;
 
@@ -494,7 +497,7 @@
 
 }).call(this);
 
-},{"../graph/dijkstra":10,"../svg":35}],6:[function(require,module,exports){
+},{"../graph/dijkstra":10,"../svg":36}],6:[function(require,module,exports){
 (function() {
   var paint;
 
@@ -848,7 +851,7 @@
 
 }).call(this);
 
-},{"../graph/adjacency-list":8,"../svg":35,"./select":5}],8:[function(require,module,exports){
+},{"../graph/adjacency-list":8,"../svg":36,"./select":5}],8:[function(require,module,exports){
 (function() {
   module.exports = function(v, e) {
     var AdjacencyList, idOffset, nextVertexId, vertices;
@@ -967,7 +970,11 @@
       };
 
       AdjacencyList.prototype.vertex = function(u) {
-        return u;
+        if (vertices[u]) {
+          return u;
+        } else {
+          return null;
+        }
       };
 
       AdjacencyList.prototype.edge = function(u, v) {
@@ -1195,19 +1202,20 @@
     dijkstra: require('./dijkstra'),
     warshallFloyd: require('./warshall-floyd'),
     copy: require('./copy'),
-    reduce: require('./reduce')
+    reduce: require('./reduce'),
+    redundantEdges: require('./redundantEdges')
   };
 
 }).call(this);
 
-},{"./adjacency-list":8,"./copy":9,"./dijkstra":10,"./graph":11,"./reduce":13,"./warshall-floyd":14}],13:[function(require,module,exports){
+},{"./adjacency-list":8,"./copy":9,"./dijkstra":10,"./graph":11,"./reduce":13,"./redundantEdges":14,"./warshall-floyd":15}],13:[function(require,module,exports){
 (function() {
   var adjacencyList;
 
   adjacencyList = require('./adjacency-list');
 
   module.exports = function(graph, groups, f) {
-    var i, j, mergedData, mergedGraph, u, v, vertices, vertices1, vertices2, _i, _j, _k, _l, _len, _len1, _len2, _len3, _m, _ref, _ref1;
+    var i, j, mergedData, mergedGraph, s, t, u, v, vertices, vertices1, vertices2, _i, _j, _k, _l, _len, _len1, _len2, _len3, _m, _ref, _ref1;
     mergedGraph = adjacencyList();
     for (i = _i = 0, _len = groups.length; _i < _len; i = ++_i) {
       vertices = groups[i];
@@ -1222,10 +1230,23 @@
           u = vertices1[_l];
           for (_m = 0, _len3 = vertices2.length; _m < _len3; _m++) {
             v = vertices2[_m];
+            s = null;
+            t = null;
             if (graph.edge(u, v)) {
-              mergedGraph.addEdge(i, j);
+              s = i;
+              t = j;
             } else if (graph.edge(v, u)) {
-              mergedGraph.addEdge(j, i);
+              s = j;
+              t = i;
+            }
+            if ((s != null) && (t != null)) {
+              if (mergedGraph.edge(s, t)) {
+                mergedGraph.get(s, t).weight += 1;
+              } else {
+                mergedGraph.addEdge(s, t, {
+                  weight: 1
+                });
+              }
             }
           }
         }
@@ -1237,6 +1258,31 @@
 }).call(this);
 
 },{"./adjacency-list":8}],14:[function(require,module,exports){
+(function() {
+  var warshallFloyd;
+
+  warshallFloyd = require('./warshall-floyd');
+
+  module.exports = function(graph) {
+    var distances, result, solver, u, v, _i, _len, _ref, _ref1;
+    solver = warshallFloyd().weight(function() {
+      return -1;
+    });
+    distances = solver(graph);
+    result = [];
+    _ref = graph.edges();
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      _ref1 = _ref[_i], u = _ref1[0], v = _ref1[1];
+      if (distances[u][v] < -1) {
+        result.push([u, v]);
+      }
+    }
+    return result;
+  };
+
+}).call(this);
+
+},{"./warshall-floyd":15}],15:[function(require,module,exports){
 (function() {
   module.exports = function() {
     var warshallFloyd, weight;
@@ -1293,7 +1339,7 @@
 
 }).call(this);
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 (function() {
   var factory;
 
@@ -1591,7 +1637,7 @@
 
 }).call(this);
 
-},{"../graph/graph":11}],16:[function(require,module,exports){
+},{"../graph/graph":11}],17:[function(require,module,exports){
 (function (global){
 (function() {
   global.window.egrid = {
@@ -1608,7 +1654,7 @@
 }).call(this);
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./egm":3,"./graph":12,"./grid":15,"./layout":21,"./network":34,"./ui":37}],17:[function(require,module,exports){
+},{"./egm":3,"./graph":12,"./grid":16,"./layout":22,"./network":35,"./ui":38}],18:[function(require,module,exports){
 (function() {
   module.exports = function(graph, vertices1, vertices2) {
     var adj, barycenter, i, positions, result, sum, u, v, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref;
@@ -1648,7 +1694,7 @@
 
 }).call(this);
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 (function() {
   module.exports = function(graph, vertices1, vertices2) {
     var cross, i, j, n1, n2, u1, u2, v1, v2, _i, _j, _k, _l, _len, _len1, _ref, _ref1;
@@ -1680,7 +1726,7 @@
 
 }).call(this);
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 (function() {
   module.exports = {
     barycenter: require('./barycenter'),
@@ -1689,7 +1735,7 @@
 
 }).call(this);
 
-},{"./barycenter":17,"./cross":18}],20:[function(require,module,exports){
+},{"./barycenter":18,"./cross":19}],21:[function(require,module,exports){
 (function() {
   module.exports = function(graph) {
     var dfs, result, stack, u, v, visited, _i, _j, _len, _len1, _ref, _ref1, _results;
@@ -1730,7 +1776,7 @@
 
 }).call(this);
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 (function() {
   module.exports = {
     layout: require('./layout'),
@@ -1742,7 +1788,7 @@
 
 }).call(this);
 
-},{"./crossing-reduction":19,"./cycle-removal":20,"./layer-assignment":22,"./layout":23,"./normalize":24}],22:[function(require,module,exports){
+},{"./crossing-reduction":20,"./cycle-removal":21,"./layer-assignment":23,"./layout":24,"./normalize":25}],23:[function(require,module,exports){
 (function() {
   module.exports = function(graph) {
     var layers, queue, source, u, v, _i, _j, _len, _len1, _ref;
@@ -1772,7 +1818,7 @@
 
 }).call(this);
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 (function() {
   var crossingReduction, layerAssignment, normalize;
 
@@ -1849,7 +1895,7 @@
 
 }).call(this);
 
-},{"./crossing-reduction":19,"./layer-assignment":22,"./normalize":24}],24:[function(require,module,exports){
+},{"./crossing-reduction":20,"./layer-assignment":23,"./normalize":25}],25:[function(require,module,exports){
 (function() {
   var adjacencyList;
 
@@ -1883,7 +1929,7 @@
 
 }).call(this);
 
-},{"../graph/adjacency-list":8}],25:[function(require,module,exports){
+},{"../graph/adjacency-list":8}],26:[function(require,module,exports){
 (function() {
   module.exports = function() {
     return function(graph) {
@@ -1947,7 +1993,7 @@
 
 }).call(this);
 
-},{}],26:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 (function() {
   module.exports = function(weight) {
     var warshallFloyd;
@@ -1976,7 +2022,7 @@
 
 }).call(this);
 
-},{"../../graph/warshall-floyd":14}],27:[function(require,module,exports){
+},{"../../graph/warshall-floyd":15}],28:[function(require,module,exports){
 (function() {
   module.exports = {
     inDegree: function(graph) {
@@ -2013,7 +2059,7 @@
 
 }).call(this);
 
-},{}],28:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 (function() {
   var degree;
 
@@ -2030,7 +2076,7 @@
 
 }).call(this);
 
-},{"./betweenness":25,"./closeness":26,"./degree":27,"./katz":29}],29:[function(require,module,exports){
+},{"./betweenness":26,"./closeness":27,"./degree":28,"./katz":30}],30:[function(require,module,exports){
 (function() {
   var dictFromKeys;
 
@@ -2095,7 +2141,7 @@
 
 }).call(this);
 
-},{}],30:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 (function() {
   module.exports = {
     reduce: require('./reduce'),
@@ -2105,7 +2151,7 @@
 
 }).call(this);
 
-},{"./modularity":31,"./newman":32,"./reduce":33}],31:[function(require,module,exports){
+},{"./modularity":32,"./newman":33,"./reduce":34}],32:[function(require,module,exports){
 (function() {
   var degree;
 
@@ -2130,7 +2176,7 @@
 
 }).call(this);
 
-},{"../centrality/degree":27}],32:[function(require,module,exports){
+},{"../centrality/degree":28}],33:[function(require,module,exports){
 (function() {
   var cleanupLabel, degree, modularity;
 
@@ -2231,7 +2277,7 @@
 
 }).call(this);
 
-},{"../centrality/degree":27,"./modularity":31}],33:[function(require,module,exports){
+},{"../centrality/degree":28,"./modularity":32}],34:[function(require,module,exports){
 (function() {
   var newman, reduce;
 
@@ -2258,7 +2304,7 @@
 
 }).call(this);
 
-},{"../../graph/reduce":13,"./newman":32}],34:[function(require,module,exports){
+},{"../../graph/reduce":13,"./newman":33}],35:[function(require,module,exports){
 (function() {
   module.exports = {
     centrality: require('./centrality'),
@@ -2267,7 +2313,7 @@
 
 }).call(this);
 
-},{"./centrality":28,"./community":30}],35:[function(require,module,exports){
+},{"./centrality":29,"./community":31}],36:[function(require,module,exports){
 (function() {
   module.exports = {
     transform: require('./transform')
@@ -2275,7 +2321,7 @@
 
 }).call(this);
 
-},{"./transform":36}],36:[function(require,module,exports){
+},{"./transform":37}],37:[function(require,module,exports){
 (function() {
   var Scale, Translate,
     __slice = [].slice;
@@ -2329,7 +2375,7 @@
 
 }).call(this);
 
-},{}],37:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 (function() {
   module.exports = {
     removeButton: function(grid, callback) {
@@ -2384,4 +2430,4 @@
 
 }).call(this);
 
-},{}]},{},[16]);
+},{}]},{},[17]);

@@ -228,13 +228,12 @@
       url: '/community'
     });
   }).controller('CommunityController', function($scope, data) {
-    var color, community, display1, display2, egm1, egm2, graph, group, groupColor, groups, i, key, link, mergedGraph, node, u, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3;
-    $scope.paint = 'layer';
+    var color, community, display, du, egm, graph, group, groups, i, key, link, map, mergedGraph, node, overallGraph, u, v, w, workGraph, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _m, _n, _o, _p, _q, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
     graph = egrid.core.graph.adjacencyList();
     _ref = data.data.nodes;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       node = _ref[_i];
-      node.visibility = false;
+      node.visibility = true;
       graph.addVertex(node);
     }
     _ref1 = data.data.links;
@@ -268,69 +267,128 @@
         }).join('\n'),
         vertices: vertices,
         community: graph.get(vertices[0]).community,
-        group: graph.get(vertices[0]).group,
-        selected: false
+        group: graph.get(vertices[0]).group
       };
     });
-    groupColor = {
-      upper: '#6ff',
-      middle: '#cf6',
-      lower: '#fc6'
-    };
-    color = d3.scale.category20();
-    egm1 = egrid.core.egm().contentsMargin(5).size([800, 800]).layerGroup(function(d) {
-      return d.group;
-    }).vertexColor(function(d) {
-      if ($scope.paint === 'layer') {
-        return groupColor[d.group];
-      } else {
-        return color(d.community);
+    map = {};
+    overallGraph = egrid.core.graph.copy(graph);
+    _ref4 = mergedGraph.vertices();
+    for (_n = 0, _len5 = _ref4.length; _n < _len5; _n++) {
+      u = _ref4[_n];
+      du = mergedGraph.get(u);
+      v = overallGraph.addVertex(du);
+      map[u] = v;
+      _ref5 = du.vertices;
+      for (_o = 0, _len6 = _ref5.length; _o < _len6; _o++) {
+        w = _ref5[_o];
+        overallGraph.get(w).parent = v;
       }
-    }).vertexVisibility(function(d) {
-      return d.visibility;
-    });
-    display1 = d3.select('svg.display1').datum(graph).call(egm1).call(egm1.center()).call(d3.downloadable({
-      filename: 'original',
-      width: 800,
-      height: 800
-    }));
-    egm2 = egrid.core.egm().contentsMargin(5).onClickVertex(function(d) {
-      var du, _len5, _n, _ref4;
-      d.selected = !d.selected;
-      _ref4 = graph.vertices();
-      for (_n = 0, _len5 = _ref4.length; _n < _len5; _n++) {
-        u = _ref4[_n];
-        du = graph.get(u);
-        if (du.community === d.community) {
-          du.visibility = !du.visibility;
+    }
+    _ref6 = mergedGraph.edges();
+    for (_p = 0, _len7 = _ref6.length; _p < _len7; _p++) {
+      _ref7 = _ref6[_p], u = _ref7[0], v = _ref7[1];
+      overallGraph.addEdge(map[u], map[v]);
+    }
+    workGraph = egrid.core.graph.copy(overallGraph);
+    _ref8 = workGraph.vertices();
+    for (_q = 0, _len8 = _ref8.length; _q < _len8; _q++) {
+      u = _ref8[_q];
+      du = workGraph.get(u);
+      if (du.vertices == null) {
+        workGraph.clearVertex(u);
+        workGraph.removeVertex(u);
+      }
+    }
+    color = d3.scale.category20();
+    egm = egrid.core.egm().size([800, 800]).contentsMargin(5).dagreRankSep(200).dagreEdgeSep(40).edgeInterpolate('cardinal').edgeTension(0.95).edgeWidth(function(u, v) {
+      return 9;
+    }).edgeColor(function(u, v) {
+      if (workGraph.get(u).community === workGraph.get(v).community) {
+        return color(workGraph.get(u).community);
+      } else {
+        return '#ccc';
+      }
+    }).selectedStrokeColor('black').upperStrokeColor('black').lowerStrokeColor('black').maxTextLength(10).vertexScale(function() {
+      return 3;
+    }).vertexColor(function(d) {
+      return color(d.community);
+    }).onClickVertex(function(d, u) {
+      var dw, parent, _len10, _len11, _len12, _len13, _len14, _len15, _len16, _len9, _r, _ref10, _ref11, _ref12, _ref13, _ref14, _ref15, _ref16, _ref9, _s, _t, _u, _v, _w, _x, _y;
+      if (d.vertices != null) {
+        workGraph.clearVertex(u);
+        workGraph.removeVertex(u);
+        _ref9 = d.vertices;
+        for (_r = 0, _len9 = _ref9.length; _r < _len9; _r++) {
+          v = _ref9[_r];
+          workGraph.addVertex(overallGraph.get(v), v);
+        }
+        _ref10 = d.vertices;
+        for (_s = 0, _len10 = _ref10.length; _s < _len10; _s++) {
+          v = _ref10[_s];
+          _ref11 = overallGraph.adjacentVertices(v);
+          for (_t = 0, _len11 = _ref11.length; _t < _len11; _t++) {
+            w = _ref11[_t];
+            if (workGraph.vertex(w) != null) {
+              workGraph.addEdge(v, w);
+            } else {
+              workGraph.addEdge(v, overallGraph.get(w).parent);
+            }
+          }
+          _ref12 = overallGraph.invAdjacentVertices(v);
+          for (_u = 0, _len12 = _ref12.length; _u < _len12; _u++) {
+            w = _ref12[_u];
+            if (workGraph.vertex(w) != null) {
+              workGraph.addEdge(w, v);
+            } else {
+              workGraph.addEdge(overallGraph.get(w).parent, v);
+            }
+          }
+        }
+      } else {
+        parent = overallGraph.get(d.parent);
+        _ref13 = parent.vertices;
+        for (_v = 0, _len13 = _ref13.length; _v < _len13; _v++) {
+          v = _ref13[_v];
+          workGraph.clearVertex(v);
+          workGraph.removeVertex(v);
+        }
+        workGraph.addVertex(parent, d.parent);
+        _ref14 = parent.vertices;
+        for (_w = 0, _len14 = _ref14.length; _w < _len14; _w++) {
+          v = _ref14[_w];
+          _ref15 = overallGraph.adjacentVertices(v);
+          for (_x = 0, _len15 = _ref15.length; _x < _len15; _x++) {
+            w = _ref15[_x];
+            dw = overallGraph.get(w);
+            if (dw.parent !== d.parent) {
+              if (workGraph.vertex(w)) {
+                workGraph.addEdge(d.parent, w);
+              } else {
+                workGraph.addEdge(d.parent, dw.parent);
+              }
+            }
+          }
+          _ref16 = overallGraph.invAdjacentVertices(v);
+          for (_y = 0, _len16 = _ref16.length; _y < _len16; _y++) {
+            w = _ref16[_y];
+            dw = overallGraph.get(w);
+            if (dw.parent !== d.parent) {
+              if (workGraph.vertex(w)) {
+                workGraph.addEdge(w, d.parent);
+              } else {
+                workGraph.addEdge(dw.parent, d.parent);
+              }
+            }
+          }
         }
       }
-      display1.transition().call(egm1).call(egm1.center());
-      display2.transition().call(egm2.updateColor());
-    }).size([800, 800]).vertexColor(function(d) {
-      if ($scope.paint === 'layer') {
-        return groupColor[d.group];
-      } else {
-        return color(d.community);
-      }
-    }).vertexOpacity(function(d) {
-      if (d.selected) {
-        return '1';
-      } else {
-        return '0.8';
-      }
+      return display.transition().call(egm);
     });
-    display2 = d3.select('svg.display2').datum(mergedGraph).call(egm2).call(egm2.center()).call(d3.downloadable({
-      filename: 'merged',
+    return display = d3.select('svg.display').datum(workGraph).call(egm).call(egm.center()).call(d3.downloadable({
+      filename: 'egm',
       width: 800,
       height: 800
     }));
-    return $scope.$watch('paint', function(newValue, oldValue) {
-      if (newValue !== oldValue) {
-        display1.transition().call(egm1.updateColor());
-        return display2.transition().call(egm2.updateColor());
-      }
-    });
   });
 
 }).call(this);
