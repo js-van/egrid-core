@@ -9,31 +9,43 @@ angular.module 'egrid-core-example'
         templateUrl: 'partials/community.html'
         url: '/community'
   .controller 'CommunityController', ($scope, data) ->
-    $scope.paint = 'layer'
+    $scope.paint = 'community'
     activeOpacity = '1'
     inactiveOpacity = '0.6'
 
     graph = egrid.core.graph.adjacencyList()
     for node in data.data.nodes
-      node.visibility = false
+      node.visibility = true
       graph.addVertex node
     for link in data.data.links
       graph.addEdge link.source, link.target
 
     groups = []
+    newVertices = {}
+    tmpGraph = egrid.core.graph.adjacencyList()
     for community, i in egrid.core.network.community.newman graph
-      for u in community
-        graph.get(u).community = i
+      vertices = community.map (u) ->
+        newU = tmpGraph.addVertex graph.get u
+        newVertices[u] = newU
+        newU
+      for u in vertices
+        tmpGraph.get(u).community = i
       for key in ['lower', 'middle', 'upper']
-        group = community.filter (u) -> graph.get(u).group is key
+        group = vertices.filter (u) -> tmpGraph.get(u).group is key
         if group.length > 0
           groups.push group
+    for [u, v] in graph.edges()
+      tmpGraph.addEdge newVertices[u], newVertices[v]
+    graph = tmpGraph
+    for [u, v] in egrid.core.graph.redundantEdges graph
+      graph.removeEdge u, v
+
     mergedGraph = egrid.core.graph.reduce graph, groups, (vertices, c) ->
       text: vertices.map((u) -> graph.get(u).text).join('\n')
       vertices: vertices
       community: graph.get(vertices[0]).community
       group: graph.get(vertices[0]).group
-      selected: false
+      selected: true
     for u in mergedGraph.vertices()
       du = mergedGraph.get u
       if du.group is 'upper'

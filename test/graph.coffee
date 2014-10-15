@@ -141,3 +141,44 @@ module.exports = ->
       for [u, v] in graph.edges()
         expect newGraph.edge u, v
           .to.be.ok()
+
+  describe 'redundantEdges', ->
+    it 'should return redundant edges', ->
+      graph = egrid.core.graph.adjacencyList()
+      a = graph.addVertex()
+      b = graph.addVertex()
+      c = graph.addVertex()
+      d = graph.addVertex()
+      graph.addEdge a, b
+      graph.addEdge a, c
+      graph.addEdge a, d
+      graph.addEdge b, c
+      graph.addEdge b, d
+      graph.addEdge c, d
+      redundantEdges = egrid.core.graph.redundantEdges graph
+      expect redundantEdges.length
+        .to.be 3
+      for [u, v] in redundantEdges
+        graph.removeEdge u, v
+      expect graph.edge a, b
+        .to.be.ok()
+      expect graph.edge b, c
+        .to.be.ok()
+      expect graph.edge c, d
+        .to.be.ok()
+      expect graph.edges().length
+        .to.be 3
+
+    it 'should return redundant edges with long edge', ->
+      graph = egrid.core.graph.adjacencyList()
+      a = graph.addVertex()
+      b = graph.addVertex()
+      c = graph.addVertex()
+      d = graph.addVertex()
+      graph.addEdge a, b
+      graph.addEdge a, d
+      graph.addEdge b, c
+      graph.addEdge c, d
+      redundantEdges = egrid.core.graph.redundantEdges graph
+      expect redundantEdges[0]
+        .to.eql [a, d]

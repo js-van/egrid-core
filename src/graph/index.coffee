@@ -5,3 +5,4 @@ module.exports =
   warshallFloyd: require './warshall-floyd'
   copy: require './copy'
   reduce: require './reduce'
+  redundantEdges: require './redundantEdges'
