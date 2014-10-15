@@ -132,6 +132,7 @@ module.exports = () ->
           edgeText: egm.edgeText()
           enableZoom: egm.enableZoom()
           maxTextLength: egm.maxTextLength()
+          removeRedundantEdges: egm.removeRedundantEdges()
           textSeparator: egm.textSeparator()
           vertexButtons: egm.vertexButtons()
           vertexFontWeight: egm.vertexFontWeight()
@@ -201,6 +202,7 @@ module.exports = () ->
     lowerStrokeColor: 'red'
     maxTextLength: Infinity
     onClickVertex: ->
+    removeRedundantEdges: false
     selectedStrokeColor: 'purple'
     strokeColor: 'black'
     textSeparator: (s) -> s.split '\n'

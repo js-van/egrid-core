@@ -69,6 +69,8 @@ angular.module 'egrid-core-example'
       .maxTextLength 10
       .vertexScale -> 3
       .vertexColor (d) -> color d.community
+      .layerGroup (d) -> d.group
+      .removeRedundantEdges true
       .onClickVertex (d, u) ->
         if d.vertices?
           workGraph.clearVertex u
@@ -110,6 +112,8 @@ angular.module 'egrid-core-example'
 
         display
           .transition()
+          .delay 100
+          .duration 300
           .call egm
     display = d3.select 'svg.display'
       .datum workGraph
