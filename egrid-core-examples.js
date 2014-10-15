@@ -312,7 +312,9 @@
       return 3;
     }).vertexColor(function(d) {
       return color(d.community);
-    }).onClickVertex(function(d, u) {
+    }).layerGroup(function(d) {
+      return d.group;
+    }).removeRedundantEdges(true).onClickVertex(function(d, u) {
       var dw, parent, _len10, _len11, _len12, _len13, _len14, _len15, _len16, _len9, _r, _ref10, _ref11, _ref12, _ref13, _ref14, _ref15, _ref16, _ref9, _s, _t, _u, _v, _w, _x, _y;
       if (d.vertices != null) {
         workGraph.clearVertex(u);
@@ -382,7 +384,7 @@
           }
         }
       }
-      return display.transition().call(egm);
+      return display.transition().delay(100).duration(300).call(egm);
     });
     return display = d3.select('svg.display').datum(workGraph).call(egm).call(egm.center()).call(d3.downloadable({
       filename: 'egm',

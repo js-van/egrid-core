@@ -46,7 +46,7 @@
 
 }).call(this);
 
-},{"../svg":36}],2:[function(require,module,exports){
+},{"../svg":37}],2:[function(require,module,exports){
 (function() {
   module.exports = function() {
     var egm, svgCss;
@@ -207,6 +207,7 @@
           edgeText: egm.edgeText(),
           enableZoom: egm.enableZoom(),
           maxTextLength: egm.maxTextLength(),
+          removeRedundantEdges: egm.removeRedundantEdges(),
           textSeparator: egm.textSeparator(),
           vertexButtons: egm.vertexButtons(),
           vertexFontWeight: egm.vertexFontWeight(),
@@ -290,6 +291,7 @@
       lowerStrokeColor: 'red',
       maxTextLength: Infinity,
       onClickVertex: function() {},
+      removeRedundantEdges: false,
       selectedStrokeColor: 'purple',
       strokeColor: 'black',
       textSeparator: function(s) {
@@ -335,7 +337,7 @@
 
 }).call(this);
 
-},{"../graph/adjacency-list":8,"../layout/cycle-removal":21,"../layout/layer-assignment":23,"../svg":36,"./center":1,"./css":2,"./resize":4,"./select":5,"./update":7,"./update-color":6}],4:[function(require,module,exports){
+},{"../graph/adjacency-list":8,"../layout/cycle-removal":22,"../layout/layer-assignment":24,"../svg":37,"./center":1,"./css":2,"./resize":4,"./select":5,"./update":7,"./update-color":6}],4:[function(require,module,exports){
 (function() {
   var resize;
 
@@ -497,7 +499,7 @@
 
 }).call(this);
 
-},{"../graph/dijkstra":10,"../svg":36}],6:[function(require,module,exports){
+},{"../graph/dijkstra":10,"../svg":37}],6:[function(require,module,exports){
 (function() {
   var paint;
 
@@ -549,13 +551,17 @@
 
 },{}],7:[function(require,module,exports){
 (function() {
-  var adjacencyList, calculateTextSize, createVertex, initContainer, makeGrid, onClickVertex, onMouseEnterVertex, onMouseLeaveVertex, select, svg, updateEdges, updateVertices;
+  var adjacencyList, calculateTextSize, createVertex, cycleEdges, initContainer, makeGrid, onClickVertex, onMouseEnterVertex, onMouseLeaveVertex, redundantEdges, select, svg, updateEdges, updateVertices;
 
   svg = require('../svg');
 
   select = require('./select');
 
   adjacencyList = require('../graph/adjacency-list');
+
+  redundantEdges = require('../graph/redundantEdges');
+
+  cycleEdges = require('../layout/cycle-edges');
 
   onClickVertex = function(_arg) {
     var clickVertexCallback, container, vertexButtons;
@@ -701,8 +707,8 @@
   };
 
   makeGrid = function(graph, arg) {
-    var edges, maxTextLength, oldVertices, oldVerticesMap, pred, textSeparator, tmpGraph, u, v, vertex, vertexText, vertices, verticesMap, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _m, _n, _o, _p, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
-    maxTextLength = arg.maxTextLength, oldVertices = arg.oldVertices, pred = arg.pred, textSeparator = arg.textSeparator, vertexText = arg.vertexText;
+    var ce, edges, maxTextLength, oldVertices, oldVerticesMap, pred, removeRedundantEdges, textSeparator, tmpGraph, u, v, vertex, vertexText, vertices, verticesMap, w, _i, _j, _k, _l, _len, _len1, _len10, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9, _s;
+    maxTextLength = arg.maxTextLength, oldVertices = arg.oldVertices, pred = arg.pred, removeRedundantEdges = arg.removeRedundantEdges, textSeparator = arg.textSeparator, vertexText = arg.vertexText;
     oldVerticesMap = {};
     for (_i = 0, _len = oldVertices.length; _i < _len; _i++) {
       u = oldVertices[_i];
@@ -765,6 +771,22 @@
         tmpGraph.clearVertex(u);
       }
     }
+    if (removeRedundantEdges) {
+      ce = cycleEdges(tmpGraph);
+      for (_q = 0, _len8 = ce.length; _q < _len8; _q++) {
+        _ref6 = ce[_q], u = _ref6[0], v = _ref6[1];
+        tmpGraph.removeEdge(u, v);
+      }
+      _ref7 = redundantEdges(tmpGraph);
+      for (_r = 0, _len9 = _ref7.length; _r < _len9; _r++) {
+        _ref8 = _ref7[_r], u = _ref8[0], v = _ref8[1];
+        tmpGraph.removeEdge(u, v);
+      }
+      for (_s = 0, _len10 = ce.length; _s < _len10; _s++) {
+        _ref9 = ce[_s], u = _ref9[0], v = _ref9[1];
+        tmpGraph.addEdge(u, v);
+      }
+    }
     edges = tmpGraph.edges().map(function(_arg) {
       var u, v;
       u = _arg[0], v = _arg[1];
@@ -800,8 +822,8 @@
   };
 
   module.exports = function(graph, arg) {
-    var clickVertexCallback, edgeLine, edgePointsSize, edgeText, enableZoom, maxTextLength, textSeparator, vertexButtons, vertexFontWeight, vertexScale, vertexStrokeWidth, vertexText, vertexVisibility, zoom;
-    clickVertexCallback = arg.clickVertexCallback, edgeLine = arg.edgeLine, edgePointsSize = arg.edgePointsSize, edgeText = arg.edgeText, enableZoom = arg.enableZoom, maxTextLength = arg.maxTextLength, textSeparator = arg.textSeparator, vertexButtons = arg.vertexButtons, vertexFontWeight = arg.vertexFontWeight, vertexScale = arg.vertexScale, vertexStrokeWidth = arg.vertexStrokeWidth, vertexText = arg.vertexText, vertexVisibility = arg.vertexVisibility, zoom = arg.zoom;
+    var clickVertexCallback, edgeLine, edgePointsSize, edgeText, enableZoom, maxTextLength, removeRedundantEdges, textSeparator, vertexButtons, vertexFontWeight, vertexScale, vertexStrokeWidth, vertexText, vertexVisibility, zoom;
+    clickVertexCallback = arg.clickVertexCallback, edgeLine = arg.edgeLine, edgePointsSize = arg.edgePointsSize, edgeText = arg.edgeText, enableZoom = arg.enableZoom, maxTextLength = arg.maxTextLength, removeRedundantEdges = arg.removeRedundantEdges, textSeparator = arg.textSeparator, vertexButtons = arg.vertexButtons, vertexFontWeight = arg.vertexFontWeight, vertexScale = arg.vertexScale, vertexStrokeWidth = arg.vertexStrokeWidth, vertexText = arg.vertexText, vertexVisibility = arg.vertexVisibility, zoom = arg.zoom;
     return function(selection) {
       var contents, edges, vertices, _ref;
       if (graph != null) {
@@ -818,6 +840,7 @@
           pred: function(u) {
             return vertexVisibility(graph.get(u), u);
           },
+          removeRedundantEdges: removeRedundantEdges,
           textSeparator: textSeparator,
           vertexText: vertexText
         }), vertices = _ref.vertices, edges = _ref.edges;
@@ -851,7 +874,7 @@
 
 }).call(this);
 
-},{"../graph/adjacency-list":8,"../svg":36,"./select":5}],8:[function(require,module,exports){
+},{"../graph/adjacency-list":8,"../graph/redundantEdges":14,"../layout/cycle-edges":21,"../svg":37,"./select":5}],8:[function(require,module,exports){
 (function() {
   module.exports = function(v, e) {
     var AdjacencyList, idOffset, nextVertexId, vertices;
@@ -1654,7 +1677,7 @@
 }).call(this);
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./egm":3,"./graph":12,"./grid":16,"./layout":22,"./network":35,"./ui":38}],18:[function(require,module,exports){
+},{"./egm":3,"./graph":12,"./grid":16,"./layout":23,"./network":36,"./ui":39}],18:[function(require,module,exports){
 (function() {
   module.exports = function(graph, vertices1, vertices2) {
     var adj, barycenter, i, positions, result, sum, u, v, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref;
@@ -1738,7 +1761,7 @@
 },{"./barycenter":18,"./cross":19}],21:[function(require,module,exports){
 (function() {
   module.exports = function(graph) {
-    var dfs, result, stack, u, v, visited, _i, _j, _len, _len1, _ref, _ref1, _results;
+    var dfs, result, stack, u, visited, _i, _len, _ref;
     stack = {};
     visited = {};
     result = [];
@@ -1765,9 +1788,23 @@
       u = _ref[_i];
       dfs(u);
     }
+    return result;
+  };
+
+}).call(this);
+
+},{}],22:[function(require,module,exports){
+(function() {
+  var cycleEdges;
+
+  cycleEdges = require('./cycle-edges');
+
+  module.exports = function(graph) {
+    var u, v, _i, _len, _ref, _ref1, _results;
+    _ref = cycleEdges(graph);
     _results = [];
-    for (_j = 0, _len1 = result.length; _j < _len1; _j++) {
-      _ref1 = result[_j], u = _ref1[0], v = _ref1[1];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      _ref1 = _ref[_i], u = _ref1[0], v = _ref1[1];
       graph.removeEdge(u, v);
       _results.push(graph.addEdge(v, u));
     }
@@ -1776,7 +1813,7 @@
 
 }).call(this);
 
-},{}],22:[function(require,module,exports){
+},{"./cycle-edges":21}],23:[function(require,module,exports){
 (function() {
   module.exports = {
     layout: require('./layout'),
@@ -1788,7 +1825,7 @@
 
 }).call(this);
 
-},{"./crossing-reduction":20,"./cycle-removal":21,"./layer-assignment":23,"./layout":24,"./normalize":25}],23:[function(require,module,exports){
+},{"./crossing-reduction":20,"./cycle-removal":22,"./layer-assignment":24,"./layout":25,"./normalize":26}],24:[function(require,module,exports){
 (function() {
   module.exports = function(graph) {
     var layers, queue, source, u, v, _i, _j, _len, _len1, _ref;
@@ -1818,7 +1855,7 @@
 
 }).call(this);
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 (function() {
   var crossingReduction, layerAssignment, normalize;
 
@@ -1895,7 +1932,7 @@
 
 }).call(this);
 
-},{"./crossing-reduction":20,"./layer-assignment":23,"./normalize":25}],25:[function(require,module,exports){
+},{"./crossing-reduction":20,"./layer-assignment":24,"./normalize":26}],26:[function(require,module,exports){
 (function() {
   var adjacencyList;
 
@@ -1929,7 +1966,7 @@
 
 }).call(this);
 
-},{"../graph/adjacency-list":8}],26:[function(require,module,exports){
+},{"../graph/adjacency-list":8}],27:[function(require,module,exports){
 (function() {
   module.exports = function() {
     return function(graph) {
@@ -1993,7 +2030,7 @@
 
 }).call(this);
 
-},{}],27:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 (function() {
   module.exports = function(weight) {
     var warshallFloyd;
@@ -2022,7 +2059,7 @@
 
 }).call(this);
 
-},{"../../graph/warshall-floyd":15}],28:[function(require,module,exports){
+},{"../../graph/warshall-floyd":15}],29:[function(require,module,exports){
 (function() {
   module.exports = {
     inDegree: function(graph) {
@@ -2059,7 +2096,7 @@
 
 }).call(this);
 
-},{}],29:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 (function() {
   var degree;
 
@@ -2076,7 +2113,7 @@
 
 }).call(this);
 
-},{"./betweenness":26,"./closeness":27,"./degree":28,"./katz":30}],30:[function(require,module,exports){
+},{"./betweenness":27,"./closeness":28,"./degree":29,"./katz":31}],31:[function(require,module,exports){
 (function() {
   var dictFromKeys;
 
@@ -2141,7 +2178,7 @@
 
 }).call(this);
 
-},{}],31:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 (function() {
   module.exports = {
     reduce: require('./reduce'),
@@ -2151,7 +2188,7 @@
 
 }).call(this);
 
-},{"./modularity":32,"./newman":33,"./reduce":34}],32:[function(require,module,exports){
+},{"./modularity":33,"./newman":34,"./reduce":35}],33:[function(require,module,exports){
 (function() {
   var degree;
 
@@ -2176,7 +2213,7 @@
 
 }).call(this);
 
-},{"../centrality/degree":28}],33:[function(require,module,exports){
+},{"../centrality/degree":29}],34:[function(require,module,exports){
 (function() {
   var cleanupLabel, degree, modularity;
 
@@ -2277,7 +2314,7 @@
 
 }).call(this);
 
-},{"../centrality/degree":28,"./modularity":32}],34:[function(require,module,exports){
+},{"../centrality/degree":29,"./modularity":33}],35:[function(require,module,exports){
 (function() {
   var newman, reduce;
 
@@ -2304,7 +2341,7 @@
 
 }).call(this);
 
-},{"../../graph/reduce":13,"./newman":33}],35:[function(require,module,exports){
+},{"../../graph/reduce":13,"./newman":34}],36:[function(require,module,exports){
 (function() {
   module.exports = {
     centrality: require('./centrality'),
@@ -2313,7 +2350,7 @@
 
 }).call(this);
 
-},{"./centrality":29,"./community":31}],36:[function(require,module,exports){
+},{"./centrality":30,"./community":32}],37:[function(require,module,exports){
 (function() {
   module.exports = {
     transform: require('./transform')
@@ -2321,7 +2358,7 @@
 
 }).call(this);
 
-},{"./transform":37}],37:[function(require,module,exports){
+},{"./transform":38}],38:[function(require,module,exports){
 (function() {
   var Scale, Translate,
     __slice = [].slice;
@@ -2375,7 +2412,7 @@
 
 }).call(this);
 
-},{}],38:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 (function() {
   module.exports = {
     removeButton: function(grid, callback) {
