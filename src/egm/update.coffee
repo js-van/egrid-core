@@ -1,6 +1,8 @@
 svg = require '../svg'
 select = require './select'
 adjacencyList = require '../graph/adjacency-list'
+redundantEdges = require '../graph/redundantEdges'
+cycleEdges = require '../layout/cycle-edges'
 
 
 onClickVertex = ({container, vertexButtons, clickVertexCallback}) ->
@@ -156,6 +158,7 @@ makeGrid = (graph, arg) ->
   {maxTextLength,
    oldVertices,
    pred,
+   removeRedundantEdges,
    textSeparator,
    vertexText} = arg
   oldVerticesMap = {}
@@ -194,6 +197,14 @@ makeGrid = (graph, arg) ->
         for w in tmpGraph.invAdjacentVertices u
           tmpGraph.addEdge w, v
       tmpGraph.clearVertex u
+  if removeRedundantEdges
+    ce = cycleEdges tmpGraph
+    for [u, v] in ce
+      tmpGraph.removeEdge u, v
+    for [u, v] in redundantEdges tmpGraph
+      tmpGraph.removeEdge u, v
+    for [u, v] in ce
+      tmpGraph.addEdge u, v
   edges = tmpGraph.edges().map ([u, v]) ->
     source: verticesMap[u]
     target: verticesMap[v]
@@ -233,6 +244,7 @@ module.exports = (graph, arg) ->
    edgeText,
    enableZoom,
    maxTextLength,
+   removeRedundantEdges
    textSeparator,
    vertexButtons,
    vertexFontWeight,
@@ -259,6 +271,7 @@ module.exports = (graph, arg) ->
         maxTextLength: maxTextLength
         oldVertices: selection.selectAll('g.vertex').data()
         pred: (u) -> vertexVisibility (graph.get u), u
+        removeRedundantEdges: removeRedundantEdges
         textSeparator: textSeparator
         vertexText: vertexText
 
