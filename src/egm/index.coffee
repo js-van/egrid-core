@@ -112,6 +112,9 @@ module.exports = () ->
   egm = (selection) ->
     margin = egm.contentsMargin()
     scaleMax = egm.contentsScaleMax()
+    edgeLine
+      .interpolate egm.edgeInterpolate()
+      .tension egm.edgeTension()
 
     selection.each (graph) ->
       container = d3.select this
@@ -187,7 +190,9 @@ module.exports = () ->
     dagreRankDir: 'LR'
     dagreRankSep: 30
     edgeColor: -> ''
+    edgeInterpolate: 'linear'
     edgeOpacity: -> 1
+    edgeTension: 0.7
     edgeText: -> ''
     edgeWidth: -> 1
     enableClickVertex: true

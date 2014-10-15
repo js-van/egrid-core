@@ -39,6 +39,8 @@ angular.module 'egrid-core-example'
     color = d3.scale.category20()
     egm1 = egrid.core.egm()
       .contentsMargin 5
+      .edgeInterpolate 'cardinal'
+      .edgeTension 0.95
       .size [800, 800]
       .layerGroup (d) -> d.group
       .vertexColor (d) ->
@@ -58,8 +60,20 @@ angular.module 'egrid-core-example'
         height: 800
     egm2 = egrid.core.egm()
       .contentsMargin 5
+      .dagreRankSep 200
+      .dagreEdgeSep 40
+      .edgeInterpolate 'cardinal'
+      .edgeTension 0.95
+      .edgeOpacity -> 0.8
+      .selectedStrokeColor 'black'
+      .upperStrokeColor 'black'
+      .lowerStrokeColor 'black'
+      .maxTextLength 10
       .onClickVertex (d) ->
-        d.selected = not d.selected
+        for c in mergedGraph.vertices()
+          dc = mergedGraph.get c
+          if dc.community is d.community
+            dc.selected = not dc.selected
         for u in graph.vertices()
           du = graph.get u
           if du.community is d.community
@@ -73,13 +87,14 @@ angular.module 'egrid-core-example'
           .call egm2.updateColor()
         return
       .size [800, 800]
+      .vertexScale -> 3
       .vertexColor (d) ->
         if $scope.paint is 'layer'
           groupColor[d.group]
         else
           color d.community
       .vertexOpacity (d) ->
-        if d.selected then '1' else '0.8'
+        if d.selected then '1' else '0.6'
     display2 = d3.select 'svg.display2'
       .datum mergedGraph
       .call egm2
