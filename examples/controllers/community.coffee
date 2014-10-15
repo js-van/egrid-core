@@ -9,10 +9,9 @@ angular.module 'egrid-core-example'
         templateUrl: 'partials/community.html'
         url: '/community'
   .controller 'CommunityController', ($scope, data) ->
-    $scope.paint = 'layer'
     graph = egrid.core.graph.adjacencyList()
     for node in data.data.nodes
-      node.visibility = false
+      node.visibility = true
       graph.addVertex node
     for link in data.data.links
       graph.addEdge link.source, link.target
@@ -25,75 +24,98 @@ angular.module 'egrid-core-example'
         group = community.filter (u) -> graph.get(u).group is key
         if group.length > 0
           groups.push group
+
     mergedGraph = egrid.core.graph.reduce graph, groups, (vertices, c) ->
       text: vertices.map((u) -> graph.get(u).text).join('\n')
       vertices: vertices
       community: graph.get(vertices[0]).community
       group: graph.get(vertices[0]).group
-      selected: false
 
-    groupColor =
-      upper: '#6ff'
-      middle: '#cf6'
-      lower: '#fc6'
+    map = {}
+    overallGraph = egrid.core.graph.copy graph
+    for u in mergedGraph.vertices()
+      du = mergedGraph.get u
+      v = overallGraph.addVertex du
+      map[u] = v
+      for w in du.vertices
+        overallGraph.get(w).parent = v
+    for [u, v] in mergedGraph.edges()
+      overallGraph.addEdge map[u], map[v]
+
+    workGraph = egrid.core.graph.copy overallGraph
+    for u in workGraph.vertices()
+      du = workGraph.get u
+      if not du.vertices?
+        workGraph.clearVertex u
+        workGraph.removeVertex u
+
     color = d3.scale.category20()
-    egm1 = egrid.core.egm()
-      .contentsMargin 5
+    egm = egrid.core.egm()
       .size [800, 800]
-      .layerGroup (d) -> d.group
-      .vertexColor (d) ->
-        if $scope.paint is 'layer'
-          groupColor[d.group]
-        else
-          color d.community
-      .vertexVisibility (d) ->
-        d.visibility
-    display1 = d3.select 'svg.display1'
-      .datum graph
-      .call egm1
-      .call egm1.center()
-      .call d3.downloadable
-        filename: 'original'
-        width: 800
-        height: 800
-    egm2 = egrid.core.egm()
       .contentsMargin 5
-      .onClickVertex (d) ->
-        d.selected = not d.selected
-        for u in graph.vertices()
-          du = graph.get u
-          if du.community is d.community
-            du.visibility = not du.visibility
-        display1
-          .transition()
-          .call egm1
-          .call egm1.center()
-        display2
-          .transition()
-          .call egm2.updateColor()
-        return
-      .size [800, 800]
-      .vertexColor (d) ->
-        if $scope.paint is 'layer'
-          groupColor[d.group]
+      .dagreRankSep 200
+      .dagreEdgeSep 40
+      .edgeInterpolate 'cardinal'
+      .edgeTension 0.95
+      .edgeWidth (u, v) -> 9
+      .edgeColor (u, v) ->
+        if workGraph.get(u).community is workGraph.get(v).community
+          color workGraph.get(u).community
         else
-          color d.community
-      .vertexOpacity (d) ->
-        if d.selected then '1' else '0.8'
-    display2 = d3.select 'svg.display2'
-      .datum mergedGraph
-      .call egm2
-      .call egm2.center()
-      .call d3.downloadable
-        filename: 'merged'
-        width: 800
-        height: 800
+          '#ccc'
+      .selectedStrokeColor 'black'
+      .upperStrokeColor 'black'
+      .lowerStrokeColor 'black'
+      .maxTextLength 10
+      .vertexScale -> 3
+      .vertexColor (d) -> color d.community
+      .onClickVertex (d, u) ->
+        if d.vertices?
+          workGraph.clearVertex u
+          workGraph.removeVertex u
+          for v in d.vertices
+            workGraph.addVertex overallGraph.get(v), v
+          for v in d.vertices
+            for w in overallGraph.adjacentVertices v
+              if workGraph.vertex(w)?
+                workGraph.addEdge v, w
+              else
+                workGraph.addEdge v, overallGraph.get(w).parent
+            for w in overallGraph.invAdjacentVertices v
+              if workGraph.vertex(w)?
+                workGraph.addEdge w, v
+              else
+                workGraph.addEdge overallGraph.get(w).parent, v
+        else
+          parent = overallGraph.get d.parent
+          for v in parent.vertices
+            workGraph.clearVertex v
+            workGraph.removeVertex v
+          workGraph.addVertex parent, d.parent
+          for v in parent.vertices
+            for w in overallGraph.adjacentVertices v
+              dw = overallGraph.get w
+              if dw.parent isnt d.parent
+                if workGraph.vertex w
+                  workGraph.addEdge d.parent, w
+                else
+                  workGraph.addEdge d.parent, dw.parent
+            for w in overallGraph.invAdjacentVertices v
+              dw = overallGraph.get w
+              if dw.parent isnt d.parent
+                if workGraph.vertex w
+                  workGraph.addEdge w, d.parent
+                else
+                  workGraph.addEdge dw.parent, d.parent
 
-    $scope.$watch 'paint', (newValue, oldValue) ->
-      if newValue isnt oldValue
-        display1
+        display
           .transition()
-          .call egm1.updateColor()
-        display2
-          .transition()
-          .call egm2.updateColor()
+          .call egm
+    display = d3.select 'svg.display'
+      .datum workGraph
+      .call egm
+      .call egm.center()
+      .call d3.downloadable
+        filename: 'egm'
+        width: 800
+        height: 800

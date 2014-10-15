@@ -39,7 +39,7 @@ module.exports = (v, e) ->
     numEdges: ->
       (@outDegree(i) for i in @vertices()).reduce ((t, s) -> t + s), 0
 
-    vertex: (u) -> u
+    vertex: (u) -> if vertices[u] then u else null
 
     edge: (u, v) -> vertices[u].outAdjacencies[v]?
 

@@ -11,9 +11,19 @@ module.exports = (graph, groups, f) ->
       vertices2 = groups[j]
       for u in vertices1
         for v in vertices2
+          s = null
+          t = null
           if graph.edge u, v
-            mergedGraph.addEdge i, j
+            s = i
+            t = j
           else if graph.edge v, u
-            mergedGraph.addEdge j, i
+            s = j
+            t = i
+          if s? and t?
+            if mergedGraph.edge s, t
+              mergedGraph.get(s, t).weight += 1
+            else
+              mergedGraph.addEdge s, t,
+                weight: 1
 
   mergedGraph
