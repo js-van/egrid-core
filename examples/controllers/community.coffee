@@ -10,6 +10,9 @@ angular.module 'egrid-core-example'
         url: '/community'
   .controller 'CommunityController', ($scope, data) ->
     $scope.paint = 'layer'
+    activeOpacity = '1'
+    inactiveOpacity = '0.6'
+
     graph = egrid.core.graph.adjacencyList()
     for node in data.data.nodes
       node.visibility = false
@@ -31,6 +34,20 @@ angular.module 'egrid-core-example'
       community: graph.get(vertices[0]).community
       group: graph.get(vertices[0]).group
       selected: false
+    for u in mergedGraph.vertices()
+      du = mergedGraph.get u
+      if du.group is 'upper'
+        middle = lower = null
+        for v in mergedGraph.adjacentVertices u
+          dv = mergedGraph.get v
+          if dv.community is du.community
+            if dv.group is 'middle'
+              middle = v
+            else if dv.group is 'lower'
+              lower = v
+        if middle? and mergedGraph.edge u, lower
+          mergedGraph.removeEdge u, lower
+
 
     groupColor =
       upper: '#6ff'
@@ -41,6 +58,12 @@ angular.module 'egrid-core-example'
       .contentsMargin 5
       .edgeInterpolate 'cardinal'
       .edgeTension 0.95
+      .edgeWidth -> 3
+      .edgeColor (u, v) ->
+        if graph.get(u).community is graph.get(v).community
+          color graph.get(u).community
+        else
+          '#ccc'
       .size [800, 800]
       .layerGroup (d) -> d.group
       .vertexColor (d) ->
@@ -64,7 +87,19 @@ angular.module 'egrid-core-example'
       .dagreEdgeSep 40
       .edgeInterpolate 'cardinal'
       .edgeTension 0.95
-      .edgeOpacity -> 0.8
+      .edgeWidth (u, v) -> 9
+      .edgeColor (u, v) ->
+        if mergedGraph.get(u).community is mergedGraph.get(v).community
+          color mergedGraph.get(u).community
+        else
+          '#ccc'
+      .edgeOpacity (u, v) ->
+        du = mergedGraph.get u
+        dv = mergedGraph.get v
+        if du.selected and du.community is dv.community
+          activeOpacity
+        else
+          inactiveOpacity
       .selectedStrokeColor 'black'
       .upperStrokeColor 'black'
       .lowerStrokeColor 'black'
@@ -94,7 +129,10 @@ angular.module 'egrid-core-example'
         else
           color d.community
       .vertexOpacity (d) ->
-        if d.selected then '1' else '0.6'
+        if d.selected
+          activeOpacity
+        else
+          inactiveOpacity
     display2 = d3.select 'svg.display2'
       .datum mergedGraph
       .call egm2
