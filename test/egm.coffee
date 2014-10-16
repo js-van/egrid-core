@@ -472,3 +472,16 @@ module.exports = ->
           .to.be '2'
         expect rect2.attr 'stroke-width'
           .to.be '6'
+
+    describe 'edgeVisibility', ->
+      it 'should change edge visibility', ->
+        grid = egrid.core.grid()
+        a = grid.addConstruct 'a'
+        grid.ladderDown a, 'b'
+        egm = egrid.core.egm()
+          .edgeVisibility (u, v) -> false
+        selection = d3.select 'svg'
+          .datum grid.graph()
+          .call egm
+        expect selection.selectAll('g.edges>g.edge').size()
+          .to.be 0
