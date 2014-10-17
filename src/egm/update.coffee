@@ -1,8 +1,6 @@
 svg = require '../svg'
 select = require './select'
 adjacencyList = require '../graph/adjacency-list'
-redundantEdges = require '../graph/redundantEdges'
-cycleEdges = require '../layout/cycle-edges'
 
 
 onClickVertex = ({container, vertexButtons, clickVertexCallback}) ->
@@ -157,7 +155,8 @@ updateEdges = (arg) ->
 makeGrid = (graph, arg) ->
   {maxTextLength,
    oldVertices,
-   pred,
+   vertexVisibility,
+   edgeVisibility
    removeRedundantEdges,
    textSeparator,
    vertexText} = arg
@@ -166,7 +165,7 @@ makeGrid = (graph, arg) ->
     oldVerticesMap[u.key] = u
   vertices = graph
     .vertices()
-    .filter pred
+    .filter (u) -> vertexVisibility graph.get(u), u
     .map (u) ->
       if oldVerticesMap[u]?
         oldVerticesMap[u].data = graph.get u
@@ -190,21 +189,14 @@ makeGrid = (graph, arg) ->
   for u in graph.vertices()
     tmpGraph.addVertex {}, u
   for [u, v] in graph.edges()
-    tmpGraph.addEdge u, v
+    if edgeVisibility u, v
+      tmpGraph.addEdge u, v
   for u in tmpGraph.vertices()
-    if not pred u
+    if not vertexVisibility(graph.get(u), u)
       for v in tmpGraph.adjacentVertices u
         for w in tmpGraph.invAdjacentVertices u
           tmpGraph.addEdge w, v
       tmpGraph.clearVertex u
-  if removeRedundantEdges
-    ce = cycleEdges tmpGraph
-    for [u, v] in ce
-      tmpGraph.removeEdge u, v
-    for [u, v] in redundantEdges tmpGraph
-      tmpGraph.removeEdge u, v
-    for [u, v] in ce
-      tmpGraph.addEdge u, v
   edges = tmpGraph.edges().map ([u, v]) ->
     source: verticesMap[u]
     target: verticesMap[v]
@@ -251,6 +243,7 @@ module.exports = (graph, arg) ->
    vertexScale,
    vertexStrokeWidth,
    vertexText,
+   edgeVisibility,
    vertexVisibility,
    zoom} = arg
 
@@ -270,7 +263,8 @@ module.exports = (graph, arg) ->
       {vertices, edges} = makeGrid graph,
         maxTextLength: maxTextLength
         oldVertices: selection.selectAll('g.vertex').data()
-        pred: (u) -> vertexVisibility (graph.get u), u
+        vertexVisibility: vertexVisibility
+        edgeVisibility: edgeVisibility
         removeRedundantEdges: removeRedundantEdges
         textSeparator: textSeparator
         vertexText: vertexText

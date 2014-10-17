@@ -30,7 +30,6 @@ angular.module 'egrid-core-example'
       vertices: vertices
       community: graph.get(vertices[0]).community
       group: graph.get(vertices[0]).group
-
     map = {}
     overallGraph = egrid.core.graph.copy graph
     for u in mergedGraph.vertices()
@@ -41,6 +40,28 @@ angular.module 'egrid-core-example'
         overallGraph.get(w).parent = v
     for [u, v] in mergedGraph.edges()
       overallGraph.addEdge map[u], map[v]
+
+    invisibleEdges = {}
+    removeEdge = (u, v) ->
+      if not invisibleEdges[u]?
+        invisibleEdges[u] = {}
+      invisibleEdges[u][v] = true
+    for u in overallGraph.vertices()
+      du = overallGraph.get u
+      if du.vertices?
+        if du.group is 'upper'
+          middle = lower = null
+          for v in overallGraph.adjacentVertices u
+            dv = overallGraph.get v
+            if dv.community is du.community
+              if dv.group is 'middle'
+                middle = v
+              else if dv.group is 'lower'
+                lower = v
+          if middle? and overallGraph.edge u, lower
+            removeEdge u, lower
+    for [u, v] in egrid.core.graph.redundantEdges graph
+      removeEdge u, v
 
     workGraph = egrid.core.graph.copy overallGraph
     for u in workGraph.vertices()
@@ -63,6 +84,8 @@ angular.module 'egrid-core-example'
           color workGraph.get(u).community
         else
           '#ccc'
+      .edgeVisibility (u, v) ->
+        not invisibleEdges[u]? or not invisibleEdges[u][v]
       .selectedStrokeColor 'black'
       .upperStrokeColor 'black'
       .lowerStrokeColor 'black'
@@ -70,7 +93,6 @@ angular.module 'egrid-core-example'
       .vertexScale -> 3
       .vertexColor (d) -> color d.community
       .layerGroup (d) -> d.group
-      .removeRedundantEdges true
       .onClickVertex (d, u) ->
         if d.vertices?
           workGraph.clearVertex u
