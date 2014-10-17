@@ -228,7 +228,7 @@
       url: '/community'
     });
   }).controller('CommunityController', function($scope, data) {
-    var color, community, display, du, egm, graph, group, groups, i, key, link, map, mergedGraph, node, overallGraph, u, v, w, workGraph, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _m, _n, _o, _p, _q, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
+    var color, community, display, du, dv, egm, graph, group, groups, i, invisibleEdges, key, link, lower, map, mergedGraph, middle, node, overallGraph, removeEdge, u, v, w, workGraph, _i, _j, _k, _l, _len, _len1, _len10, _len11, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _ref, _ref1, _ref10, _ref11, _ref12, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9, _s, _t;
     graph = egrid.core.graph.adjacencyList();
     _ref = data.data.nodes;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -289,10 +289,47 @@
       _ref7 = _ref6[_p], u = _ref7[0], v = _ref7[1];
       overallGraph.addEdge(map[u], map[v]);
     }
-    workGraph = egrid.core.graph.copy(overallGraph);
-    _ref8 = workGraph.vertices();
+    invisibleEdges = {};
+    removeEdge = function(u, v) {
+      if (invisibleEdges[u] == null) {
+        invisibleEdges[u] = {};
+      }
+      return invisibleEdges[u][v] = true;
+    };
+    _ref8 = overallGraph.vertices();
     for (_q = 0, _len8 = _ref8.length; _q < _len8; _q++) {
       u = _ref8[_q];
+      du = overallGraph.get(u);
+      if (du.vertices != null) {
+        if (du.group === 'upper') {
+          middle = lower = null;
+          _ref9 = overallGraph.adjacentVertices(u);
+          for (_r = 0, _len9 = _ref9.length; _r < _len9; _r++) {
+            v = _ref9[_r];
+            dv = overallGraph.get(v);
+            if (dv.community === du.community) {
+              if (dv.group === 'middle') {
+                middle = v;
+              } else if (dv.group === 'lower') {
+                lower = v;
+              }
+            }
+          }
+          if ((middle != null) && overallGraph.edge(u, lower)) {
+            removeEdge(u, lower);
+          }
+        }
+      }
+    }
+    _ref10 = egrid.core.graph.redundantEdges(graph);
+    for (_s = 0, _len10 = _ref10.length; _s < _len10; _s++) {
+      _ref11 = _ref10[_s], u = _ref11[0], v = _ref11[1];
+      removeEdge(u, v);
+    }
+    workGraph = egrid.core.graph.copy(overallGraph);
+    _ref12 = workGraph.vertices();
+    for (_t = 0, _len11 = _ref12.length; _t < _len11; _t++) {
+      u = _ref12[_t];
       du = workGraph.get(u);
       if (du.vertices == null) {
         workGraph.clearVertex(u);
@@ -308,37 +345,39 @@
       } else {
         return '#ccc';
       }
+    }).edgeVisibility(function(u, v) {
+      return (invisibleEdges[u] == null) || !invisibleEdges[u][v];
     }).selectedStrokeColor('black').upperStrokeColor('black').lowerStrokeColor('black').maxTextLength(10).vertexScale(function() {
       return 3;
     }).vertexColor(function(d) {
       return color(d.community);
     }).layerGroup(function(d) {
       return d.group;
-    }).removeRedundantEdges(true).onClickVertex(function(d, u) {
-      var dw, parent, _len10, _len11, _len12, _len13, _len14, _len15, _len16, _len9, _r, _ref10, _ref11, _ref12, _ref13, _ref14, _ref15, _ref16, _ref9, _s, _t, _u, _v, _w, _x, _y;
+    }).onClickVertex(function(d, u) {
+      var dw, parent, _aa, _ab, _len12, _len13, _len14, _len15, _len16, _len17, _len18, _len19, _ref13, _ref14, _ref15, _ref16, _ref17, _ref18, _ref19, _ref20, _u, _v, _w, _x, _y, _z;
       if (d.vertices != null) {
         workGraph.clearVertex(u);
         workGraph.removeVertex(u);
-        _ref9 = d.vertices;
-        for (_r = 0, _len9 = _ref9.length; _r < _len9; _r++) {
-          v = _ref9[_r];
+        _ref13 = d.vertices;
+        for (_u = 0, _len12 = _ref13.length; _u < _len12; _u++) {
+          v = _ref13[_u];
           workGraph.addVertex(overallGraph.get(v), v);
         }
-        _ref10 = d.vertices;
-        for (_s = 0, _len10 = _ref10.length; _s < _len10; _s++) {
-          v = _ref10[_s];
-          _ref11 = overallGraph.adjacentVertices(v);
-          for (_t = 0, _len11 = _ref11.length; _t < _len11; _t++) {
-            w = _ref11[_t];
+        _ref14 = d.vertices;
+        for (_v = 0, _len13 = _ref14.length; _v < _len13; _v++) {
+          v = _ref14[_v];
+          _ref15 = overallGraph.adjacentVertices(v);
+          for (_w = 0, _len14 = _ref15.length; _w < _len14; _w++) {
+            w = _ref15[_w];
             if (workGraph.vertex(w) != null) {
               workGraph.addEdge(v, w);
             } else {
               workGraph.addEdge(v, overallGraph.get(w).parent);
             }
           }
-          _ref12 = overallGraph.invAdjacentVertices(v);
-          for (_u = 0, _len12 = _ref12.length; _u < _len12; _u++) {
-            w = _ref12[_u];
+          _ref16 = overallGraph.invAdjacentVertices(v);
+          for (_x = 0, _len15 = _ref16.length; _x < _len15; _x++) {
+            w = _ref16[_x];
             if (workGraph.vertex(w) != null) {
               workGraph.addEdge(w, v);
             } else {
@@ -348,19 +387,19 @@
         }
       } else {
         parent = overallGraph.get(d.parent);
-        _ref13 = parent.vertices;
-        for (_v = 0, _len13 = _ref13.length; _v < _len13; _v++) {
-          v = _ref13[_v];
+        _ref17 = parent.vertices;
+        for (_y = 0, _len16 = _ref17.length; _y < _len16; _y++) {
+          v = _ref17[_y];
           workGraph.clearVertex(v);
           workGraph.removeVertex(v);
         }
         workGraph.addVertex(parent, d.parent);
-        _ref14 = parent.vertices;
-        for (_w = 0, _len14 = _ref14.length; _w < _len14; _w++) {
-          v = _ref14[_w];
-          _ref15 = overallGraph.adjacentVertices(v);
-          for (_x = 0, _len15 = _ref15.length; _x < _len15; _x++) {
-            w = _ref15[_x];
+        _ref18 = parent.vertices;
+        for (_z = 0, _len17 = _ref18.length; _z < _len17; _z++) {
+          v = _ref18[_z];
+          _ref19 = overallGraph.adjacentVertices(v);
+          for (_aa = 0, _len18 = _ref19.length; _aa < _len18; _aa++) {
+            w = _ref19[_aa];
             dw = overallGraph.get(w);
             if (dw.parent !== d.parent) {
               if (workGraph.vertex(w)) {
@@ -370,9 +409,9 @@
               }
             }
           }
-          _ref16 = overallGraph.invAdjacentVertices(v);
-          for (_y = 0, _len16 = _ref16.length; _y < _len16; _y++) {
-            w = _ref16[_y];
+          _ref20 = overallGraph.invAdjacentVertices(v);
+          for (_ab = 0, _len19 = _ref20.length; _ab < _len19; _ab++) {
+            w = _ref20[_ab];
             dw = overallGraph.get(w);
             if (dw.parent !== d.parent) {
               if (workGraph.vertex(w)) {

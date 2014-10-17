@@ -205,9 +205,9 @@
           edgeLine: edgeLine,
           edgePointsSize: edgePointsSize,
           edgeText: egm.edgeText(),
+          edgeVisibility: egm.edgeVisibility(),
           enableZoom: egm.enableZoom(),
           maxTextLength: egm.maxTextLength(),
-          removeRedundantEdges: egm.removeRedundantEdges(),
           textSeparator: egm.textSeparator(),
           vertexButtons: egm.vertexButtons(),
           vertexFontWeight: egm.vertexFontWeight(),
@@ -280,6 +280,9 @@
       edgeText: function() {
         return '';
       },
+      edgeVisibility: function() {
+        return true;
+      },
       edgeWidth: function() {
         return 1;
       },
@@ -291,7 +294,6 @@
       lowerStrokeColor: 'red',
       maxTextLength: Infinity,
       onClickVertex: function() {},
-      removeRedundantEdges: false,
       selectedStrokeColor: 'purple',
       strokeColor: 'black',
       textSeparator: function(s) {
@@ -551,17 +553,13 @@
 
 },{}],7:[function(require,module,exports){
 (function() {
-  var adjacencyList, calculateTextSize, createVertex, cycleEdges, initContainer, makeGrid, onClickVertex, onMouseEnterVertex, onMouseLeaveVertex, redundantEdges, select, svg, updateEdges, updateVertices;
+  var adjacencyList, calculateTextSize, createVertex, initContainer, makeGrid, onClickVertex, onMouseEnterVertex, onMouseLeaveVertex, select, svg, updateEdges, updateVertices;
 
   svg = require('../svg');
 
   select = require('./select');
 
   adjacencyList = require('../graph/adjacency-list');
-
-  redundantEdges = require('../graph/redundantEdges');
-
-  cycleEdges = require('../layout/cycle-edges');
 
   onClickVertex = function(_arg) {
     var clickVertexCallback, container, vertexButtons;
@@ -707,14 +705,16 @@
   };
 
   makeGrid = function(graph, arg) {
-    var ce, edges, maxTextLength, oldVertices, oldVerticesMap, pred, removeRedundantEdges, textSeparator, tmpGraph, u, v, vertex, vertexText, vertices, verticesMap, w, _i, _j, _k, _l, _len, _len1, _len10, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9, _s;
-    maxTextLength = arg.maxTextLength, oldVertices = arg.oldVertices, pred = arg.pred, removeRedundantEdges = arg.removeRedundantEdges, textSeparator = arg.textSeparator, vertexText = arg.vertexText;
+    var edgeVisibility, edges, maxTextLength, oldVertices, oldVerticesMap, removeRedundantEdges, textSeparator, tmpGraph, u, v, vertex, vertexText, vertexVisibility, vertices, verticesMap, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _m, _n, _o, _p, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+    maxTextLength = arg.maxTextLength, oldVertices = arg.oldVertices, vertexVisibility = arg.vertexVisibility, edgeVisibility = arg.edgeVisibility, removeRedundantEdges = arg.removeRedundantEdges, textSeparator = arg.textSeparator, vertexText = arg.vertexText;
     oldVerticesMap = {};
     for (_i = 0, _len = oldVertices.length; _i < _len; _i++) {
       u = oldVertices[_i];
       oldVerticesMap[u.key] = u;
     }
-    vertices = graph.vertices().filter(pred).map(function(u) {
+    vertices = graph.vertices().filter(function(u) {
+      return vertexVisibility(graph.get(u), u);
+    }).map(function(u) {
       if (oldVerticesMap[u] != null) {
         oldVerticesMap[u].data = graph.get(u);
         return oldVerticesMap[u];
@@ -753,12 +753,14 @@
     _ref1 = graph.edges();
     for (_m = 0, _len4 = _ref1.length; _m < _len4; _m++) {
       _ref2 = _ref1[_m], u = _ref2[0], v = _ref2[1];
-      tmpGraph.addEdge(u, v);
+      if (edgeVisibility(u, v)) {
+        tmpGraph.addEdge(u, v);
+      }
     }
     _ref3 = tmpGraph.vertices();
     for (_n = 0, _len5 = _ref3.length; _n < _len5; _n++) {
       u = _ref3[_n];
-      if (!pred(u)) {
+      if (!vertexVisibility(graph.get(u), u)) {
         _ref4 = tmpGraph.adjacentVertices(u);
         for (_o = 0, _len6 = _ref4.length; _o < _len6; _o++) {
           v = _ref4[_o];
@@ -769,22 +771,6 @@
           }
         }
         tmpGraph.clearVertex(u);
-      }
-    }
-    if (removeRedundantEdges) {
-      ce = cycleEdges(tmpGraph);
-      for (_q = 0, _len8 = ce.length; _q < _len8; _q++) {
-        _ref6 = ce[_q], u = _ref6[0], v = _ref6[1];
-        tmpGraph.removeEdge(u, v);
-      }
-      _ref7 = redundantEdges(tmpGraph);
-      for (_r = 0, _len9 = _ref7.length; _r < _len9; _r++) {
-        _ref8 = _ref7[_r], u = _ref8[0], v = _ref8[1];
-        tmpGraph.removeEdge(u, v);
-      }
-      for (_s = 0, _len10 = ce.length; _s < _len10; _s++) {
-        _ref9 = ce[_s], u = _ref9[0], v = _ref9[1];
-        tmpGraph.addEdge(u, v);
       }
     }
     edges = tmpGraph.edges().map(function(_arg) {
@@ -822,8 +808,8 @@
   };
 
   module.exports = function(graph, arg) {
-    var clickVertexCallback, edgeLine, edgePointsSize, edgeText, enableZoom, maxTextLength, removeRedundantEdges, textSeparator, vertexButtons, vertexFontWeight, vertexScale, vertexStrokeWidth, vertexText, vertexVisibility, zoom;
-    clickVertexCallback = arg.clickVertexCallback, edgeLine = arg.edgeLine, edgePointsSize = arg.edgePointsSize, edgeText = arg.edgeText, enableZoom = arg.enableZoom, maxTextLength = arg.maxTextLength, removeRedundantEdges = arg.removeRedundantEdges, textSeparator = arg.textSeparator, vertexButtons = arg.vertexButtons, vertexFontWeight = arg.vertexFontWeight, vertexScale = arg.vertexScale, vertexStrokeWidth = arg.vertexStrokeWidth, vertexText = arg.vertexText, vertexVisibility = arg.vertexVisibility, zoom = arg.zoom;
+    var clickVertexCallback, edgeLine, edgePointsSize, edgeText, edgeVisibility, enableZoom, maxTextLength, removeRedundantEdges, textSeparator, vertexButtons, vertexFontWeight, vertexScale, vertexStrokeWidth, vertexText, vertexVisibility, zoom;
+    clickVertexCallback = arg.clickVertexCallback, edgeLine = arg.edgeLine, edgePointsSize = arg.edgePointsSize, edgeText = arg.edgeText, enableZoom = arg.enableZoom, maxTextLength = arg.maxTextLength, removeRedundantEdges = arg.removeRedundantEdges, textSeparator = arg.textSeparator, vertexButtons = arg.vertexButtons, vertexFontWeight = arg.vertexFontWeight, vertexScale = arg.vertexScale, vertexStrokeWidth = arg.vertexStrokeWidth, vertexText = arg.vertexText, edgeVisibility = arg.edgeVisibility, vertexVisibility = arg.vertexVisibility, zoom = arg.zoom;
     return function(selection) {
       var contents, edges, vertices, _ref;
       if (graph != null) {
@@ -837,9 +823,8 @@
         _ref = makeGrid(graph, {
           maxTextLength: maxTextLength,
           oldVertices: selection.selectAll('g.vertex').data(),
-          pred: function(u) {
-            return vertexVisibility(graph.get(u), u);
-          },
+          vertexVisibility: vertexVisibility,
+          edgeVisibility: edgeVisibility,
           removeRedundantEdges: removeRedundantEdges,
           textSeparator: textSeparator,
           vertexText: vertexText
@@ -874,7 +859,7 @@
 
 }).call(this);
 
-},{"../graph/adjacency-list":8,"../graph/redundantEdges":14,"../layout/cycle-edges":21,"../svg":37,"./select":5}],8:[function(require,module,exports){
+},{"../graph/adjacency-list":8,"../svg":37,"./select":5}],8:[function(require,module,exports){
 (function() {
   module.exports = function(v, e) {
     var AdjacencyList, idOffset, nextVertexId, vertices;
