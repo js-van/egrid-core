@@ -52,8 +52,7 @@ angular.module 'egrid-core-example'
             .toString()
 
       d3.select 'svg.display'
-        .call egm
-        .call egm.center()
+        .call egm.updateColor()
 
     $scope.centralities = [
       {value: 'weight', name: 'Weight'}

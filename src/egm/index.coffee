@@ -11,7 +11,12 @@ edgePointsSize = 20
 
 
 layout = (arg) ->
-  {dagreEdgeSep, dagreNodeSep, dagreRankSep, dagreRankDir, layerGroup} = arg
+  {dagreEdgeSep,
+   dagreNodeSep,
+   dagreRanker,
+   dagreRankSep,
+   dagreRankDir,
+   layerGroup} = arg
   (selection) ->
     selection
       .each ->
@@ -36,50 +41,42 @@ layout = (arg) ->
         for edge in edges
           graph.addEdge edge.source.key, edge.target.key, edge
 
-        g = new dagre.Digraph()
+        g = new graphlib.Graph multigraph: true, compound: true
+          .setGraph({
+            edgesep: dagreEdgeSep
+            nodesep: dagreNodeSep
+            ranker: dagreRanker
+            rankdir: dagreRankDir
+            ranksep: dagreRankSep
+          })
+          .setDefaultEdgeLabel -> {}
+
         for vertex in vertices
-          node =
+          g.setNode vertex.key.toString(),
             width: vertex.width
             height: vertex.height
-          u = vertex.key
-          adjacentVertices = graph.adjacentVertices u
-          invAdjacentVertices = graph.invAdjacentVertices u
-          pred = (v) -> vertexLayerGroup[u] isnt vertexLayerGroup[v]
-          if adjacentVertices.length is 0
-            node.rank = "same_#{vertexLayerGroup[u]}_sink"
-          else if invAdjacentVertices.length is 0
-            node.rank = "same_#{vertexLayerGroup[u]}_source"
-          else if adjacentVertices.every pred
-            node.rank = "same_#{vertexLayerGroup[u]}_sink"
-          else if invAdjacentVertices.every pred
-            node.rank = "same_#{vertexLayerGroup[u]}_source"
-          g.addNode vertex.key.toString(), node
         for edge in edges
-          g.addEdge null, edge.source.key.toString(), edge.target.key.toString()
+          g.setEdge edge.source.key.toString(), edge.target.key.toString()
 
-        result = dagre.layout()
-          .edgeSep dagreEdgeSep
-          .nodeSep dagreNodeSep
-          .rankDir dagreRankDir
-          .rankSep dagreRankSep
-          .run g
+        dagre.layout g
 
-        result.eachNode (u, node) ->
+        g.nodes().forEach (u) ->
+          node = g.node u
           vertex = graph.get u
           vertex.x = node.x
           vertex.y = node.y
           return
-        result.eachEdge (_, u, v, e) ->
-          edge = graph.get u, v
+        g.edges().forEach (e) ->
+          edge = graph.get e.v, e.w
           {source, target} = edge
-          edge.points = e.points.map ({x, y}) -> [x, y]
+          edge.points = g.edge(e.v, e.w).points.map ({x, y}) -> [x, y]
           n = edge.points.length
           if dagreRankDir is 'LR'
-            edge.points.unshift [source.x + source.width / 2, source.y]
-            edge.points.push [target.x - target.width / 2, target.y]
+            edge.points[0] = [source.x + source.width / 2, source.y]
+            edge.points[n - 1] = [target.x - target.width / 2, target.y]
           else
-            edge.points.unshift [source.x, source.y + source.height / 2]
-            edge.points.push [target.x, target.y - target.height / 2]
+            edge.points[0] = [source.x, source.y + source.height / 2]
+            edge.points[n - 1] = [target.x, target.y - target.height / 2]
           return
 
         return
@@ -145,6 +142,7 @@ module.exports = () ->
         .call layout
           dagreEdgeSep: egm.dagreEdgeSep()
           dagreNodeSep: egm.dagreNodeSep()
+          dagreRanker: egm.dagreRanker()
           dagreRankDir: egm.dagreRankDir()
           dagreRankSep: egm.dagreRankSep()
           layerGroup: egm.layerGroup()
@@ -188,6 +186,22 @@ module.exports = () ->
     contentsScaleMax: 1
     dagreEdgeSep: 10
     dagreNodeSep: 20
+    dagreRanker: (g) ->
+      visited = {}
+      dfs = (v) ->
+        label = g.node v
+        if visited[v]?
+          return label.rank
+        visited[v] = true
+        rank = d3.max g.inEdges(v), (e) -> dfs(e.v) + g.edge(e).minlen
+        if rank is undefined
+          rank = 0
+        label.rank = rank
+      g.sinks().forEach dfs
+      maxRank = d3.max g.nodes(), (u) -> g.node(u).rank
+      for u in g.nodes()
+        if g.outEdges(u).length is 0
+          g.node(u).rank = maxRank
     dagreRankDir: 'LR'
     dagreRankSep: 30
     edgeColor: -> ''
