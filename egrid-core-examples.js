@@ -64,7 +64,7 @@
       }).vertexColor(function(_, u) {
         return d3.hsl(colorScale(centrality[u][$scope.centrality]), 1, 0.5).toString();
       });
-      return d3.select('svg.display').call(egm).call(egm.center());
+      return d3.select('svg.display').call(egm.updateColor());
     };
     $scope.centralities = [
       {
