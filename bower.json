@@ -22,7 +22,7 @@
   ],
   "dependencies": {
     "d3": "~3.4.11",
-    "dagre": "v0.4.6"
+    "dagre": "http://github.com/likr/dagre.git#master"
   },
   "devDependencies": {
     "mocha": "~1.20.1",
