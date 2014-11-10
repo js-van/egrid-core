@@ -104,7 +104,6 @@ updateVertices = (arg) ->
           .enter()
           .append 'tspan'
           .attr
-            'text-anchor': 'left'
             'dominant-baseline': 'text-before-edge'
         updateSelection
           .exit()

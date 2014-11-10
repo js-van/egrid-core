@@ -2,11 +2,11 @@ resize = (width, height) ->
   (selection) ->
     selection
       .attr
-        width: width
-        height: height
+        width: width + 'px'
+        height: height + 'px'
       .style
-        width: width
-        height: height
+        width: width + 'px'
+        height: height + 'px'
     selection
       .select 'rect.background'
       .attr

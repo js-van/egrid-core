@@ -31,10 +31,6 @@ module.exports =  ->
   }
   rect.background {
     cursor: move;
-    user-select: none;
-    -moz-user-select: none;
-    -webkit-user-select: none;
-    -ms-user-select: none;
   }
   g.vertex {
     cursor: pointer;
