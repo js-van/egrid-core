@@ -6,3 +6,5 @@ module.exports =
   copy: require './copy'
   reduce: require './reduce'
   redundantEdges: require './redundantEdges'
+  coarseGraining: require './coarse-graining'
+  dumpJSON: require './dump-json'

@@ -182,3 +182,14 @@ module.exports = ->
       redundantEdges = egrid.core.graph.redundantEdges graph
       expect redundantEdges[0]
         .to.eql [a, d]
+
+  describe 'dumpJSON', ->
+    it 'should return JSON', ->
+      graph = egrid.core.graph.adjacencyList()
+      a = graph.addVertex 'a'
+      b = graph.addVertex 'b'
+      graph.addEdge a, b
+      expect egrid.core.graph.dumpJSON graph
+        .to.eql
+          nodes: ['a', 'b']
+          links: [source: a, target: b]
