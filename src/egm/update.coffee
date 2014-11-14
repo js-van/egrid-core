@@ -1,6 +1,6 @@
 svg = require '../svg'
 select = require './select'
-adjacencyList = require '../graph/adjacency-list'
+coarseGraining = require '../graph/coarse-graining'
 
 
 onClickVertex = ({container, vertexButtons, clickVertexCallback}) ->
@@ -162,9 +162,11 @@ makeGrid = (graph, arg) ->
   oldVerticesMap = {}
   for u in oldVertices
     oldVerticesMap[u.key] = u
-  vertices = graph
+
+  tmpGraph = coarseGraining graph, vertexVisibility, edgeVisibility
+
+  vertices = tmpGraph
     .vertices()
-    .filter (u) -> vertexVisibility graph.get(u), u
     .map (u) ->
       if oldVerticesMap[u]?
         oldVerticesMap[u].data = graph.get u
@@ -184,18 +186,6 @@ makeGrid = (graph, arg) ->
   verticesMap = {}
   for u in vertices
     verticesMap[u.key] = u
-  tmpGraph = adjacencyList()
-  for u in graph.vertices()
-    tmpGraph.addVertex {}, u
-  for [u, v] in graph.edges()
-    if edgeVisibility u, v
-      tmpGraph.addEdge u, v
-  for u in tmpGraph.vertices()
-    if not vertexVisibility(graph.get(u), u)
-      for v in tmpGraph.adjacentVertices u
-        for w in tmpGraph.invAdjacentVertices u
-          tmpGraph.addEdge w, v
-      tmpGraph.clearVertex u
   edges = tmpGraph.edges().map ([u, v]) ->
     source: verticesMap[u]
     target: verticesMap[v]
