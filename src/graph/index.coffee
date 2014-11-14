@@ -7,3 +7,4 @@ module.exports =
   reduce: require './reduce'
   redundantEdges: require './redundantEdges'
   coarseGraining: require './coarse-graining'
+  dumpJSON: require './dump-json'
