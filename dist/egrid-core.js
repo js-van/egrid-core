@@ -2266,16 +2266,20 @@
   degree = require('../centrality/degree');
 
   module.exports = function(graph, communities) {
-    var i, j, k, m, n, s, _i, _j;
+    var k, m, n, s, u, v, _i, _j, _len, _len1, _ref, _ref1;
     n = graph.numVertices();
     m = graph.numEdges();
     s = 0;
     k = degree.degree(graph);
-    for (i = _i = 0; 0 <= n ? _i < n : _i > n; i = 0 <= n ? ++_i : --_i) {
-      for (j = _j = 0; 0 <= n ? _j < n : _j > n; j = 0 <= n ? ++_j : --_j) {
-        if (communities[i] === communities[j]) {
-          s += graph.edge(i, j) || graph.edge(j, i) ? 1 : 0;
-          s -= k[i] * k[j] / 2 / m;
+    _ref = graph.vertices();
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      u = _ref[_i];
+      _ref1 = graph.vertices();
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        v = _ref1[_j];
+        if (communities[u] === communities[v]) {
+          s += graph.edge(u, v) || graph.edge(v, u) ? 1 : 0;
+          s -= k[u] * k[v] / 2 / m;
         }
       }
     }
