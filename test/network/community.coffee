@@ -19,6 +19,8 @@ module.exports = ->
       a = graph.addVertex()
       b = graph.addVertex()
       c = graph.addVertex()
+      dummy = graph.addVertex()
+      graph.removeVertex(dummy)
       d = graph.addVertex()
       e = graph.addVertex()
       f = graph.addVertex()
@@ -31,7 +33,7 @@ module.exports = ->
       graph.addEdge e, f
       communities = egrid.core.network.community.newman graph
       expect communities
-        .to.be.eql [[0, 1, 2], [3, 4, 5]]
+        .to.be.eql [[a, b, c], [d, e, f]]
 
   describe 'reduce', ->
     it 'should return reduced graph', ->
