@@ -5,9 +5,9 @@ module.exports = (graph, communities) ->
   m = graph.numEdges()
   s = 0
   k = degree.degree graph
-  for i in [0...n]
-    for j in [0...n]
-      if communities[i] is communities[j]
-        s += if graph.edge(i, j) or graph.edge(j, i) then 1 else 0
-        s -= k[i] * k[j] / 2 / m
+  for u in graph.vertices()
+    for v in graph.vertices()
+      if communities[u] is communities[v]
+        s += if graph.edge(u, v) or graph.edge(v, u) then 1 else 0
+        s -= k[u] * k[v] / 2 / m
   s / 2 / m
