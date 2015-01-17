@@ -1820,6 +1820,80 @@
         return u;
       };
 
+      EgmGraph.prototype.ungroup = function(u) {
+        var uData, vs;
+        uData = graph.get(u);
+        vs = uData.children.map(function(_arg) {
+          var key;
+          key = _arg.key;
+          return key;
+        });
+        execute({
+          execute: function() {
+            var groupMap, key, node, v, vData, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+            groupMap = {};
+            _ref = graph.vertices();
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              v = _ref[_i];
+              vData = graph.get(v);
+              if (vData.children) {
+                _ref1 = vData.children;
+                for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+                  key = _ref1[_j].key;
+                  groupMap[key] = v;
+                }
+              }
+            }
+            _ref2 = uData.children;
+            for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
+              _ref3 = _ref2[_k], key = _ref3.key, node = _ref3.node;
+              graph.addVertex(node, key);
+            }
+            _ref4 = uData.links;
+            for (_l = 0, _len3 = _ref4.length; _l < _len3; _l++) {
+              _ref5 = _ref4[_l], v = _ref5[0], w = _ref5[1];
+              if (graph.vertex(v) === null) {
+                graph.addEdge(groupMap[v], w);
+              } else if (graph.vertex(w) === null) {
+                graph.addEdge(v, groupMap[w]);
+              } else {
+                graph.addEdge(v, w);
+              }
+            }
+            graph.clearVertex(u);
+            return graph.removeVertex(u);
+          },
+          revert: function() {
+            var v, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref, _ref1, _results;
+            graph.addVertex(uData, u);
+            for (_i = 0, _len = vs.length; _i < _len; _i++) {
+              v = vs[_i];
+              _ref = graph.adjacentVertices(v);
+              for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+                w = _ref[_j];
+                if (vs.indexOf(w) < 0) {
+                  graph.addEdge(u, w);
+                }
+              }
+              _ref1 = graph.invAdjacentVertices(v);
+              for (_k = 0, _len2 = _ref1.length; _k < _len2; _k++) {
+                w = _ref1[_k];
+                if (vs.indexOf(w) < 0) {
+                  graph.addEdge(w, u);
+                }
+              }
+            }
+            _results = [];
+            for (_l = 0, _len3 = vs.length; _l < _len3; _l++) {
+              v = vs[_l];
+              graph.clearVertex(v);
+              _results.push(graph.removeVertex(v));
+            }
+            return _results;
+          }
+        });
+      };
+
       EgmGraph.prototype.canUndo = function() {
         return undoStack.length > 0;
       };
