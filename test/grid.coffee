@@ -206,6 +206,40 @@ module.exports = ->
         expect(grid.graph().edge d, i).to.be.ok()
         expect(grid.graph().get(i).text).to.be('bcef')
 
+    describe 'ungroup', ->
+      it 'should ungroup vertices', ->
+        grid = egrid.core.grid()
+        a = grid.addConstruct 'a'
+        b = grid.ladderDown a, 'b'
+        c = grid.ladderDown b, 'c'
+        d = grid.addConstruct 'd'
+        e = grid.ladderDown d, 'e'
+        f = grid.ladderDown e, 'f'
+        g = grid.group [b, e],
+          text: 'be'
+        h = grid.group [c, f],
+          text: 'cf'
+        i = grid.group [g, h],
+          text: 'bcef'
+        grid.ungroup i
+        grid.ungroup g
+        grid.ungroup h
+        expect(grid.graph().numVertices()).to.be 6
+        expect(grid.graph().numEdges()).to.be 4
+        expect(grid.graph().vertex a).to.be a
+        expect(grid.graph().vertex b).to.be b
+        expect(grid.graph().vertex c).to.be c
+        expect(grid.graph().vertex d).to.be d
+        expect(grid.graph().vertex e).to.be e
+        expect(grid.graph().vertex f).to.be f
+        expect(grid.graph().vertex g).to.not.be.ok()
+        expect(grid.graph().vertex h).to.not.be.ok()
+        expect(grid.graph().vertex i).to.not.be.ok()
+        expect(grid.graph().edge a, b).to.be.ok()
+        expect(grid.graph().edge b, c).to.be.ok()
+        expect(grid.graph().edge d, e).to.be.ok()
+        expect(grid.graph().edge e, f).to.be.ok()
+
     describe 'canUndo', ->
       it 'should return true after transaction', ->
         grid = egrid.core.grid()
@@ -342,6 +376,28 @@ module.exports = ->
         expect(grid.graph().edge d, e).to.be.ok()
         expect(grid.graph().edge e, f).to.be.ok()
 
+      it 'should revert ungroup', ->
+        grid = egrid.core.grid()
+        a = grid.addConstruct 'a'
+        b = grid.ladderDown a, 'b'
+        c = grid.ladderDown b, 'c'
+        d = grid.addConstruct 'd'
+        e = grid.ladderDown d, 'e'
+        f = grid.ladderDown e, 'f'
+        g = grid.group [b, e]
+        h = grid.group [c, f]
+        i = grid.group [g, h]
+        grid.ungroup i
+        grid.ungroup g
+        grid.ungroup h
+        grid.undo()
+        grid.undo()
+        grid.undo()
+        expect(grid.graph().numVertices()).to.be 3
+        expect(grid.graph().numEdges()).to.be 2
+        expect(grid.graph().edge a, i).to.be.ok()
+        expect(grid.graph().edge d, i).to.be.ok()
+
     describe 'redo', ->
       it 'should throw error if !canRedo()', ->
         grid = egrid.core.grid()
@@ -454,3 +510,30 @@ module.exports = ->
         expect(grid.graph().vertex i).to.be.ok()
         expect(grid.graph().edge a, i).to.be.ok()
         expect(grid.graph().edge d, i).to.be.ok()
+
+      it 'should re-execute ungroup', ->
+        grid = egrid.core.grid()
+        a = grid.addConstruct 'a'
+        b = grid.ladderDown a, 'b'
+        c = grid.ladderDown b, 'c'
+        d = grid.addConstruct 'd'
+        e = grid.ladderDown d, 'e'
+        f = grid.ladderDown e, 'f'
+        g = grid.group [b, e]
+        h = grid.group [c, f]
+        i = grid.group [g, h]
+        grid.ungroup i
+        grid.ungroup g
+        grid.ungroup h
+        grid.undo()
+        grid.undo()
+        grid.undo()
+        grid.redo()
+        grid.redo()
+        grid.redo()
+        expect(grid.graph().numVertices()).to.be 6
+        expect(grid.graph().numEdges()).to.be 4
+        expect(grid.graph().edge a, b).to.be.ok()
+        expect(grid.graph().edge b, c).to.be.ok()
+        expect(grid.graph().edge d, e).to.be.ok()
+        expect(grid.graph().edge e, f).to.be.ok()

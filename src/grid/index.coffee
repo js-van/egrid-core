@@ -222,6 +222,42 @@ module.exports = (vertices, edges) ->
           graph.removeVertex u
       u
 
+    ungroup: (u) ->
+      uData = graph.get u
+      vs = uData.children.map ({key}) -> key
+      execute
+        execute: ->
+          groupMap = {}
+          for v in graph.vertices()
+            vData = graph.get v
+            if vData.children
+              for {key} in vData.children
+                groupMap[key] = v
+          for {key, node} in uData.children
+            graph.addVertex node, key
+          for [v, w] in uData.links
+            if graph.vertex(v) is null
+              graph.addEdge groupMap[v], w
+            else if graph.vertex(w) is null
+              graph.addEdge v, groupMap[w]
+            else
+              graph.addEdge v, w
+          graph.clearVertex u
+          graph.removeVertex u
+        revert: ->
+          graph.addVertex uData, u
+          for v in vs
+            for w in graph.adjacentVertices v
+              if vs.indexOf(w) < 0
+                graph.addEdge u, w
+            for w in graph.invAdjacentVertices v
+              if vs.indexOf(w) < 0
+                graph.addEdge w, u
+          for v in vs
+            graph.clearVertex v
+            graph.removeVertex v
+      return
+
     canUndo: ->
       undoStack.length > 0
 
