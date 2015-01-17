@@ -158,13 +158,15 @@ module.exports = (vertices, edges) ->
             graph.set u, uValue
       u
 
-    group: (vs) ->
+    group: (vs, attrs={}) ->
       u = null
       execute
         execute: ->
           node =
             children: []
             links: []
+          for key, value of attrs
+            node[key] = value
           if u is null
             u = graph.addVertex node
           else

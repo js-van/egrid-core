@@ -181,8 +181,10 @@ module.exports = ->
         d = grid.addConstruct 'd'
         e = grid.ladderDown d, 'e'
         f = grid.ladderDown e, 'f'
-        g = grid.group [b, e]
-        h = grid.group [c, f]
+        g = grid.group [b, e],
+          text: 'be'
+        h = grid.group [c, f],
+          text: 'cf'
         expect(grid.graph().numVertices()).to.be 4
         expect(grid.graph().numEdges()).to.be 3
         expect(grid.graph().vertex b).to.not.be.ok()
@@ -194,11 +196,15 @@ module.exports = ->
         expect(grid.graph().edge a, g).to.be.ok()
         expect(grid.graph().edge d, g).to.be.ok()
         expect(grid.graph().edge g, h).to.be.ok()
-        i = grid.group [g, h]
+        expect(grid.graph().get(g).text).to.be('be')
+        expect(grid.graph().get(h).text).to.be('cf')
+        i = grid.group [g, h],
+          text: 'bcef'
         expect(grid.graph().numVertices()).to.be 3
         expect(grid.graph().numEdges()).to.be 2
         expect(grid.graph().edge a, i).to.be.ok()
         expect(grid.graph().edge d, i).to.be.ok()
+        expect(grid.graph().get(i).text).to.be('bcef')
 
     describe 'canUndo', ->
       it 'should return true after transaction', ->
