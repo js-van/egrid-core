@@ -1695,16 +1695,23 @@
         return u;
       };
 
-      EgmGraph.prototype.group = function(vs) {
+      EgmGraph.prototype.group = function(vs, attrs) {
         var u;
+        if (attrs == null) {
+          attrs = {};
+        }
         u = null;
         execute({
           execute: function() {
-            var link, node, v, w, wData, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _m, _n, _o, _p, _q, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _results;
+            var key, link, node, v, value, w, wData, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _m, _n, _o, _p, _q, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _results;
             node = {
               children: [],
               links: []
             };
+            for (key in attrs) {
+              value = attrs[key];
+              node[key] = value;
+            }
             if (u === null) {
               u = graph.addVertex(node);
             } else {
