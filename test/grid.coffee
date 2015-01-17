@@ -194,6 +194,11 @@ module.exports = ->
         expect(grid.graph().edge a, g).to.be.ok()
         expect(grid.graph().edge d, g).to.be.ok()
         expect(grid.graph().edge g, h).to.be.ok()
+        i = grid.group [g, h]
+        expect(grid.graph().numVertices()).to.be 3
+        expect(grid.graph().numEdges()).to.be 2
+        expect(grid.graph().edge a, i).to.be.ok()
+        expect(grid.graph().edge d, i).to.be.ok()
 
     describe 'canUndo', ->
       it 'should return true after transaction', ->
@@ -314,6 +319,8 @@ module.exports = ->
         f = grid.ladderDown e, 'f'
         g = grid.group [b, e]
         h = grid.group [c, f]
+        i = grid.group [g, h]
+        grid.undo()
         grid.undo()
         grid.undo()
         expect(grid.graph().numVertices()).to.be 6
@@ -423,18 +430,21 @@ module.exports = ->
         f = grid.ladderDown e, 'f'
         g = grid.group [b, e]
         h = grid.group [c, f]
+        i = grid.group [g, h]
+        grid.undo()
         grid.undo()
         grid.undo()
         grid.redo()
         grid.redo()
-        expect(grid.graph().numVertices()).to.be 4
-        expect(grid.graph().numEdges()).to.be 3
+        grid.redo()
+        expect(grid.graph().numVertices()).to.be 3
+        expect(grid.graph().numEdges()).to.be 2
         expect(grid.graph().vertex b).to.not.be.ok()
         expect(grid.graph().vertex c).to.not.be.ok()
         expect(grid.graph().vertex e).to.not.be.ok()
         expect(grid.graph().vertex f).to.not.be.ok()
-        expect(grid.graph().vertex g).to.be.ok()
-        expect(grid.graph().vertex h).to.be.ok()
-        expect(grid.graph().edge a, g).to.be.ok()
-        expect(grid.graph().edge d, g).to.be.ok()
-        expect(grid.graph().edge g, h).to.be.ok()
+        expect(grid.graph().vertex g).to.not.be.ok()
+        expect(grid.graph().vertex h).to.not.be.ok()
+        expect(grid.graph().vertex i).to.be.ok()
+        expect(grid.graph().edge a, i).to.be.ok()
+        expect(grid.graph().edge d, i).to.be.ok()

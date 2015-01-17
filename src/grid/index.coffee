@@ -191,9 +191,11 @@ module.exports = (vertices, edges) ->
                 node.links.push [w, v]
           for v in vs
             for w in graph.adjacentVertices v
-              graph.addEdge u, w
+              if vs.indexOf(w) < 0
+                graph.addEdge u, w
             for w in graph.invAdjacentVertices v
-              graph.addEdge w, u
+              if vs.indexOf(w) < 0
+                graph.addEdge w, u
           for v in vs
             graph.clearVertex v
             graph.removeVertex v
