@@ -158,6 +158,66 @@ module.exports = (vertices, edges) ->
             graph.set u, uValue
       u
 
+    group: (vs) ->
+      u = null
+      execute
+        execute: ->
+          node =
+            children: []
+            links: []
+          if u is null
+            u = graph.addVertex node
+          else
+            graph.addVertex node, u
+          for v in vs
+            node.children.push
+              key: v
+              node: graph.get v
+            for w in graph.adjacentVertices v
+              wData = graph.get w
+              if wData.children
+                for link in wData.links
+                  if link[0] is v
+                    node.links.push [v, link[1]]
+              else
+                node.links.push [v, w]
+            for w in graph.invAdjacentVertices v
+              wData = graph.get w
+              if wData.children
+                for link in wData.links
+                  if link[1] is v
+                    node.links.push [link[0], v]
+              else
+                node.links.push [w, v]
+          for v in vs
+            for w in graph.adjacentVertices v
+              graph.addEdge u, w
+            for w in graph.invAdjacentVertices v
+              graph.addEdge w, u
+          for v in vs
+            graph.clearVertex v
+            graph.removeVertex v
+        revert: ->
+          groupMap = {}
+          for v in graph.vertices()
+            vData = graph.get v
+            if vData.children
+              for {key} in vData.children
+                groupMap[key] = v
+          uData = graph.get u
+          for {key, node} in uData.children
+            graph.addVertex node, key
+          for [v, w] in uData.links
+            if graph.vertex(v) is null
+              graph.addEdge groupMap[v], w
+            else if graph.vertex(w) is null
+              graph.addEdge v, groupMap[w]
+            else
+              graph.addEdge v, w
+          graph.clearVertex u
+          graph.removeVertex u
+      u
+
     canUndo: ->
       undoStack.length > 0
 
