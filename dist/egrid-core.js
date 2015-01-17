@@ -1695,6 +1695,124 @@
         return u;
       };
 
+      EgmGraph.prototype.group = function(vs) {
+        var u;
+        u = null;
+        execute({
+          execute: function() {
+            var link, node, v, w, wData, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _m, _n, _o, _p, _q, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _results;
+            node = {
+              children: [],
+              links: []
+            };
+            if (u === null) {
+              u = graph.addVertex(node);
+            } else {
+              graph.addVertex(node, u);
+            }
+            for (_i = 0, _len = vs.length; _i < _len; _i++) {
+              v = vs[_i];
+              node.children.push({
+                key: v,
+                node: graph.get(v)
+              });
+              _ref = graph.adjacentVertices(v);
+              for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+                w = _ref[_j];
+                wData = graph.get(w);
+                if (wData.children) {
+                  _ref1 = wData.links;
+                  for (_k = 0, _len2 = _ref1.length; _k < _len2; _k++) {
+                    link = _ref1[_k];
+                    if (link[0] === v) {
+                      node.links.push([v, link[1]]);
+                    }
+                  }
+                } else {
+                  node.links.push([v, w]);
+                }
+              }
+              _ref2 = graph.invAdjacentVertices(v);
+              for (_l = 0, _len3 = _ref2.length; _l < _len3; _l++) {
+                w = _ref2[_l];
+                wData = graph.get(w);
+                if (wData.children) {
+                  _ref3 = wData.links;
+                  for (_m = 0, _len4 = _ref3.length; _m < _len4; _m++) {
+                    link = _ref3[_m];
+                    if (link[1] === v) {
+                      node.links.push([link[0], v]);
+                    }
+                  }
+                } else {
+                  node.links.push([w, v]);
+                }
+              }
+            }
+            for (_n = 0, _len5 = vs.length; _n < _len5; _n++) {
+              v = vs[_n];
+              _ref4 = graph.adjacentVertices(v);
+              for (_o = 0, _len6 = _ref4.length; _o < _len6; _o++) {
+                w = _ref4[_o];
+                if (vs.indexOf(w) < 0) {
+                  graph.addEdge(u, w);
+                }
+              }
+              _ref5 = graph.invAdjacentVertices(v);
+              for (_p = 0, _len7 = _ref5.length; _p < _len7; _p++) {
+                w = _ref5[_p];
+                if (vs.indexOf(w) < 0) {
+                  graph.addEdge(w, u);
+                }
+              }
+            }
+            _results = [];
+            for (_q = 0, _len8 = vs.length; _q < _len8; _q++) {
+              v = vs[_q];
+              graph.clearVertex(v);
+              _results.push(graph.removeVertex(v));
+            }
+            return _results;
+          },
+          revert: function() {
+            var groupMap, key, node, uData, v, vData, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+            groupMap = {};
+            _ref = graph.vertices();
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              v = _ref[_i];
+              vData = graph.get(v);
+              if (vData.children) {
+                _ref1 = vData.children;
+                for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+                  key = _ref1[_j].key;
+                  groupMap[key] = v;
+                }
+              }
+            }
+            uData = graph.get(u);
+            _ref2 = uData.children;
+            for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
+              _ref3 = _ref2[_k], key = _ref3.key, node = _ref3.node;
+              graph.addVertex(node, key);
+            }
+            _ref4 = uData.links;
+            for (_l = 0, _len3 = _ref4.length; _l < _len3; _l++) {
+              _ref5 = _ref4[_l], v = _ref5[0], w = _ref5[1];
+              if (graph.vertex(v) === null) {
+                graph.addEdge(groupMap[v], w);
+              } else if (graph.vertex(w) === null) {
+                graph.addEdge(v, groupMap[w]);
+              } else {
+                graph.addEdge(v, w);
+              }
+            }
+            graph.clearVertex(u);
+            return graph.removeVertex(u);
+          }
+        });
+        return u;
+      };
+
       EgmGraph.prototype.canUndo = function() {
         return undoStack.length > 0;
       };
