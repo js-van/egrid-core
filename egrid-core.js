@@ -331,9 +331,7 @@
       textSeparator: function(s) {
         return s.split('\n');
       },
-      vertexButtons: function() {
-        return [];
-      },
+      vertexButtons: [],
       vertexColor: function() {
         return '';
       },
