@@ -220,7 +220,7 @@ module.exports = () ->
     selectedStrokeColor: 'purple'
     strokeColor: 'black'
     textSeparator: (s) -> s.split '\n'
-    vertexButtons: -> []
+    vertexButtons: []
     vertexColor: -> ''
     vertexFontWeight: -> 'normal'
     vertexOpacity: -> 1
