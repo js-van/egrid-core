@@ -1,3 +1,6 @@
+d3 = require 'd3'
+graphlib = require 'graphlib'
+dagre = require 'dagre'
 svg = require '../svg'
 update = require './update'
 select = require './select'
