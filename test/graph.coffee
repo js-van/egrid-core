@@ -1,3 +1,5 @@
+egrid = core: require '../'
+
 module.exports = ->
   describe 'AdjacencyList', ->
     describe 'adjacencyList()', ->

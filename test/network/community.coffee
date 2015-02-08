@@ -1,3 +1,5 @@
+egrid = core: require '../../'
+
 module.exports = ->
   describe 'modularity', ->
     it 'should return 0 if graph has one community', ->
