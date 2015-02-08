@@ -3,7 +3,7 @@ egrid-core.min.js
 egrid-core.d.ts
 bower_components
 node_modules
-src/**/*.js
+lib
 test/**/*.js
 examples/**/*.js
 gh-pages/egrid-core-examples.js
