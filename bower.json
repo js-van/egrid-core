@@ -21,8 +21,6 @@
     "gh-pages"
   ],
   "dependencies": {
-    "d3": "~3.4.11",
-    "dagre": "http://github.com/likr/dagre.git#master"
   },
   "devDependencies": {
     "mocha": "~1.20.1",
