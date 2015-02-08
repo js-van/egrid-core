@@ -1,3 +1,5 @@
+egrid = core: require '../../'
+
 angular.module 'egrid-core-example'
   .config ($stateProvider) ->
     $stateProvider
