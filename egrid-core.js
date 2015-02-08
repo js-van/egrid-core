@@ -212,6 +212,7 @@
           enableZoom: egm.enableZoom(),
           maxTextLength: egm.maxTextLength(),
           textSeparator: egm.textSeparator(),
+          vertexAveilability: egm.vertexAveilability(),
           vertexButtons: egm.vertexButtons(),
           vertexFontWeight: egm.vertexFontWeight(),
           vertexScale: egm.vertexScale(),
@@ -336,6 +337,9 @@
       strokeColor: 'black',
       textSeparator: function(s) {
         return s.split('\n');
+      },
+      vertexAveilability: function() {
+        return true;
       },
       vertexButtons: [],
       vertexColor: function() {
@@ -589,13 +593,15 @@
 
 },{}],7:[function(require,module,exports){
 (function() {
-  var calculateTextSize, coarseGraining, createVertex, initContainer, makeGrid, onClickVertex, onMouseEnterVertex, onMouseLeaveVertex, select, svg, updateEdges, updateVertices;
+  var calculateTextSize, coarseGraining, copy, createVertex, initContainer, makeGrid, onClickVertex, onMouseEnterVertex, onMouseLeaveVertex, select, svg, updateEdges, updateVertices;
 
   svg = require('../svg');
 
   select = require('./select');
 
   coarseGraining = require('../graph/coarse-graining');
+
+  copy = require('../graph/copy');
 
   onClickVertex = function(_arg) {
     var clickVertexCallback, container, vertexButtons;
@@ -740,14 +746,23 @@
   };
 
   makeGrid = function(graph, arg) {
-    var edgeVisibility, edges, maxTextLength, oldVertices, oldVerticesMap, removeRedundantEdges, textSeparator, tmpGraph, u, vertex, vertexText, vertexVisibility, vertices, verticesMap, _i, _j, _k, _len, _len1, _len2;
-    maxTextLength = arg.maxTextLength, oldVertices = arg.oldVertices, vertexVisibility = arg.vertexVisibility, edgeVisibility = arg.edgeVisibility, removeRedundantEdges = arg.removeRedundantEdges, textSeparator = arg.textSeparator, vertexText = arg.vertexText;
+    var edgeVisibility, edges, maxTextLength, oldVertices, oldVerticesMap, removeRedundantEdges, textSeparator, tmpGraph, u, vertex, vertexAveilability, vertexText, vertexVisibility, vertices, verticesMap, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref;
+    maxTextLength = arg.maxTextLength, oldVertices = arg.oldVertices, vertexAveilability = arg.vertexAveilability, vertexVisibility = arg.vertexVisibility, edgeVisibility = arg.edgeVisibility, removeRedundantEdges = arg.removeRedundantEdges, textSeparator = arg.textSeparator, vertexText = arg.vertexText;
     oldVerticesMap = {};
     for (_i = 0, _len = oldVertices.length; _i < _len; _i++) {
       u = oldVertices[_i];
       oldVerticesMap[u.key] = u;
     }
-    tmpGraph = coarseGraining(graph, vertexVisibility, edgeVisibility);
+    tmpGraph = copy(graph);
+    _ref = tmpGraph.vertices();
+    for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+      u = _ref[_j];
+      if (!vertexAveilability(graph.get(u), u)) {
+        tmpGraph.clearVertex(u);
+        tmpGraph.removeVertex(u);
+      }
+    }
+    tmpGraph = coarseGraining(tmpGraph, vertexVisibility, edgeVisibility);
     vertices = tmpGraph.vertices().map(function(u) {
       if (oldVerticesMap[u] != null) {
         oldVerticesMap[u].data = graph.get(u);
@@ -759,8 +774,8 @@
         };
       }
     });
-    for (_j = 0, _len1 = vertices.length; _j < _len1; _j++) {
-      vertex = vertices[_j];
+    for (_k = 0, _len2 = vertices.length; _k < _len2; _k++) {
+      vertex = vertices[_k];
       vertex.texts = textSeparator(vertexText(vertex.data)).map(function(text) {
         var originalText;
         originalText = text;
@@ -774,8 +789,8 @@
       });
     }
     verticesMap = {};
-    for (_k = 0, _len2 = vertices.length; _k < _len2; _k++) {
-      u = vertices[_k];
+    for (_l = 0, _len3 = vertices.length; _l < _len3; _l++) {
+      u = vertices[_l];
       verticesMap[u.key] = u;
     }
     edges = tmpGraph.edges().map(function(_arg) {
@@ -813,8 +828,8 @@
   };
 
   module.exports = function(graph, arg) {
-    var clickVertexCallback, edgeLine, edgePointsSize, edgeText, edgeVisibility, enableZoom, maxTextLength, removeRedundantEdges, textSeparator, vertexButtons, vertexFontWeight, vertexScale, vertexStrokeWidth, vertexText, vertexVisibility, zoom;
-    clickVertexCallback = arg.clickVertexCallback, edgeLine = arg.edgeLine, edgePointsSize = arg.edgePointsSize, edgeText = arg.edgeText, enableZoom = arg.enableZoom, maxTextLength = arg.maxTextLength, removeRedundantEdges = arg.removeRedundantEdges, textSeparator = arg.textSeparator, vertexButtons = arg.vertexButtons, vertexFontWeight = arg.vertexFontWeight, vertexScale = arg.vertexScale, vertexStrokeWidth = arg.vertexStrokeWidth, vertexText = arg.vertexText, edgeVisibility = arg.edgeVisibility, vertexVisibility = arg.vertexVisibility, zoom = arg.zoom;
+    var clickVertexCallback, edgeLine, edgePointsSize, edgeText, edgeVisibility, enableZoom, maxTextLength, removeRedundantEdges, textSeparator, vertexAveilability, vertexButtons, vertexFontWeight, vertexScale, vertexStrokeWidth, vertexText, vertexVisibility, zoom;
+    clickVertexCallback = arg.clickVertexCallback, edgeLine = arg.edgeLine, edgePointsSize = arg.edgePointsSize, edgeText = arg.edgeText, edgeVisibility = arg.edgeVisibility, enableZoom = arg.enableZoom, maxTextLength = arg.maxTextLength, removeRedundantEdges = arg.removeRedundantEdges, textSeparator = arg.textSeparator, vertexAveilability = arg.vertexAveilability, vertexButtons = arg.vertexButtons, vertexFontWeight = arg.vertexFontWeight, vertexScale = arg.vertexScale, vertexStrokeWidth = arg.vertexStrokeWidth, vertexText = arg.vertexText, vertexVisibility = arg.vertexVisibility, zoom = arg.zoom;
     return function(selection) {
       var contents, edges, vertices, _ref;
       if (graph != null) {
@@ -828,6 +843,7 @@
         _ref = makeGrid(graph, {
           maxTextLength: maxTextLength,
           oldVertices: selection.selectAll('g.vertex').data(),
+          vertexAveilability: vertexAveilability,
           vertexVisibility: vertexVisibility,
           edgeVisibility: edgeVisibility,
           removeRedundantEdges: removeRedundantEdges,
@@ -864,7 +880,7 @@
 
 }).call(this);
 
-},{"../graph/coarse-graining":9,"../svg":39,"./select":5}],8:[function(require,module,exports){
+},{"../graph/coarse-graining":9,"../graph/copy":10,"../svg":39,"./select":5}],8:[function(require,module,exports){
 (function() {
   module.exports = function(v, e) {
     var AdjacencyList, idOffset, nextVertexId, vertices;
