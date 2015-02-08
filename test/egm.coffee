@@ -143,6 +143,23 @@ module.exports = ->
           expect d.y
             .to.be positions[d.key][1]
 
+    describe 'vertexAveilability', ->
+      it 'should change vertex aveilability', ->
+        grid = egrid.core.grid()
+        a = grid.addConstruct 'a'
+        b = grid.ladderDown a, 'b'
+        c = grid.ladderDown a, 'c'
+        grid.ladderDown b, 'c'
+        egm = egrid.core.egm()
+          .vertexAveilability (_, u) -> u isnt b
+        selection = d3.select 'svg'
+          .datum grid.graph()
+          .call egm
+        expect selection.selectAll('g.vertices>g.vertex').size()
+          .to.be 2
+        expect selection.selectAll('g.edges>g.edge').size()
+          .to.be 1
+
     describe 'vertexColor', ->
       it 'should change fill style of vertex', ->
         grid = egrid.core.grid()

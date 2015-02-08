@@ -55,14 +55,6 @@ module.exports = (grunt) ->
       options:
         reporter: 'list'
       all: ['test/**/*.html']
-    copy:
-      'gh-pages':
-        files: [
-          {
-            src: 'egrid-core.js'
-            dest: 'gh-pages/'
-          }
-        ]
     clean: [
       'egrid-core.js'
       'lib'
@@ -85,7 +77,6 @@ module.exports = (grunt) ->
     grunt.loadNpmTasks 'grunt-bump'
     grunt.loadNpmTasks 'grunt-contrib-clean'
     grunt.loadNpmTasks 'grunt-contrib-coffee'
-    grunt.loadNpmTasks 'grunt-contrib-copy'
     grunt.loadNpmTasks 'grunt-contrib-uglify'
     grunt.loadNpmTasks 'grunt-contrib-watch'
     grunt.loadNpmTasks 'grunt-mocha-phantomjs'
@@ -94,7 +85,7 @@ module.exports = (grunt) ->
     grunt.registerTask 'build:main', ['coffee:main']
     grunt.registerTask 'build:test', ['coffee:test', 'browserify:test']
     grunt.registerTask 'build:gh-pages',
-      ['coffee:gh-pages', 'browserify:gh-pages', 'copy:gh-pages']
+      ['coffee:gh-pages', 'browserify:gh-pages']
     grunt.registerTask 'default', ['build:main']
     grunt.registerTask 'dist', ['build:main', 'browserify:main', 'uglify:main']
     grunt.registerTask 'gh-pages', ['build:main', 'build:gh-pages']
