@@ -1,3 +1,6 @@
+d3 = require 'd3'
+graphlib = require 'graphlib'
+dagre = require 'dagre'
 svg = require '../svg'
 update = require './update'
 select = require './select'
@@ -131,6 +134,7 @@ module.exports = () ->
           enableZoom: egm.enableZoom()
           maxTextLength: egm.maxTextLength()
           textSeparator: egm.textSeparator()
+          vertexAveilability: egm.vertexAveilability()
           vertexButtons: egm.vertexButtons()
           vertexFontWeight: egm.vertexFontWeight()
           vertexScale: egm.vertexScale()
@@ -220,6 +224,7 @@ module.exports = () ->
     selectedStrokeColor: 'purple'
     strokeColor: 'black'
     textSeparator: (s) -> s.split '\n'
+    vertexAveilability: -> true
     vertexButtons: []
     vertexColor: -> ''
     vertexFontWeight: -> 'normal'

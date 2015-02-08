@@ -1,3 +1,5 @@
+egrid = core: require '../'
+
 module.exports = ->
   describe 'Grid', ->
     it 'should create empty grid with no argument', ->

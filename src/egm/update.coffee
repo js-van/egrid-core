@@ -1,6 +1,7 @@
 svg = require '../svg'
 select = require './select'
 coarseGraining = require '../graph/coarse-graining'
+copy = require '../graph/copy'
 
 
 onClickVertex = ({container, vertexButtons, clickVertexCallback}) ->
@@ -154,6 +155,7 @@ updateEdges = (arg) ->
 makeGrid = (graph, arg) ->
   {maxTextLength,
    oldVertices,
+   vertexAveilability,
    vertexVisibility,
    edgeVisibility
    removeRedundantEdges,
@@ -163,7 +165,12 @@ makeGrid = (graph, arg) ->
   for u in oldVertices
     oldVerticesMap[u.key] = u
 
-  tmpGraph = coarseGraining graph, vertexVisibility, edgeVisibility
+  tmpGraph = copy graph
+  for u in tmpGraph.vertices()
+    if not vertexAveilability graph.get(u), u
+      tmpGraph.clearVertex u
+      tmpGraph.removeVertex u
+  tmpGraph = coarseGraining tmpGraph, vertexVisibility, edgeVisibility
 
   vertices = tmpGraph
     .vertices()
@@ -223,16 +230,17 @@ module.exports = (graph, arg) ->
    edgeLine,
    edgePointsSize,
    edgeText,
+   edgeVisibility,
    enableZoom,
    maxTextLength,
    removeRedundantEdges
    textSeparator,
+   vertexAveilability,
    vertexButtons,
    vertexFontWeight,
    vertexScale,
    vertexStrokeWidth,
    vertexText,
-   edgeVisibility,
    vertexVisibility,
    zoom} = arg
 
@@ -252,6 +260,7 @@ module.exports = (graph, arg) ->
       {vertices, edges} = makeGrid graph,
         maxTextLength: maxTextLength
         oldVertices: selection.selectAll('g.vertex').data()
+        vertexAveilability: vertexAveilability
         vertexVisibility: vertexVisibility
         edgeVisibility: edgeVisibility
         removeRedundantEdges: removeRedundantEdges
