@@ -32,6 +32,9 @@ module.exports = (grunt) ->
       main:
         files:
           'egrid-core.js': ['lib/index.js']
+        options:
+          browserifyOptions:
+            standalone: 'egrid.core'
       test:
         files:
           'test/egrid-core-test.js': ['test/index.js']
