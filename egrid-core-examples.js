@@ -2383,12 +2383,22 @@
             graph.removeVertex(v);
             for (_i = 0, _len = vAdjacentVertices.length; _i < _len; _i++) {
               w = vAdjacentVertices[_i];
-              graph.addEdge(u, w);
+              if (w === v) {
+                graph.addEdge(u, u);
+              } else if (w !== u) {
+                graph.addEdge(u, w);
+              }
             }
             _results = [];
             for (_j = 0, _len1 = vInvAdjacentVertices.length; _j < _len1; _j++) {
               w = vInvAdjacentVertices[_j];
-              _results.push(graph.addEdge(w, u));
+              if (w === v) {
+                _results.push(graph.addEdge(u, u));
+              } else if (w !== u && w !== v) {
+                _results.push(graph.addEdge(w, u));
+              } else {
+                _results.push(void 0);
+              }
             }
             return _results;
           },
