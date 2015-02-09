@@ -162,6 +162,27 @@ module.exports = ->
         expect(grid.graph().adjacentVertices(a)).to.be.eql([c, f])
         expect(grid.graph().invAdjacentVertices(a)).to.be.eql([b, e])
 
+      it 'should merge adjacent vertices', ->
+        grid = egrid.core.grid()
+        a = grid.addConstruct 'a'
+        b = grid.ladderDown a, 'b'
+        grid.merge a, b
+        expect grid.graph().numVertices()
+          .to.be 1
+        expect grid.graph().numEdges()
+          .to.be 0
+
+      it 'should preserve loop edge', ->
+        grid = egrid.core.grid()
+        a = grid.addConstruct 'a'
+        b = grid.ladderDown a, 'b'
+        grid.addEdge b, b
+        grid.merge a, b
+        expect grid.graph().numVertices()
+          .to.be 1
+        expect grid.graph().numEdges()
+          .to.be 1
+
       it 'should run with custom merge function', ->
         grid = egrid.core.grid()
         u = grid.addConstruct('1st construct')
@@ -344,12 +365,15 @@ module.exports = ->
 
       it 'should revert merge', ->
         grid = egrid.core.grid()
-        a = grid.addConstruct('a')
-        b = grid.ladderDown(a, 'b')
-        grid.merge(a, b)
+        a = grid.addConstruct 'a'
+        b = grid.ladderDown a, 'b'
+        grid.addEdge b, b
+        grid.merge a, b
         grid.undo()
-        expect(grid.graph().numVertices()).to.be(2)
-        expect(grid.graph().numEdges()).to.be(1)
+        expect grid.graph().numVertices()
+          .to.be 2
+        expect grid.graph().numEdges()
+          .to.be 2
 
       it 'should revert group', ->
         grid = egrid.core.grid()
@@ -483,6 +507,19 @@ module.exports = ->
         expect(grid.graph().numEdges()).to.be(4)
         expect(grid.graph().adjacentVertices(a)).to.be.eql([c, f])
         expect(grid.graph().invAdjacentVertices(a)).to.be.eql([b, e])
+
+      it 'should re-execute merge', ->
+        grid = egrid.core.grid()
+        a = grid.addConstruct 'a'
+        b = grid.ladderDown a, 'b'
+        grid.addEdge b, b
+        grid.merge a, b
+        grid.undo()
+        grid.redo()
+        expect grid.graph().numVertices()
+          .to.be 1
+        expect grid.graph().numEdges()
+          .to.be 1
 
       it 'should re-execute group', ->
         grid = egrid.core.grid()

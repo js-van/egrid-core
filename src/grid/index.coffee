@@ -141,9 +141,15 @@ module.exports = (vertices, edges) ->
           graph.clearVertex v
           graph.removeVertex v
           for w in vAdjacentVertices
-            graph.addEdge u, w
+            if w is v
+              graph.addEdge u, u
+            else if w isnt u
+              graph.addEdge u, w
           for w in vInvAdjacentVertices
-            graph.addEdge w, u
+            if w is v
+              graph.addEdge u, u
+            else if w isnt u and w isnt v
+              graph.addEdge w, u
         revert: ->
           graph.clearVertex u
           graph.addVertex vValue, v
