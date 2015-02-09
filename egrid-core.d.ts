@@ -128,6 +128,8 @@ declare module egrid {
       /**
        * vertex attributes
        */
+      vertexAveilability(): (node: any, u: number) => boolean;
+      vertexAveilability(arg: (node: any, u: number) => boolean): EGM;
       vertexColor(): (node: any, u: number) => string;
       vertexColor(arg: (node: any, u: number) => string): EGM;
       vertexFontWeight(): (node: any, u: number) => string;
