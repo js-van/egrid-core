@@ -1,6 +1,6 @@
 {
   "name": "egrid-core",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Layered graph drawing tool for E-Grid",
   "main": "lib/index.js",
   "files": [
