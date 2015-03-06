@@ -12,6 +12,10 @@ declare module egrid {
       links: LinkJson[];
     }
 
+    interface BaseEdgeProps {
+      coefficient: number;
+    }
+
     interface Graph<T> {
       vertices(): number[];
       edges(): [number, number][];
@@ -30,7 +34,8 @@ declare module egrid {
       addVertex(prop: T, u?: number): number;
       clearVertex(u: number): void;
       removeVertex(u: number): void;
-      get(u: number, v?: number): T;
+      get(u: number): T;
+      get(u: number, v: number): BaseEdgeProps;
       set(u: number, prop: T): void;
       set(u: number, v: number, prop: T): void;
     }
