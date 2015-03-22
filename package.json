@@ -35,6 +35,7 @@
   "dependencies": {
     "d3": "^3.5.3",
     "dagre": "git://github.com/likr/dagre.git#master",
-    "graphlib": "^1.0.1"
+    "graphlib": "^1.0.1",
+    "wf-asm": "git://github.com/likr/wf-asm"
   }
 }
