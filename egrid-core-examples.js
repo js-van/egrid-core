@@ -771,13 +771,15 @@
 
 },{}],12:[function(require,module,exports){
 (function() {
-  var adjacencyList, cycleRemoval, d3, dagre, edgeLine, edgePointsSize, graphlib, layerAssignment, layout, select, svg, transition, update;
+  var adjacencyList, cycleRemoval, d3, dagre, defaultRanker, edgeLine, edgePointsSize, graphlib, layerAssignment, layout, pdip, select, svg, transition, update;
 
   d3 = require('d3');
 
   graphlib = require('graphlib');
 
   dagre = require('dagre');
+
+  pdip = require('pdip-quad');
 
   svg = require('../svg');
 
@@ -891,6 +893,111 @@
     };
   };
 
+  defaultRanker = function(g) {
+    var a, b, c, dfs, edges, i, index, indices, iu, iv, l, m, maxRank, n, q, result, solver, u, v, visited, w, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref, _ref1, _ref2, _ref3, _ref4, _results;
+    visited = {};
+    dfs = function(v) {
+      var label, rank;
+      label = g.node(v);
+      if (visited[v] != null) {
+        return label.rank;
+      }
+      visited[v] = true;
+      rank = d3.max(g.inEdges(v), function(e) {
+        return dfs(e.v) + g.edge(e).minlen;
+      });
+      if (rank === void 0) {
+        rank = 0;
+      }
+      return label.rank = rank;
+    };
+    g.sinks().forEach(dfs);
+    maxRank = d3.max(g.nodes(), function(u) {
+      return g.node(u).rank;
+    });
+    _ref = g.nodes();
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      u = _ref[_i];
+      if (g.outEdges(u).length === 0) {
+        g.node(u).rank = maxRank;
+      }
+    }
+    if ((typeof Float64Array !== "undefined" && Float64Array !== null) && g.nodeCount() < 200) {
+      l = +((maxRank - 1) / 2).toFixed();
+      indices = {};
+      index = 0;
+      _ref1 = g.nodes();
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        u = _ref1[_j];
+        if (!u.startsWith('_')) {
+          if ((1 < (_ref2 = g.node(u).rank) && _ref2 < maxRank)) {
+            indices[u] = index++;
+          }
+        }
+      }
+      edges = g.edges().filter(function(_arg) {
+        var v, w;
+        v = _arg.v, w = _arg.w;
+        return !v.startsWith('_') && ((indices[v] != null) || (indices[w] != null));
+      });
+      m = edges.length;
+      n = index + m;
+      solver = pdip(n, m);
+      a = solver.a();
+      b = solver.b();
+      c = solver.c();
+      q = solver.q();
+      for (i = _k = 0, _len2 = edges.length; _k < _len2; i = ++_k) {
+        _ref3 = edges[i], v = _ref3.v, w = _ref3.w;
+        iu = indices[v];
+        iv = indices[w];
+        if (g.predecessors(v).length === 0) {
+          q[iv * n + iv] += 2;
+          a[i * n + iv] = 1;
+          a[i * n + n - m + i] = -1;
+          b[i] = 1;
+        } else if (g.successors(w).length === 0) {
+          c[iu] -= 2 * l;
+          q[iu * n + iu] += 2;
+          a[i * n + iu] = 1;
+          a[i * n + n - m + i] = 1;
+          b[i] = l - 1;
+        } else {
+          q[iu * n + iu] += 2;
+          q[iv * n + iv] += 2;
+          q[iv * n + iu] -= 2;
+          q[iu * n + iv] -= 2;
+          a[i * n + iv] = 1;
+          a[i * n + iu] = -1;
+          a[i * n + n - m + i] = -1;
+          b[i] = 1;
+        }
+      }
+      result = solver.solve({
+        mu: 0.5,
+        muMin: 1e-6,
+        gamma: 0.1,
+        tau: 0.7,
+        err: 1e-6
+      });
+      _ref4 = g.nodes();
+      _results = [];
+      for (_l = 0, _len3 = _ref4.length; _l < _len3; _l++) {
+        u = _ref4[_l];
+        if (indices[u] != null) {
+          _results.push(g.node(u).rank = +result.x[indices[u]].toFixed() * 2 + 1);
+        } else if (g.node(u).rank === 1) {
+          _results.push(g.node(u).rank = 1);
+        } else if (g.node(u).rank === maxRank) {
+          _results.push(g.node(u).rank = l * 2 + 1);
+        } else {
+          _results.push(void 0);
+        }
+      }
+      return _results;
+    }
+  };
+
   module.exports = function() {
     var accessor, attr, egm, optionAttributes, val, zoom;
     zoom = d3.behavior.zoom().scaleExtent([0, 1]);
@@ -977,40 +1084,7 @@
       contentsScaleMax: 1,
       dagreEdgeSep: 10,
       dagreNodeSep: 20,
-      dagreRanker: function(g) {
-        var dfs, maxRank, u, visited, _i, _len, _ref, _results;
-        visited = {};
-        dfs = function(v) {
-          var label, rank;
-          label = g.node(v);
-          if (visited[v] != null) {
-            return label.rank;
-          }
-          visited[v] = true;
-          rank = d3.max(g.inEdges(v), function(e) {
-            return dfs(e.v) + g.edge(e).minlen;
-          });
-          if (rank === void 0) {
-            rank = 0;
-          }
-          return label.rank = rank;
-        };
-        g.sinks().forEach(dfs);
-        maxRank = d3.max(g.nodes(), function(u) {
-          return g.node(u).rank;
-        });
-        _ref = g.nodes();
-        _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          u = _ref[_i];
-          if (g.outEdges(u).length === 0) {
-            _results.push(g.node(u).rank = maxRank);
-          } else {
-            _results.push(void 0);
-          }
-        }
-        return _results;
-      },
+      dagreRanker: defaultRanker,
       dagreRankDir: 'LR',
       dagreRankSep: 30,
       edgeColor: function() {
@@ -1084,7 +1158,7 @@
 
 }).call(this);
 
-},{"../graph/adjacency-list":17,"../layout/cycle-removal":33,"../layout/layer-assignment":35,"../svg":48,"./center":10,"./css":11,"./resize":13,"./select":14,"./update":16,"./update-color":15,"d3":51,"dagre":52,"graphlib":83}],13:[function(require,module,exports){
+},{"../graph/adjacency-list":17,"../layout/cycle-removal":33,"../layout/layer-assignment":35,"../svg":48,"./center":10,"./css":11,"./resize":13,"./select":14,"./update":16,"./update-color":15,"d3":51,"dagre":52,"graphlib":83,"pdip-quad":104}],13:[function(require,module,exports){
 (function() {
   var resize;
 
@@ -3475,17 +3549,17 @@
 },{}],51:[function(require,module,exports){
 !function() {
   var d3 = {
-    version: "3.5.4"
+    version: "3.5.5"
   };
   var d3_arraySlice = [].slice, d3_array = function(list) {
     return d3_arraySlice.call(list);
   };
   var d3_document = this.document;
   function d3_documentElement(node) {
-    return node && (node.ownerDocument || node.document).documentElement;
+    return node && (node.ownerDocument || node.document || node).documentElement;
   }
   function d3_window(node) {
-    return node && node.ownerDocument ? node.ownerDocument.defaultView : node;
+    return node && (node.ownerDocument && node.ownerDocument.defaultView || node.document && node || node.defaultView);
   }
   if (d3_document) {
     try {
@@ -23808,4 +23882,1297 @@ module.exports = '1.0.1';
 
 },{}],103:[function(require,module,exports){
 arguments[4][82][0].apply(exports,arguments)
-},{"dup":82}]},{},[9]);
+},{"dup":82}],104:[function(require,module,exports){
+(function (global){
+var linalgModule = require('linalg-asm');
+
+module.exports = function pdipQuad(n, m) {
+  'use strict';
+
+  var nm = n + m;
+  var memory = allocate({
+    Float64: {
+      Q: n * n,
+      A: n * m,
+      b: m,
+      c: n,
+      w: {
+        x: n,
+        y: m,
+        z: n
+      },
+      J: nm * nm,
+      K: m * n,
+      L: n * n,
+      r: {
+        rX: n,
+        rY: m,
+        rZ: n
+      },
+      work: n
+    },
+    Uint32: {
+      ipiv: m
+    }
+  });
+  var linalg = linalgModule(global, null, memory.heap);
+
+  (function() {
+    var i;
+    for (i = 0; i < n; ++i) {
+      memory.views.x[i] = 1;
+      memory.views.y[i] = 0;
+      memory.views.z[i] = 1;
+    }
+  })();
+
+  return {
+    q: function() {
+      return memory.views.Q;
+    },
+    a: function() {
+      return memory.views.A;
+    },
+    b: function() {
+      return memory.views.b;
+    },
+    c: function() {
+      return memory.views.c;
+    },
+    w: function() {
+      return memory.views.w;
+    },
+    solve: solve
+  };
+
+  function solve(options) {
+    options = options || {};
+    var i, j,
+        xFeasible = false,
+        yFeasible = false;
+    var A = memory.views.A,
+        b = memory.views.b,
+        c = memory.views.c,
+        Q = memory.views.Q,
+        J = memory.views.J,
+        K = memory.views.K,
+        L = memory.views.L,
+        x = memory.views.x,
+        y = memory.views.y,
+        z = memory.views.z,
+        r = memory.views.r,
+        rX = memory.views.rX,
+        rY = memory.views.rY,
+        rZ = memory.views.rZ,
+        work = memory.views.work,
+        ipiv = memory.views.ipiv;
+    var mu = options.mu || 0.8,
+        muMin = options.muMin || 1e-10,
+        gamma = options.gamma || 0.5,
+        M = options.M || 2,
+        rho = options.rho || 100,
+        tau = options.tau || 0.8,
+        xi = options.xi || 0.9,
+        err = options.err || 1e-12;
+    var reduce = options.reduce === undefined ? false : options.reduce;
+
+    for (var loop = 0; mu > muMin; ++loop, mu *= gamma) {
+      for (;;) {
+        // r_z := mu e - X Z e
+        for (i = 0; i < n; ++i) {
+          rZ[i] = mu - x[i] * z[i];
+        }
+
+        if (xFeasible) {
+          // r_x := O
+          for (i = 0; i < n; ++i) {
+            rX[i] = 0;
+          }
+        } else {
+          // r_x := A ^ t y + z - Q x - c
+          linalg.dcopy(n, z.byteOffset, 1, rX.byteOffset, 1);
+          linalg.daxpy(n, -1, c.byteOffset, 1, rX.byteOffset, 1);
+          linalg.dgemv(0, n, n, -1, Q.byteOffset, n, x.byteOffset, 1, 1, rX.byteOffset, 1);
+          linalg.dgemv(1, m, n, 1, A.byteOffset, n, y.byteOffset, 1, 1, rX.byteOffset, 1);
+
+          if (linalg.ddot(rX.length, rX.byteOffset, 1, rX.byteOffset, 1) < err) {
+            xFeasible = true;
+          }
+        }
+
+        if (yFeasible) {
+          // r_y := O
+          for (i = 0; i < m; ++i) {
+            rY[i] = 0;
+          }
+        } else {
+          // r_y := A x - b
+          linalg.dcopy(m, b.byteOffset, 1, rY.byteOffset, 1);
+          linalg.dgemv(0, m, n, 1, A.byteOffset, n, x.byteOffset, 1, -1, rY.byteOffset, 1);
+
+          if (linalg.ddot(rY.length, rY.byteOffset, 1, rY.byteOffset, 1) < err) {
+            yFeasible = true;
+          }
+        }
+
+        if (linalg.ddot(r.length, r.byteOffset, 1, r.byteOffset, 1) < mu * M) {
+          break;
+        }
+
+        if (reduce) {
+          // L := (Q + X^(-1) Z)^-1
+          for (i = 0; i < n; ++i) {
+            for (j = 0; j < n; ++j) {
+              L[i * n + j] = Q[i * n + j];
+            }
+            L[i * n + i] += z[i] / x[i];
+          }
+          linalg.dgetrf(n, n, L.byteOffset, n, ipiv.byteOffset, n);
+          linalg.dgetri(n, L.byteOffset, n, ipiv.byteOffset, work.byteOffset, n);
+
+          // K := A L
+          linalg.dgemm(0, 0, m, n, n, 1, A.byteOffset, n, L.byteOffset, n, 0, K.byteOffset, n);
+
+          // J := K A^t
+          linalg.dgemm(0, 1, m, m, n, 1, K.byteOffset, n, A.byteOffset, n, 0, J.byteOffset, m);
+
+          // r_y := - r_y - K (r_x + X^(-1) r_z)
+          for (i = 0; i < n; ++i) {
+            work[i] = rX[i] + rZ[i] / x[i];
+          }
+          linalg.dgemv(0, m, n, -1, K.byteOffset, n, work.byteOffset, 1, -1, rY.byteOffset, 1);
+
+          // solve J dw = r
+          linalg.dgesv(m, 1, J.byteOffset, m, ipiv.byteOffset, rY.byteOffset, 1);
+
+          // dx := L (r_x + X^-1 r_z + A^t d_y)
+          linalg.dgemv(1, m, n, 1, A.byteOffset, n, rY.byteOffset, 1, 1, work.byteOffset, 1);
+          linalg.dgemv(0, n, n, 1, L.byteOffset, n, work.byteOffset, 1, 0, rX.byteOffset, 1);
+        } else {
+          // J := (  Q-X^(-1)Z  -A^t )
+          //        -A           O
+          // r_x := r_x - X ^ -1 r_z
+          for (i = 0; i < nm; ++i) {
+            for (j = 0; j < nm; ++j) {
+              J[i * nm + j] = 0;
+            }
+          }
+          for (i = 0; i < n; ++i) {
+            for (j = 0; j < n; ++j) {
+              J[i * nm + j] = Q[i * n + j];
+            }
+            for (j = 0; j < m; ++j) {
+              J[(j + n) * nm + i] = J[i * nm + j + n] = -A[j * n + i];
+            }
+            J[i * nm + i] += z[i] / x[i];
+            rX[i] += rZ[i] / x[i];
+          }
+
+          // solve J dw = r
+          linalg.dgesv(nm, 1, J.byteOffset, nm, ipiv.byteOffset, r.byteOffset, 1);
+        }
+
+        // dz = X^-1 (Z dx - r_z)
+        for (i = 0; i < n; ++i) {
+          rZ[i] = (rZ[i] - z[i] * rX[i]) / x[i];
+        }
+
+        // Find alpha_x and alpha_z
+        var alpha = 1;
+        for (i = 0; i < n; ++i) {
+          if (rX[i] < 0) {
+            alpha = Math.min(alpha, -x[i] / rX[i]);
+          }
+          if (rZ[i] < 0) {
+            alpha = Math.min(alpha, -z[i] / rZ[i]);
+          }
+        }
+        alpha *= 0.99;
+
+        // Armijo condition
+        var dpx = dp(n, m, A, b, c, Q, x, rX, mu, rho);
+        if (dpx > 0) {
+          break;
+        }
+        var px = p(n, m, A, b, c, Q, x, mu, rho);
+        linalg.daxpy(n, alpha, rX.byteOffset, 1, x.byteOffset, 1);
+        for (var k = 1; !(p(n, m, A, b, c, Q, x, mu, rho) <= px + xi * alpha * Math.pow(tau, k) * dpx) && k < 100; ++k) {
+          linalg.daxpy(n, alpha * Math.pow(tau, k) * (tau - 1), rX.byteOffset, 1, x.byteOffset, 1);
+        }
+        linalg.daxpy(m, alpha * Math.pow(tau, k - 1), rY.byteOffset, 1, y.byteOffset, 1);
+        linalg.daxpy(n, alpha * Math.pow(tau, k - 1), rZ.byteOffset, 1, z.byteOffset, 1);
+      }
+    }
+
+    return {
+      x: x
+    };
+  }
+};
+
+function f(n, m, Q, c, x) {
+  'use strict';
+  var i, j, val = 0;
+  for (i = 0; i < n; ++i) {
+    for (j = 0; j < n; ++j) {
+      val += x[i] * x[j] * Q[i * n + j];
+    }
+  }
+  val /= 2;
+  for (i = 0; i < n; ++i) {
+    val += x[i] * c[i];
+  }
+  return val;
+}
+
+function g(n, m, A, b, x, i) {
+  'use strict';
+  var j, val = -b[i];
+  for (j = 0; j < n; ++j) {
+    val += x[j] * A[i * n + j];
+  }
+  return val;
+}
+
+function p(n, m, A, b, c, Q, x, mu, rho) {
+  'use strict';
+  var i, val;
+  val = f(n, m, Q, c, x);
+  for (i = 0; i < n; ++i) {
+    val -= mu * Math.log(x[i]);
+  }
+  for (i = 0; i < m; ++i) {
+    val += rho * Math.abs(g(n, m, A, b, x, i));
+  }
+  return val;
+}
+
+function dp(n, m, A, b, c, Q, x, rX, mu, rho) {
+  'use strict';
+  var i, j, val = 0, qx, gjx, ax;
+  for (i = 0; i < n; ++i) {
+    qx = c[i];
+    for (j = 0; j < n; ++j) {
+      qx += Q[i * n + j] * x[j];
+    }
+    val += qx * rX[i];
+  }
+  for (i = 0; i < n; ++i) {
+    val -= mu * rX[i] / x[i];
+  }
+  for (i = 0; i < m; ++i) {
+    gjx = g(n, m, A, b, x, i);
+    ax = 0;
+    for (j = 0; j < n; ++j) {
+      ax += A[i * n + j] * rX[j];
+    }
+    val += rho * (Math.abs(gjx + ax) - Math.abs(gjx));
+  }
+  return val;
+}
+
+function allocate(arg) {
+  'use strict';
+  var totalSize = 0;
+
+  totalSize += 8 * countLength(arg.Float64);
+  totalSize += 4 * countLength(arg.Uint32);
+
+  var heap = new ArrayBuffer(calcBufferSize(totalSize)),
+      views = {};
+  allocViews(arg.Uint32, 8 * allocViews(arg.Float64, 0, Float64Array), Uint32Array);
+
+  return {
+    heap: heap,
+    views: views
+  };
+
+  function countLength(obj) {
+    var length = 0;
+    for (var name in obj) {
+      if (typeof obj[name] === 'number') {
+        length += obj[name];
+      } else {
+        length += countLength(obj[name]);
+      }
+    }
+    return length;
+  }
+
+  function allocViews(obj, offset, TArray) {
+    var length, totalLength = 0;
+    for (var name in obj) {
+      if (typeof obj[name] === 'number') {
+        length = obj[name];
+      } else {
+        length = allocViews(obj[name], offset, TArray);
+      }
+      views[name] = new TArray(heap, offset, length);
+      offset += views[name].byteLength;
+      totalLength += length;
+    }
+    return totalLength;
+  }
+
+  function calcBufferSize(s) {
+    var l = 0x10000;
+    while (l < s) {
+      l <<= 1;
+    }
+    return l;
+  }
+}
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"linalg-asm":105}],105:[function(require,module,exports){
+function LinalgModule(stdlib, foreign, heap) {
+  'use asm';
+
+  var abs = stdlib.Math.abs,
+      imul = stdlib.Math.imul,
+      sqrt = stdlib.Math.sqrt,
+      uiarray = new stdlib.Uint32Array(heap),
+      darray = new stdlib.Float64Array(heap);
+
+  function daxpy(n, alpha, x, incx, y, incy) {
+    n = n | 0;
+    alpha = +alpha;
+    x = x | 0;
+    incx = incx | 0;
+    y = y | 0;
+    incy = incy | 0;
+
+    var i = 0,
+        nloop = 0,
+        pxi = 0,
+        pyi = 0,
+        dx1 = 0,
+        dx2 = 0,
+        dx3 = 0,
+        dy1 = 0,
+        dy2 = 0,
+        dy3 = 0;
+
+    if (alpha == 0.0) {
+      return;
+    }
+
+    nloop = n >> 2;
+    incx = incx << 3;
+    incy = incy << 3;
+    dx1 = incx;
+    dx2 = dx1 + incx | 0;
+    dx3 = dx2 + incx | 0;
+    dy1 = incy;
+    dy2 = dy1 + incy | 0;
+    dy3 = dy2 + incy | 0;
+
+    incx = incx << 2;
+    incy = incy << 2;
+    for (i = 0, pxi = x, pyi = y; (i | 0) < (nloop | 0); i = i + 1 | 0, pxi = pxi + incx | 0, pyi = pyi + incy | 0) {
+      darray[pyi >> 3] = +darray[pyi >> 3] + alpha * darray[pxi >> 3];
+      darray[pyi + dy1 >> 3] = +darray[pyi + dy1 >> 3] + alpha * darray[pxi + dx1 >> 3];
+      darray[pyi + dy2 >> 3] = +darray[pyi + dy2 >> 3] + alpha * darray[pxi + dx2 >> 3];
+      darray[pyi + dy3 >> 3] = +darray[pyi + dy3 >> 3] + alpha * darray[pxi + dx3 >> 3];
+    }
+
+    i = i << 2;
+    for (incx = incx >> 2, incy = incy >> 2; (i | 0) < (n | 0); i = i + 1 | 0, pxi = pxi + incx | 0, pyi = pyi + incy | 0) {
+      darray[pyi >> 3] = +darray[pyi >> 3] + alpha * darray[pxi >> 3];
+    }
+  }
+
+  function dasum(n, x, incX) {
+    n = n | 0;
+    x = x | 0;
+    incX = incX | 0;
+
+    var i = 0,
+        value = 0.0;
+
+    n = n << 3;
+    x = x << 3;
+    incX = incX << 3;
+
+    for (i = x; (i | 0) < (n | 0); i = i + incX | 0) {
+      value = value + (+abs(darray[i >> 3]));
+    }
+
+    return value;
+  }
+
+  function dcopy(n, x, incx, y, incy) {
+    n = n | 0;
+    x = x | 0;
+    incx = incx | 0;
+    y = y | 0;
+    incy = incy | 0;
+
+    var i = 0,
+        pxi = 0,
+        pyi = 0;
+
+    incx = incx << 3;
+    incy = incy << 3;
+
+    for (i = 0, pxi = x, pyi = y; (i | 0) < (n | 0); i = i + 1 | 0, pxi = pxi + incx | 0, pyi = pyi + incy | 0) {
+      darray[pyi >> 3] = darray[pxi >> 3];
+    }
+  }
+
+  function ddot(n, x, incx, y, incy) {
+    n = n | 0;
+    x = x | 0;
+    incx = incx | 0;
+    y = y | 0;
+    incy = incy | 0;
+
+    var i = 0,
+        nloop = 0,
+        pxi = 0,
+        pyi = 0,
+        dx1 = 0,
+        dx2 = 0,
+        dx3 = 0,
+        dy1 = 0,
+        dy2 = 0,
+        dy3 = 0,
+        value = 0.0;
+
+    nloop = n >> 2;
+    incx = incx << 3;
+    incy = incy << 3;
+    dx1 = incx;
+    dx2 = dx1 + incx | 0;
+    dx3 = dx2 + incx | 0;
+    dy1 = incy;
+    dy2 = dy1 + incy | 0;
+    dy3 = dy2 + incy | 0;
+
+    incx = incx << 2;
+    incy = incy << 2;
+    for (i = 0, pxi = x, pyi = y; (i | 0) < (nloop | 0); i = i + 1 | 0, pxi = pxi + incx | 0, pyi = pyi + incy | 0) {
+      value = value + darray[pyi >> 3] * darray[pxi >> 3];
+      value = value + darray[pyi + dy1 >> 3] * darray[pxi + dx1 >> 3];
+      value = value + darray[pyi + dy2 >> 3] * darray[pxi + dx2 >> 3];
+      value = value + darray[pyi + dy3 >> 3] * darray[pxi + dx3 >> 3];
+    }
+
+    i = i << 2;
+    for (incx = incx >> 2, incy = incy >> 2; (i | 0) < (n | 0); i = i + 1 | 0, pxi = pxi + incx | 0, pyi = pyi + incy | 0) {
+      value = value + darray[pyi >> 3] * darray[pxi >> 3];
+    }
+
+    return value;
+  }
+
+  function dswap(n, x, incx, y, incy) {
+    n = n | 0;
+    x = x | 0;
+    incx = incx | 0;
+    y = y | 0;
+    incy = incy | 0;
+
+    var i = 0,
+        pxi = 0,
+        pyi = 0,
+        tmp = 0.0;
+
+    incx = incx << 3;
+    incy = incy << 3;
+
+    for (i = 0, pxi = x, pyi = y; (i | 0) < (n | 0); i = i + 1 | 0, pxi = pxi + incx | 0, pyi = pyi + incy | 0) {
+      tmp = +darray[pxi >> 3];
+      darray[pxi >> 3] = darray[pyi >> 3];
+      darray[pyi >> 3] = tmp;
+    }
+  }
+
+  function idamax(n, x, incx) {
+    n = n | 0;
+    x = x | 0;
+    incx = incx | 0;
+
+    var i = 0,
+        pxi = 0,
+        index = 0,
+        tmp = 0.0,
+        value = 0.0;
+
+    incx = incx << 3;
+
+    for (i = 0, pxi = x; (i | 0) < (n | 0); i = i + 1 | 0, pxi = pxi + incx | 0) {
+      tmp = +abs(darray[pxi >> 3]);
+      if (tmp > value) {
+        index = i;
+        value = tmp;
+      }
+    }
+
+    return index | 0;
+  }
+
+  function dgemv(trans, m, n, alpha, a, lda, x, incx, beta, y, incy) {
+    trans = trans | 0;
+    m = m | 0;
+    n = n | 0;
+    alpha = +alpha;
+    a = a | 0;
+    lda = lda | 0;
+    x = x | 0;
+    incx = incx | 0;
+    beta = +beta;
+    y = y | 0;
+    incy = incy | 0;
+
+    var i = 0,
+        pai0 = 0,
+        pyi = 0;
+
+    if (trans) {
+      for (i = 0; (i | 0) < (n | 0); i = i + 1 | 0) {
+        pyi = y + ((imul(i, incy) | 0) << 3) | 0;
+        pai0 = a + (i << 3) | 0;
+        darray[pyi >> 3] = alpha * +ddot(m, pai0, lda, x, incx) + beta * darray[pyi >> 3];
+      }
+    } else {
+      for (i = 0; (i | 0) < (m | 0); i = i + 1 | 0) {
+        pyi = y + ((imul(i, incy) | 0) << 3) | 0;
+        pai0 = a + ((imul(i, lda) | 0) << 3) | 0;
+        darray[pyi >> 3] = alpha * +ddot(n, pai0, 1, x, incx) + beta * darray[pyi >> 3];
+      }
+    }
+  }
+
+  function dtrsv(uplo, trans, diag, n, a, lda, x, incx) {
+    // TODO support trans, lda
+    uplo = uplo | 0;
+    trans = trans | 0;
+    diag = diag | 0;
+    n = n | 0;
+    a = a | 0;
+    lda = lda | 0;
+    x = x | 0;
+    incx = incx | 0;
+
+    var i = 0,
+        j = 0,
+        paii = 0,
+        paji = 0,
+        pxi = 0,
+        pxj = 0;
+
+    if (uplo) {
+      // lower triangular matrix
+      for (i = 0; (i | 0) < (n | 0); i = i + 1 | 0) {
+        pxi = x + ((imul(i, incx) | 0) << 3) | 0;
+        if (!diag) {
+          paii = a + ((imul(i, n) | 0) + i << 3) | 0;
+          darray[pxi >> 3] = darray[pxi >> 3] / darray[paii >> 3];
+        }
+        for (j = i + 1 | 0; (j | 0) < (n | 0); j = j + 1 | 0) {
+          paji = a + ((imul(j, n) | 0) + i << 3) | 0;
+          pxj = x + ((imul(j, incx) | 0) << 3) | 0;
+          darray[pxj >> 3] = darray[pxj >> 3] - darray[pxi >> 3] * darray[paji >> 3];
+        }
+      }
+    } else {
+      // upper triangular matrix
+      for (i = n - 1 | 0; (i | 0) >= 0; i = i - 1 | 0) {
+        pxi = x + ((imul(i, incx) | 0) << 3) | 0;
+        if (!diag) {
+          paii = a + ((imul(i, n) | 0) + i << 3) | 0;
+          darray[pxi >> 3] = darray[pxi >> 3] / darray[paii >> 3];
+        }
+        for (j = 0; (j | 0) < (i | 0); j = j + 1 | 0) {
+          paji = a + ((imul(j, n) | 0) + i << 3) | 0;
+          pxj = x + ((imul(j, incx) | 0) << 3) | 0;
+          darray[pxj >> 3] = darray[pxj >> 3] - darray[pxi >> 3] * darray[paji >> 3];
+        }
+      }
+    }
+  }
+
+  function dgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc) {
+    transa = transa | 0;
+    transb = transb | 0;
+    m = m | 0;
+    n = n | 0;
+    k = k | 0;
+    alpha = +alpha;
+    a = a | 0;
+    lda = lda | 0;
+    b = b | 0;
+    ldb = ldb | 0;
+    beta = +beta;
+    c = c | 0;
+    ldc = ldc | 0;
+
+    var i = 0,
+        j = 0,
+        pai0 = 0,
+        pb0j = 0,
+        pcij = 0;
+
+    if (transa) {
+      if (transb) {
+        for (i = 0; (i | 0) < (m | 0); i = i + 1 | 0) {
+          for (j = 0; (j | 0) < (n | 0); j = j + 1 | 0) {
+            pai0 = a + (i << 3) | 0;
+            pb0j = b + ((imul(j, ldb) | 0) << 3) | 0;
+            pcij = c + ((imul(i, ldc) | 0) + j << 3) | 0;
+            darray[pcij >> 3] = beta * darray[pcij >> 3] + alpha * +ddot(k, pai0, lda, pb0j, 1);
+          }
+        }
+      } else {
+        for (i = 0; (i | 0) < (m | 0); i = i + 1 | 0) {
+          for (j = 0; (j | 0) < (n | 0); j = j + 1 | 0) {
+            pai0 = a + (i << 3) | 0;
+            pb0j = b + (j << 3) | 0;
+            pcij = c + ((imul(i, ldc) | 0) + j << 3) | 0;
+            darray[pcij >> 3] = beta * darray[pcij >> 3] + alpha * +ddot(k, pai0, lda, pb0j, ldb);
+          }
+        }
+      }
+    } else {
+      if (transb) {
+        for (i = 0; (i | 0) < (m | 0); i = i + 1 | 0) {
+          for (j = 0; (j | 0) < (n | 0); j = j + 1 | 0) {
+            pai0 = a + ((imul(i, lda) | 0) << 3) | 0;
+            pb0j = b + ((imul(j, ldb) | 0) << 3) | 0;
+            pcij = c + ((imul(i, ldc) | 0) + j << 3) | 0;
+            darray[pcij >> 3] = beta * darray[pcij >> 3] + alpha * +ddot(k, pai0, 1, pb0j, 1);
+          }
+        }
+      } else {
+        for (i = 0; (i | 0) < (m | 0); i = i + 1 | 0) {
+          for (j = 0; (j | 0) < (n | 0); j = j + 1 | 0) {
+            pai0 = a + ((imul(i, lda) | 0) << 3) | 0;
+            pb0j = b + (j << 3) | 0;
+            pcij = c + ((imul(i, ldc) | 0) + j << 3) | 0;
+            darray[pcij >> 3] = beta * darray[pcij >> 3] + alpha * +ddot(k, pai0, 1, pb0j, ldb);
+          }
+        }
+      }
+    }
+  }
+
+  function dtrsm(side, uplo, transa, diag, m, n, alpha, a, lda, b, ldb) {
+    // TODO support side
+    side = side | 0;
+    uplo = uplo | 0;
+    transa = transa | 0;
+    diag = diag | 0;
+    m = m | 0;
+    n = n | 0;
+    alpha = +alpha;
+    a = a | 0;
+    lda = lda | 0;
+    b = b | 0;
+    ldb = ldb | 0;
+
+    var i = 0,
+        j = 0,
+        k = 0,
+        paii = 0,
+        paji = 0,
+        pbik = 0,
+        pbjk = 0;
+
+    if (transa) {
+      if (uplo) {
+        // solve a U^t x = B
+        for (i = m - 1 | 0; (i | 0) >= 0; i = i - 1 | 0) {
+          if (!diag) {
+            paii = a + ((imul(i, lda) | 0) + i << 3) | 0;
+            for (k = 0; (k | 0) < (n | 0); k = k + 1 | 0) {
+              pbik = b + ((imul(i, ldb) | 0) + k << 3) | 0;
+              darray[pbik >> 3] = darray[pbik >> 3] / darray[paii >> 3];
+            }
+          }
+          for (j = 0; (j | 0) < (i | 0); j = j + 1 | 0) {
+            paji = a + ((imul(i, lda) | 0) + j << 3) | 0;
+            for (k = 0; (k | 0) < (n | 0); k = k + 1 | 0) {
+              pbik = b + ((imul(i, ldb) | 0) + k << 3) | 0;
+              pbjk = b + ((imul(j, ldb) | 0) + k << 3) | 0;
+              darray[pbjk >> 3] = darray[pbjk >> 3] - darray[pbik >> 3] * darray[paji >> 3];
+            }
+          }
+        }
+      } else {
+        // solve a L^t x = B
+        for (i = 0; (i | 0) < (m | 0); i = i + 1 | 0) {
+          if (!diag) {
+            paii = a + ((imul(i, lda) | 0) + i << 3) | 0;
+            for (k = 0; (k | 0) < (n | 0); k = k + 1 | 0) {
+              pbik = b + ((imul(i, ldb) | 0) + k << 3) | 0;
+              darray[pbik >> 3] = darray[pbik >> 3] / darray[paii >> 3];
+            }
+          }
+          for (j = i + 1 | 0; (j | 0) < (m | 0); j = j + 1 | 0) {
+            paji = a + ((imul(i, lda) | 0) + j << 3) | 0;
+            for (k = 0; (k | 0) < (n | 0); k = k + 1 | 0) {
+              pbik = b + ((imul(i, ldb) | 0) + k << 3) | 0;
+              pbjk = b + ((imul(j, ldb) | 0) + k << 3) | 0;
+              darray[pbjk >> 3] = darray[pbjk >> 3] - darray[pbik >> 3] * darray[paji >> 3];
+            }
+          }
+        }
+      }
+    } else {
+      if (uplo) {
+        // solve a L x = B
+        for (i = 0; (i | 0) < (m | 0); i = i + 1 | 0) {
+          if (!diag) {
+            paii = a + ((imul(i, lda) | 0) + i << 3) | 0;
+            for (k = 0; (k | 0) < (n | 0); k = k + 1 | 0) {
+              pbik = b + ((imul(i, ldb) | 0) + k << 3) | 0;
+              darray[pbik >> 3] = darray[pbik >> 3] / darray[paii >> 3];
+            }
+          }
+          for (j = i + 1 | 0; (j | 0) < (m | 0); j = j + 1 | 0) {
+            paji = a + ((imul(j, lda) | 0) + i << 3) | 0;
+            for (k = 0; (k | 0) < (n | 0); k = k + 1 | 0) {
+              pbik = b + ((imul(i, ldb) | 0) + k << 3) | 0;
+              pbjk = b + ((imul(j, ldb) | 0) + k << 3) | 0;
+              darray[pbjk >> 3] = darray[pbjk >> 3] - darray[pbik >> 3] * darray[paji >> 3];
+            }
+          }
+        }
+      } else {
+        // solve a U x = B
+        for (i = m - 1 | 0; (i | 0) >= 0; i = i - 1 | 0) {
+          if (!diag) {
+            paii = a + ((imul(i, lda) | 0) + i << 3) | 0;
+            for (k = 0; (k | 0) < (n | 0); k = k + 1 | 0) {
+              pbik = b + ((imul(i, ldb) | 0) + k << 3) | 0;
+              darray[pbik >> 3] = darray[pbik >> 3] / darray[paii >> 3];
+            }
+          }
+          for (j = 0; (j | 0) < (i | 0); j = j + 1 | 0) {
+            paji = a + ((imul(j, lda) | 0) + i << 3) | 0;
+            for (k = 0; (k | 0) < (n | 0); k = k + 1 | 0) {
+              pbik = b + ((imul(i, ldb) | 0) + k << 3) | 0;
+              pbjk = b + ((imul(j, ldb) | 0) + k << 3) | 0;
+              darray[pbjk >> 3] = darray[pbjk >> 3] - darray[pbik >> 3] * darray[paji >> 3];
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function dgesv(n, nrhs, a, lda, ipiv, b, ldb) {
+    n = n | 0;
+    nrhs = nrhs | 0;
+    a = a | 0;
+    lda = lda | 0;
+    ipiv = ipiv | 0;
+    b = b | 0;
+    ldb = ldb | 0;
+
+    var i = 0,
+        j = 0,
+        tmp = 0.0,
+        pipivi = 0,
+        pbi = 0,
+        pbj = 0;
+
+    dgetrf(n, n, a, lda, ipiv);
+
+    for (i = 0; (i | 0) < (n | 0); i = i + 1 | 0) {
+      pipivi = ipiv + (i << 2) | 0;
+      j = uiarray[pipivi >> 2] | 0;
+      pbi = b + (i << 3) | 0;
+      pbj = b + (j << 3) | 0;
+      tmp = +darray[pbi >> 3];
+      darray[pbi >> 3] = darray[pbj >> 3];
+      darray[pbj >> 3] = tmp;
+    }
+
+    dtrsv(1, 0, 1, n, a, lda, b, 1);
+    dtrsv(0, 0, 0, n, a, lda, b, 1);
+  }
+
+  function dgetri(n, a, lda, ipiv, work, lwork) {
+    n = n | 0;
+    a = a | 0;
+    lda = lda | 0;
+    ipiv = ipiv | 0;
+    work = work | 0;
+    lwork = lwork | 0;
+
+    var i = 0,
+        j = 0,
+        pworkj = 0,
+        paij = 0;
+
+    dtrtri(0, 0, n, a, lda);
+
+    for (i = n - 2 | 0; (i | 0) >= 0; i = i - 1 | 0) {
+      for (j = i + 1 | 0; (j | 0) < (n | 0); j = j + 1 | 0) {
+        pworkj = work + (j << 3) | 0;
+        paij = a + ((imul(j, lda) | 0) + i << 3) | 0;
+        darray[pworkj >> 3] = darray[paij >> 3];
+        darray[paij >> 3] = 0.0;
+      }
+      dgemv(0, n, n - i - 1 | 0, -1.0, a + (i + 1 << 3) | 0, lda, work + (i + 1 << 3) | 0, 1, 1.0, a + (i << 3) | 0, lda);
+    }
+  }
+
+  function dgetrf(m, n, a, lda, ipiv) {
+    // TODO support lda
+    m = m | 0;
+    n = n | 0;
+    a = a | 0;
+    lda = lda | 0;
+    ipiv = ipiv | 0;
+
+    var i = 0,
+        j = 0,
+        k = 0,
+        jn = 0,
+        kn = 0,
+        pipivk = 0,
+        pajk = 0,
+        pakk = 0,
+        ajk = 0.0,
+        dakk = 0.0,
+        inca = 0;
+    inca = n << 3;
+
+    for (k = 0, kn = 0, pakk = a; (k | 0) < (n - 1 | 0); k = k + 1 | 0, kn = kn + n | 0, pakk = pakk + inca + 8 | 0) {
+      i = k + (idamax(n - k | 0, pakk, m) | 0) | 0;
+      pipivk = ipiv + (k << 2) | 0;
+      uiarray[pipivk >> 2] = i;
+      if ((i | 0) != (k | 0)) {
+        dswap(n, a + ((imul(i, n) | 0) << 3) | 0, 1, a + (kn << 3) | 0, 1);
+      }
+      dakk = 1.0 / +darray[pakk >> 3];
+      for (j = k + 1 | 0, jn = imul(j, n) | 0, pajk = a + (jn + k << 3) | 0; (j | 0) < (n | 0); j = j + 1 | 0, jn = jn + n | 0, pajk = pajk + inca | 0) {
+        ajk = darray[pajk >> 3] = darray[pajk >> 3] * dakk;
+        daxpy(n - k - 1 | 0, -ajk,
+              a + (kn + k + 1 << 3) | 0, 1,
+              a + (jn + k + 1 << 3) | 0, 1);
+      }
+    }
+    uiarray[ipiv + (n - 1 << 2) >> 2] = n - 1;
+  }
+
+  function dposv(uplo, n, nrhs, a, lda, b, ldb) {
+    uplo = uplo | 0;
+    n = n | 0;
+    nrhs = nrhs | 0;
+    a = a | 0;
+    lda = lda | 0;
+    b = b | 0;
+    ldb = ldb | 0;
+
+    dpotrf(uplo, n, a, lda);
+    dpotrs(uplo, n, nrhs, a, lda, b, ldb);
+  }
+
+  function dpotrf(uplo, n, a, lda) {
+    uplo = uplo | 0;
+    n = n | 0;
+    a = a | 0;
+    lda = lda | 0;
+
+    var i = 0,
+        paii = 0,
+        pai = 0,
+        aii = 0.0;
+
+    if (uplo) {
+      // lower triangular matrix
+      for (i = 0; (i | 0) < (n | 0); i = i + 1 | 0) {
+        paii = a + ((imul(i, lda) | 0) + i << 3) | 0;
+        pai = a + ((imul(i, lda) | 0) << 3) | 0;
+        aii = +darray[paii >> 3];
+        aii = darray[paii >> 3] = +sqrt(aii - +ddot(i | 0, pai, 1, pai, 1));
+        if ((n - i - 1 | 0) > 0) {
+          dgemv(0, n - i - 1 | 0, i, -1.0, pai + (lda << 3) | 0, 1, pai, 1, 1.0, paii + (lda << 3) | 0, lda);
+          dscal(n - i - 1 | 0, 1.0 / aii, paii + (lda << 3) | 0, lda);
+        }
+      }
+    } else {
+      // upper triangular matrix
+      for (i = 0; (i | 0) < (n | 0); i = i + 1 | 0) {
+        paii = a + ((imul(i, lda) | 0) + i << 3) | 0;
+        pai = a + (i << 3) | 0;
+        aii = +darray[paii >> 3];
+        aii = darray[paii >> 3] = +sqrt(aii - +ddot(i | 0, pai, lda, pai, lda));
+        if ((n - i - 1 | 0) > 0) {
+          dgemv(1, i, n - i - 1 | 0, -1.0, pai + 8 | 0, lda, pai, lda, 1.0, paii + 8 | 0, 1);
+          dscal(n - i - 1 | 0, 1.0 / aii, paii + 8 | 0, lda);
+        }
+      }
+    }
+  }
+
+  function dpotrs(uplo, n, nrhs, a, lda, b, ldb) {
+    uplo = uplo | 0;
+    n = n | 0;
+    nrhs = nrhs | 0;
+    a = a | 0;
+    lda = lda | 0;
+    b = b | 0;
+    ldb = ldb | 0;
+
+    if (uplo) {
+      // lower triangular matrix
+      dtrsm(0, 1, 0, 0, n, nrhs, 1.0, a, lda, b, ldb);
+      dtrsm(0, 1, 1, 0, n, nrhs, 1.0, a, lda, b, ldb);
+    } else {
+      dtrsm(0, 0, 1, 0, n, nrhs, 1.0, a, lda, b, ldb);
+      dtrsm(0, 0, 0, 0, n, nrhs, 1.0, a, lda, b, ldb);
+    }
+  }
+
+  function dscal(n, a, x, incx) {
+    n = n | 0;
+    a = +a;
+    x = x | 0;
+    incx = incx | 0;
+
+    var i = 0,
+        pxi = 0;
+
+    incx = incx << 3;
+
+    for (i = 0, pxi = x; (i | 0) < (n | 0); i = i + 1 | 0, pxi = pxi + incx | 0) {
+      darray[pxi >> 3] = a * darray[pxi >> 3];
+    }
+  }
+
+  function dsyr(uplo, n, alpha, x, incx, a, lda) {
+    uplo = uplo | 0;
+    n = n | 0;
+    alpha = +alpha;
+    x = x | 0;
+    incx = incx | 0;
+    a = a | 0;
+    lda = lda | 0;
+
+    var i = 0,
+        j = 0,
+        paij = 0,
+        pxi = 0,
+        pxj = 0;
+
+    if (uplo) {
+      for (i = 0; (i | 0) < (n | 0); i = i + 1 | 0) {
+        pxi = x + ((imul(i, incx) | 0) << 3) | 0;
+        for (j = i; (j | 0) < (n | 0); j = j + 1 | 0) {
+          paij = a + ((imul(j, lda) | 0) + i << 3) | 0;
+          pxj = x + ((imul(j, incx) | 0) << 3) | 0;
+          darray[paij >> 3] = +darray[paij >> 3] + alpha * +darray[pxi >> 3] * +darray[pxj >> 3];
+        }
+      }
+    } else {
+      for (i = 0; (i | 0) < (n | 0); i = i + 1 | 0) {
+        pxi = x + ((imul(i, incx) | 0) << 3) | 0;
+        for (j = i; (j | 0) < (n | 0); j = j + 1 | 0) {
+          paij = a + ((imul(i, lda) | 0) + j << 3) | 0;
+          pxj = x + ((imul(j, incx) | 0) << 3) | 0;
+          darray[paij >> 3] = +darray[paij >> 3] + alpha * +darray[pxi >> 3] * +darray[pxj >> 3];
+        }
+      }
+    }
+  }
+
+  function dsysv(uplo, n, nrhs, a, lda, ipiv, b, ldb) {
+    uplo = uplo | 0;
+    n = n | 0;
+    nrhs = nrhs | 0;
+    a = a | 0;
+    lda = lda | 0;
+    ipiv = ipiv | 0;
+    b = b | 0;
+    ldb = ldb | 0;
+
+    dsytrf(uplo, n, a, lda, ipiv);
+    dsytrs(uplo, n, nrhs, a, lda, ipiv, b, ldb);
+  }
+
+  function dsytrf(uplo, n, a, lda, ipiv) {
+    uplo = uplo | 0;
+    n = n | 0;
+    a = a | 0;
+    lda = lda | 0;
+    ipiv = ipiv | 0;
+
+    var k = 0,
+        kp = 0,
+        imax = 0,
+        jmax = 0,
+        pakk = 0,
+        pakpkp = 0,
+        absakk = 0.0,
+        colmax = 0.0,
+        rowmax = 0.0,
+        t = 0.0,
+        r1 = 0.0;
+
+    if (uplo) {
+      for (k = 0; (k | 0) < (n | 0); k = k + 1 | 0) {
+        pakk = a + ((imul(k, lda) | 0) + k << 3) | 0;
+        absakk = +abs(darray[pakk >> 3]);
+        if ((k | 0) < (n - 1 | 0)) {
+          imax = k + 1 + (idamax(n - k - 1 | 0, a + ((imul(k + 1 | 0, lda) | 0) + k << 3) | 0, lda) | 0) | 0;
+          colmax = +abs(darray[a + ((imul(imax, lda) | 0) + k << 3) >> 3]);
+        } else {
+          colmax = 0.0;
+        }
+
+        if (absakk >= colmax) {
+          kp = k;
+        } else {
+          jmax = k + (idamax(imax - k | 0, a + ((imul(imax, lda) | 0) + k << 3) | 0, 1) | 0) | 0;
+          rowmax = +abs(darray[a + ((imul(imax, lda) | 0) + jmax << 3) >> 3]);
+          if (absakk >= colmax * colmax / rowmax) {
+            kp = k;
+          } else if(+abs(darray[a + ((imul(imax, lda) | 0) + imax << 3) >> 3]) < rowmax) {
+            kp = k;
+          } else {
+            kp = imax;
+          }
+        }
+
+        if ((kp | 0) != (k | 0)) {
+          pakpkp = a + ((imul(kp, lda) | 0) + kp << 3) | 0;
+          if ((kp | 0) < (n - 1 | 0)) {
+            dswap(n - kp - 1 | 0,
+                a + ((imul(kp + 1 | 0, lda) | 0) + k << 3) | 0, lda,
+                a + ((imul(kp + 1 | 0, lda) | 0) + kp << 3) | 0, lda);
+          }
+          dswap(kp - k - 1 | 0,
+              a + ((imul(k + 1 | 0, lda) | 0) + k << 3) | 0, lda,
+              a + ((imul(kp, lda) | 0) + k + 1 << 3) | 0, 1);
+
+          t = +darray[pakk >> 3];
+          darray[pakk >> 3] = darray[pakpkp >> 3];
+          darray[pakpkp >> 3] = t;
+        }
+
+        if ((k | 0) < (n - 1 | 0)) {
+          r1 = 1.0 / darray[pakk >> 3];
+          dsyr(uplo, n - k - 1 | 0, -r1,
+              a + ((imul(k + 1 | 0, lda) | 0) + k << 3) | 0, lda,
+              a + ((imul(k + 1 | 0, lda) | 0) + k + 1 << 3) | 0, lda);
+          dscal(n - k - 1 | 0, r1, a + ((imul(k + 1 | 0, lda) | 0) + k << 3) | 0, lda);
+        }
+        uiarray[ipiv + (k << 2) >> 2] = kp;
+      }
+    } else {
+      for (k = n - 1 | 0; (k | 0) >= 0; k = k - 1 | 0) {
+        pakk = a + ((imul(k, lda) | 0) + k << 3) | 0;
+        absakk = +abs(darray[pakk >> 3]);
+        if ((k | 0) > 1) {
+          imax = idamax(k, a + (k << 3) | 0, lda) | 0;
+          colmax = +abs(darray[a + ((imul(imax, lda) | 0) + k << 3) >> 3]);
+        } else {
+          colmax = 0.0;
+        }
+
+        if (absakk > colmax) {
+          kp = k;
+        } else {
+          jmax = imax + (idamax(k - imax + 1 | 0, a + ((imul(imax, lda) | 0) + imax + 1 << 3) | 0, lda) | 0) | 0;
+          rowmax = +abs(darray[a + ((imul(imax, lda) | 0) + jmax << 3) >> 3]);
+          if (absakk >= colmax * colmax / rowmax) {
+            kp = k;
+          } else {
+            kp = imax;
+          }
+        }
+
+        if ((kp | 0) != (k | 0)) {
+          pakpkp = a + ((imul(kp, lda) | 0) + kp << 3) | 0;
+          dswap(kp, a + (k << 3) | 0, lda, a + (kp << 3) | 0, lda);
+          dswap(k - kp | 0,
+              a + ((imul(kp + 1 | 0, lda) | 0) + k << 3) | 0, lda,
+              a + ((imul(kp, lda) | 0) + kp + 1 << 3) | 0, 1);
+
+          t = +darray[pakk >> 3];
+          darray[pakk >> 3] = darray[pakpkp >> 3];
+          darray[pakpkp >> 3] = t;
+        }
+
+        r1 = 1.0 / darray[pakk >> 3];
+        dsyr(uplo, k, -r1, a + (k << 3) | 0, lda, a, lda);
+        dscal(k, r1, a + (k << 3) | 0, lda);
+        uiarray[ipiv + (k << 2) >> 2] = kp;
+      }
+    }
+  }
+
+  function dsytrs(uplo, n, nrhs, a, lda, ipiv, b, ldb) {
+    uplo = uplo | 0;
+    n = n | 0;
+    nrhs = nrhs | 0;
+    a = a | 0;
+    lda = lda | 0;
+    ipiv = ipiv | 0;
+    b = b | 0;
+    ldb = ldb | 0;
+
+    var i = 0,
+        j = 0,
+        paii = 0,
+        pai = 0,
+        paj = 0,
+        pbi = 0,
+        pbj = 0,
+        pipivi = 0;
+
+    // z := L^-1 P^t b
+    for (i = 0; (i | 0) < (n | 0); i = i + 1 | 0) {
+      pipivi = ipiv + (i << 2) | 0;
+      j = uiarray[pipivi >> 2] | 0;
+      if ((i | 0) != (j | 0)) {
+        pai = a + ((imul(i, lda) | 0) << 3) | 0;
+        paj = a + ((imul(j, lda) | 0) << 3) | 0;
+        dswap(i, pai, 1, paj, 1);
+        pbi = b + ((imul(i, ldb) | 0) << 3) | 0;
+        pbj = b + ((imul(j, ldb) | 0) << 3) | 0;
+        dswap(nrhs, pbi, 1, pbj, 1);
+      }
+    }
+    dtrsm(0, uplo, 0, 1, n, nrhs, 1.0, a, lda, b, ldb);
+
+    // y := L^t^-1 D^-1 y
+    for (i = 0; (i | 0) < (n | 0); i = i + 1 | 0) {
+      paii = a + ((imul(i, lda) | 0) + i << 3) | 0;
+      dscal(nrhs, 1.0 / darray[paii >> 3], b + ((imul(i, ldb) | 0) << 3) | 0, 1);
+    }
+    dtrsm(0, uplo, 1, 1, n, nrhs, 1.0, a, lda, b, ldb);
+
+    // x := P y
+    for (i = 0; (i | 0) < (n | 0); i = i + 1 | 0) {
+      pipivi = ipiv + (i << 2) | 0;
+      j = uiarray[pipivi >> 2] | 0;
+      if ((i | 0) != (j | 0)) {
+        pbi = b + ((imul(i, ldb) | 0) << 3) | 0;
+        pbj = b + ((imul(j, ldb) | 0) << 3) | 0;
+        dswap(nrhs, pbi, 1, pbj, 1);
+      }
+    }
+  }
+
+  function dtrmv(uplo, trans, diag, n, a, lda, x, incx) {
+    uplo = uplo | 0;
+    trans = trans | 0;
+    diag = diag | 0;
+    n = n | 0;
+    a = a | 0;
+    lda = lda | 0;
+    x = x | 0;
+    incx = incx | 0;
+
+    var i = 0,
+        j = 0,
+        paii = 0,
+        paij = 0,
+        pxi = 0,
+        pxj = 0,
+        val = 0.0;
+
+    if (uplo) {
+      // lower triangular matrix
+      for (i = n - 1 | 0; (i | 0) >= 0; i = i - 1 | 0) {
+        pxi = x + ((imul(i, incx) | 0) << 3) | 0;
+        paii = a + ((imul(i, lda) | 0) + i << 3) | 0;
+        val = darray[pxi >> 3] * darray[paii >> 3];
+        for (j = 0; (j | 0) < (i | 0); j = j + 1 | 0) {
+          pxj = x + ((imul(j, incx) | 0) << 3) | 0;
+          paij = a + ((imul(i, lda) | 0) + j << 3) | 0;
+          val = val + darray[pxj >> 3] * darray[paij >> 3];
+        }
+        darray[pxi >> 3] = val;
+      }
+    } else {
+      // upper triangular matrix
+      for (i = 0; (i | 0) < (n | 0); i = i + 1 | 0) {
+        pxi = x + ((imul(i, incx) | 0) << 3) | 0;
+        paii = a + ((imul(i, lda) | 0) + i << 3) | 0;
+        val = darray[pxi >> 3] * darray[paii >> 3];
+        for (j = i + 1 | 0; (j | 0) < (n | 0); j = j + 1 | 0) {
+          pxj = x + ((imul(j, incx) | 0) << 3) | 0;
+          paij = a + ((imul(i, lda) | 0) + j << 3) | 0;
+          val = val + darray[pxj >> 3] * darray[paij >> 3];
+        }
+        darray[pxi >> 3] = val;
+      }
+    }
+  }
+
+  function dtrtri(uplo, diag, n, a, lda) {
+    // TODO support diag, lda
+    uplo = uplo | 0;
+    diag = diag | 0;
+    n = n | 0;
+    a = a | 0;
+    lda = lda | 0;
+
+    var i = 0,
+        paii = 0,
+        paij = 0,
+        pajj = 0,
+        aii = 0.0;
+
+    if (uplo) {
+      // lower triangular matrix
+      paii = a + ((imul(n, n) | 0) - 1 << 3) | 0;
+      darray[paii >> 3] = 1.0 / darray[paii >> 3];
+      for (i = n - 2 | 0; (i | 0) >= 0; i = i - 1 | 0) {
+        paii = a + ((imul(i, n) | 0) + i << 3) | 0;
+        paij = a + ((imul(i + 1 | 0, n) | 0) + i << 3) | 0;
+        pajj = a + ((imul(i + 1 | 0, n) | 0) + i + 1 << 3) | 0;
+        aii = darray[paii >> 3] = 1.0 / darray[paii >> 3];
+        dtrmv(1, 0, 0, n - i | 0, pajj, lda, paij, n);
+        dscal(n - i | 0, -aii, paij, n);
+      }
+    } else {
+      // upper triangular matrix
+      darray[a >> 3] = 1.0 / darray[a >> 3];
+      for (i = 1 | 0; (i | 0) < (n | 0); i = i + 1 | 0) {
+        paii = a + ((imul(i, n) | 0) + i << 3) | 0;
+        paij = a + (i << 3) | 0;
+        aii = darray[paii >> 3] = 1.0 / darray[paii >> 3];
+        dtrmv(0, 0, 0, i, a, lda, paij, n);
+        dscal(i, -aii, paij, n);
+      }
+    }
+  }
+
+  return {
+    dasum: dasum,
+    daxpy: daxpy,
+    dcopy: dcopy,
+    ddot: ddot,
+    dgemm: dgemm,
+    dgemv: dgemv,
+    dgesv: dgesv,
+    dgetri: dgetri,
+    dgetrf: dgetrf,
+    dposv: dposv,
+    dpotrf: dpotrf,
+    dpotrs: dpotrs,
+    dscal: dscal,
+    dswap: dswap,
+    dsyr: dsyr,
+    dsysv: dsysv,
+    dsytrf: dsytrf,
+    dsytrs: dsytrs,
+    dtrmv: dtrmv,
+    dtrsv: dtrsv,
+    dtrsm: dtrsm,
+    dtrtri: dtrtri,
+    idamax: idamax
+  };
+}
+
+module.exports = LinalgModule;
+
+},{}]},{},[9]);
