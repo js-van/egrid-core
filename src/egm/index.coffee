@@ -1,6 +1,7 @@
 d3 = require 'd3'
 graphlib = require 'graphlib'
 dagre = require 'dagre'
+pdip = require 'pdip-quad'
 svg = require '../svg'
 update = require './update'
 select = require './select'
@@ -105,6 +106,82 @@ transition = (egm, arg) ->
       .call egm.updateColor()
 
 
+defaultRanker = (g) ->
+  visited = {}
+  dfs = (v) ->
+    label = g.node v
+    if visited[v]?
+      return label.rank
+    visited[v] = true
+    rank = d3.max g.inEdges(v), (e) -> dfs(e.v) + g.edge(e).minlen
+    if rank is undefined
+      rank = 0
+    label.rank = rank
+  g.sinks().forEach dfs
+  maxRank = d3.max g.nodes(), (u) -> g.node(u).rank
+  for u in g.nodes()
+    if g.outEdges(u).length is 0
+      g.node(u).rank = maxRank
+  if Float64Array? and g.nodeCount() < 200
+    l = +((maxRank - 1) / 2).toFixed()
+    indices = {}
+    index = 0
+    for u in g.nodes()
+      if not u.startsWith '_'
+        if 1 < g.node(u).rank < maxRank
+          indices[u] = index++
+
+    edges = g.edges()
+      .filter ({v, w}) ->
+        not v.startsWith('_') and (indices[v]? or indices[w]?)
+    m = edges.length
+    n = index + m
+
+    solver = pdip n, m
+    a = solver.a()
+    b = solver.b()
+    c = solver.c()
+    q = solver.q()
+
+    for {v, w}, i in edges
+      iu = indices[v]
+      iv = indices[w]
+      if g.predecessors(v).length is 0
+        q[iv * n + iv] += 2
+        a[i * n + iv] = 1
+        a[i * n + n - m + i] = -1
+        b[i] = 1
+      else if g.successors(w).length is 0
+        c[iu] -= 2 * l
+        q[iu * n + iu] += 2
+        a[i * n + iu] = 1
+        a[i * n + n - m + i] = 1
+        b[i] = l - 1
+      else
+        q[iu * n + iu] += 2
+        q[iv * n + iv] += 2
+        q[iv * n + iu] -= 2
+        q[iu * n + iv] -= 2
+        a[i * n + iv] = 1
+        a[i * n + iu] = -1
+        a[i * n + n - m + i] = -1
+        b[i] = 1
+    result = solver.solve
+      mu: 0.5
+      muMin: 1e-6
+      gamma: 0.1
+      tau: 0.7
+      err: 1e-6
+
+    for u in g.nodes()
+      if indices[u]?
+        g.node(u).rank = +result.x[indices[u]].toFixed() * 2 + 1
+      else if g.node(u).rank is 1
+        g.node(u).rank = 1
+      else if g.node(u).rank is maxRank
+        g.node(u).rank = l * 2 + 1
+
+
 module.exports = () ->
   zoom = d3.behavior.zoom()
     .scaleExtent [0, 1]
@@ -190,22 +267,7 @@ module.exports = () ->
     contentsScaleMax: 1
     dagreEdgeSep: 10
     dagreNodeSep: 20
-    dagreRanker: (g) ->
-      visited = {}
-      dfs = (v) ->
-        label = g.node v
-        if visited[v]?
-          return label.rank
-        visited[v] = true
-        rank = d3.max g.inEdges(v), (e) -> dfs(e.v) + g.edge(e).minlen
-        if rank is undefined
-          rank = 0
-        label.rank = rank
-      g.sinks().forEach dfs
-      maxRank = d3.max g.nodes(), (u) -> g.node(u).rank
-      for u in g.nodes()
-        if g.outEdges(u).length is 0
-          g.node(u).rank = maxRank
+    dagreRanker: defaultRanker
     dagreRankDir: 'LR'
     dagreRankSep: 30
     edgeColor: -> ''
