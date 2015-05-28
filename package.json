@@ -35,6 +35,7 @@
   "dependencies": {
     "d3": "^3.5.3",
     "dagre": "git://github.com/likr/dagre.git#master",
+    "eg-graph": "0.0.11",
     "graphlib": "^1.0.1",
     "pdip-quad": "git://github.com/likr/pdip-quad"
   }

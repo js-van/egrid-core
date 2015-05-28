@@ -1,16 +1,8 @@
-factory = require '../graph/graph'
+Graph = require 'eg-graph/lib/graph'
 
 
 module.exports = (vertices, edges) ->
-  fact = factory()
-  if vertices?
-    if edges?
-      graph = fact vertices, edges
-    else
-      graph = vertices
-  else
-    graph = fact()
-
+  graph = new Graph()
   undoStack = []
   redoStack = []
   execute = (transaction) ->
@@ -31,30 +23,34 @@ module.exports = (vertices, edges) ->
         text: text
         original: true
       for u in graph.vertices()
-        if graph.get(u).text is value.text
+        if graph.vertex(u).text is value.text
           return +u
       execute
         execute: ->
-          v = graph.addVertex value, v
+          if v?
+            graph.addVertex v, value
+          else
+            v = graph.addVertex value
         revert: ->
           graph.removeVertex v
       v
 
     removeConstruct: (u) ->
-      value = graph.get u
-      edges = graph.inEdges(u).concat graph.outEdges(u)
+      value = graph.vertex u
+      edges = [].concat(
+        ([v, u] for v in graph.inVertices u),
+        ([u, v] for v in graph.outVertices u))
       execute
         execute: ->
-          graph.clearVertex u
           graph.removeVertex u
         revert: ->
-          graph.addVertex value, u
+          graph.addVertex u, value
           for [v, w] in edges
             graph.addEdge v, w
       return
 
     updateConstruct: (u, key, value) ->
-      properties = graph.get u
+      properties = graph.vertex u
       oldValue = properties[key]
       execute
         execute: ->
@@ -84,7 +80,7 @@ module.exports = (vertices, edges) ->
       value =
         text: text
         original: false
-      dup = (+w for w in graph.vertices() when graph.get(w).text is value.text)
+      dup = (+w for w in graph.vertices() when graph.vertex(w).text is value.text)
       if dup.length > 0
         v = dup[0]
         execute
@@ -107,7 +103,7 @@ module.exports = (vertices, edges) ->
       value =
         text: text
         original: false
-      dup = (+w for w in graph.vertices() when graph.get(w).text is value.text)
+      dup = (+w for w in graph.vertices() when graph.vertex(w).text is value.text)
       if dup.length > 0
         v = dup[0]
         execute
@@ -127,9 +123,9 @@ module.exports = (vertices, edges) ->
 
     merge: (u, v, f) ->
       f = f || (u, v) ->
-        text: "#{graph.get(u).text}, #{graph.get(v).text}"
-      uValue = graph.get u
-      vValue = graph.get v
+        text: "#{graph.vertex(u).text}, #{graph.vertex(v).text}"
+      uValue = graph.vertex u
+      vValue = graph.vertex v
       wValue = f u, v
       uAdjacentVertices = graph.adjacentVertices u
       uInvAdjacentVertices = graph.invAdjacentVertices u
@@ -180,9 +176,9 @@ module.exports = (vertices, edges) ->
           for v in vs
             node.children.push
               key: v
-              node: graph.get v
+              node: graph.vertex v
             for w in graph.adjacentVertices v
-              wData = graph.get w
+              wData = graph.vertex w
               if wData.children
                 for link in wData.links
                   if link[0] is v
@@ -190,7 +186,7 @@ module.exports = (vertices, edges) ->
               else
                 node.links.push [v, w]
             for w in graph.invAdjacentVertices v
-              wData = graph.get w
+              wData = graph.vertex w
               if wData.children
                 for link in wData.links
                   if link[1] is v
@@ -210,11 +206,11 @@ module.exports = (vertices, edges) ->
         revert: ->
           groupMap = {}
           for v in graph.vertices()
-            vData = graph.get v
+            vData = graph.vertex v
             if vData.children
               for {key} in vData.children
                 groupMap[key] = v
-          uData = graph.get u
+          uData = graph.vertex u
           for {key, node} in uData.children
             graph.addVertex node, key
           for [v, w] in uData.links
@@ -229,13 +225,13 @@ module.exports = (vertices, edges) ->
       u
 
     ungroup: (u) ->
-      uData = graph.get u
+      uData = graph.vertex u
       vs = uData.children.map ({key}) -> key
       execute
         execute: ->
           groupMap = {}
           for v in graph.vertices()
-            vData = graph.get v
+            vData = graph.vertex v
             if vData.children
               for {key} in vData.children
                 groupMap[key] = v
