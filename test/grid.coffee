@@ -2,35 +2,10 @@ egrid = core: require '../'
 
 module.exports = ->
   describe 'Grid', ->
-    it 'should create empty grid with no argument', ->
+    it 'should create empty grid', ->
       grid = egrid.core.grid()
       expect(grid.graph().numVertices()).to.be(0)
       expect(grid.graph().numEdges()).to.be(0)
-
-    it 'should create grid with one argument', ->
-      graph = egrid.core.graph.adjacencyList()
-      a = graph.addVertex()
-      b = graph.addVertex()
-      c = graph.addVertex()
-      graph.addEdge(a, b)
-      graph.addEdge(b, c)
-      grid = egrid.core.grid(graph)
-      expect(grid.graph().numVertices()).to.be(3)
-      expect(grid.graph().numEdges()).to.be(2)
-
-    it 'should create grid with two arguments', ->
-      vertices = [
-        {text: 'a'},
-        {text: 'b'},
-        {text: 'c'}
-      ]
-      edges = [
-        {source: 0, target: 1},
-        {source: 1, target: 2}
-      ]
-      grid = egrid.core.grid(vertices, edges)
-      expect(grid.graph().numVertices()).to.be(3)
-      expect(grid.graph().numEdges()).to.be(2)
 
     describe 'addConstruct', ->
       it 'should add vertex', ->
@@ -38,7 +13,7 @@ module.exports = ->
         u = grid.addConstruct('original construct')
         expect(grid.graph().numVertices()).to.be(1)
         expect(grid.graph().numEdges()).to.be(0)
-        expect(grid.graph().get(u).text).to.be('original construct')
+        expect(grid.graph().vertex(u).text).to.be('original construct')
 
       it 'should not add duplicate construct', ->
         grid = egrid.core.grid()
@@ -79,7 +54,7 @@ module.exports = ->
         grid = egrid.core.grid()
         u = grid.addConstruct('original construct')
         grid.updateConstruct(u, 'text', 'updated')
-        expect(grid.graph().get(u).text).to.be('updated')
+        expect(grid.graph().vertex(u).text).to.be('updated')
 
     describe 'ladderUp', ->
       it 'should add vertex and edge', ->
@@ -88,7 +63,7 @@ module.exports = ->
         v = grid.ladderUp(u, 'upper construct')
         expect(grid.graph().numVertices()).to.be(2)
         expect(grid.graph().numEdges()).to.be(1)
-        expect(grid.graph().get(v).text).to.be('upper construct')
+        expect(grid.graph().vertex(v).text).to.be('upper construct')
 
       it 'should add edge if value is duplicated', ->
         grid = egrid.core.grid()
@@ -116,7 +91,7 @@ module.exports = ->
         v = grid.ladderDown(u, 'lower construct')
         expect(grid.graph().numVertices()).to.be(2)
         expect(grid.graph().numEdges()).to.be(1)
-        expect(grid.graph().get(v).text).to.be('lower construct')
+        expect(grid.graph().vertex(v).text).to.be('lower construct')
 
       it 'should add edge if value is duplicated', ->
         grid = egrid.core.grid()
@@ -145,7 +120,7 @@ module.exports = ->
         w = grid.merge(u, v)
         expect(grid.graph().numVertices()).to.be(1)
         expect(grid.graph().numEdges()).to.be(0)
-        expect(grid.graph().get(u).text).to.be('1st construct, 2nd construct')
+        expect(grid.graph().vertex(u).text).to.be('1st construct, 2nd construct')
         expect(w).to.be(u)
 
       it 'should merge edges', ->
@@ -192,7 +167,7 @@ module.exports = ->
 
         expect(grid.graph().numVertices()).to.be(1)
         expect(grid.graph().numEdges()).to.be(0)
-        expect(grid.graph().get(u).text).to.be('custom merge function')
+        expect(grid.graph().vertex(u).text).to.be('custom merge function')
         expect(w).to.be(u)
 
     describe 'group', ->
@@ -219,15 +194,15 @@ module.exports = ->
         expect(grid.graph().edge a, g).to.be.ok()
         expect(grid.graph().edge d, g).to.be.ok()
         expect(grid.graph().edge g, h).to.be.ok()
-        expect(grid.graph().get(g).text).to.be('be')
-        expect(grid.graph().get(h).text).to.be('cf')
+        expect(grid.graph().vertex(g).text).to.be('be')
+        expect(grid.graph().vertex(h).text).to.be('cf')
         i = grid.group [g, h],
           text: 'bcef'
         expect(grid.graph().numVertices()).to.be 3
         expect(grid.graph().numEdges()).to.be 2
         expect(grid.graph().edge a, i).to.be.ok()
         expect(grid.graph().edge d, i).to.be.ok()
-        expect(grid.graph().get(i).text).to.be('bcef')
+        expect(grid.graph().vertex(i).text).to.be('bcef')
 
     describe 'ungroup', ->
       it 'should ungroup vertices', ->
@@ -310,7 +285,7 @@ module.exports = ->
         u = grid.addConstruct('original construct')
         grid.updateConstruct(u, 'text', 'updated')
         grid.undo()
-        expect(grid.graph().get(u).text).to.be('original construct')
+        expect(grid.graph().vertex(u).text).to.be('original construct')
 
       it 'should revert ladderUp', ->
         grid = egrid.core.grid()
@@ -452,7 +427,7 @@ module.exports = ->
         grid.updateConstruct(u, 'text', 'updated')
         grid.undo()
         grid.redo()
-        expect(grid.graph().get(u).text).to.be('updated')
+        expect(grid.graph().vertex(u).text).to.be('updated')
 
       it 'should re-execute ladderUp', ->
         grid = egrid.core.grid()
