@@ -33,6 +33,6 @@
     "grunt-mocha-phantomjs": "^0.6.1"
   },
   "dependencies": {
-    "eg-graph": "*"
+    "eg-graph": "0.0.13"
   }
 }

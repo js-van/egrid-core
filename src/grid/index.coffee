@@ -91,7 +91,10 @@ module.exports = (vertices, edges) ->
       else
         execute
           execute: ->
-            v = graph.addVertex value, v
+            if v?
+              graph.addVertex v, value
+            else
+              v = graph.addVertex value
             graph.addEdge v, u
           revert: ->
             graph.removeEdge v, u
@@ -114,7 +117,10 @@ module.exports = (vertices, edges) ->
       else
         execute
           execute: ->
-            v = graph.addVertex value, v
+            if v?
+              graph.addVertex v, value
+            else
+              v = graph.addVertex value
             graph.addEdge u, v
           revert: ->
             graph.removeEdge u, v
@@ -127,14 +133,13 @@ module.exports = (vertices, edges) ->
       uValue = graph.vertex u
       vValue = graph.vertex v
       wValue = f u, v
-      uAdjacentVertices = graph.adjacentVertices u
-      uInvAdjacentVertices = graph.invAdjacentVertices u
-      vAdjacentVertices = graph.adjacentVertices v
-      vInvAdjacentVertices = graph.invAdjacentVertices v
+      uAdjacentVertices = graph.outVertices u
+      uInvAdjacentVertices = graph.inVertices u
+      vAdjacentVertices = graph.outVertices v
+      vInvAdjacentVertices = graph.inVertices v
       execute
         execute: ->
-          graph.set u, wValue
-          graph.clearVertex v
+          graph.addVertex u, wValue
           graph.removeVertex v
           for w in vAdjacentVertices
             if w is v
@@ -147,8 +152,9 @@ module.exports = (vertices, edges) ->
             else if w isnt u and w isnt v
               graph.addEdge w, u
         revert: ->
-          graph.clearVertex u
-          graph.addVertex vValue, v
+          graph.removeVertex u
+          graph.addVertex u, uValue
+          graph.addVertex v, vValue
           for w in uAdjacentVertices
             graph.addEdge u, w
           for w in uInvAdjacentVertices
@@ -157,7 +163,6 @@ module.exports = (vertices, edges) ->
             graph.addEdge v, w
           for w in vInvAdjacentVertices
             graph.addEdge w, v
-            graph.set u, uValue
       u
 
     group: (vs, attrs={}) ->
@@ -172,12 +177,12 @@ module.exports = (vertices, edges) ->
           if u is null
             u = graph.addVertex node
           else
-            graph.addVertex node, u
+            graph.addVertex u, node
           for v in vs
             node.children.push
               key: v
               node: graph.vertex v
-            for w in graph.adjacentVertices v
+            for w in graph.outVertices v
               wData = graph.vertex w
               if wData.children
                 for link in wData.links
@@ -185,7 +190,7 @@ module.exports = (vertices, edges) ->
                     node.links.push [v, link[1]]
               else
                 node.links.push [v, w]
-            for w in graph.invAdjacentVertices v
+            for w in graph.inVertices v
               wData = graph.vertex w
               if wData.children
                 for link in wData.links
@@ -194,14 +199,13 @@ module.exports = (vertices, edges) ->
               else
                 node.links.push [w, v]
           for v in vs
-            for w in graph.adjacentVertices v
+            for w in graph.outVertices v
               if vs.indexOf(w) < 0
                 graph.addEdge u, w
-            for w in graph.invAdjacentVertices v
+            for w in graph.inVertices v
               if vs.indexOf(w) < 0
                 graph.addEdge w, u
           for v in vs
-            graph.clearVertex v
             graph.removeVertex v
         revert: ->
           groupMap = {}
@@ -212,7 +216,7 @@ module.exports = (vertices, edges) ->
                 groupMap[key] = v
           uData = graph.vertex u
           for {key, node} in uData.children
-            graph.addVertex node, key
+            graph.addVertex key, node
           for [v, w] in uData.links
             if graph.vertex(v) is null
               graph.addEdge groupMap[v], w
@@ -220,7 +224,6 @@ module.exports = (vertices, edges) ->
               graph.addEdge v, groupMap[w]
             else
               graph.addEdge v, w
-          graph.clearVertex u
           graph.removeVertex u
       u
 
@@ -236,7 +239,7 @@ module.exports = (vertices, edges) ->
               for {key} in vData.children
                 groupMap[key] = v
           for {key, node} in uData.children
-            graph.addVertex node, key
+            graph.addVertex key, node
           for [v, w] in uData.links
             if graph.vertex(v) is null
               graph.addEdge groupMap[v], w
@@ -244,19 +247,17 @@ module.exports = (vertices, edges) ->
               graph.addEdge v, groupMap[w]
             else
               graph.addEdge v, w
-          graph.clearVertex u
           graph.removeVertex u
         revert: ->
-          graph.addVertex uData, u
+          graph.addVertex u, uData
           for v in vs
-            for w in graph.adjacentVertices v
+            for w in graph.outVertices v
               if vs.indexOf(w) < 0
                 graph.addEdge u, w
-            for w in graph.invAdjacentVertices v
+            for w in graph.inVertices v
               if vs.indexOf(w) < 0
                 graph.addEdge w, u
           for v in vs
-            graph.clearVertex v
             graph.removeVertex v
       return
 
