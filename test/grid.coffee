@@ -134,8 +134,8 @@ module.exports = ->
         grid.merge(a, d)
         expect(grid.graph().numVertices()).to.be(5)
         expect(grid.graph().numEdges()).to.be(4)
-        expect(grid.graph().adjacentVertices(a)).to.be.eql([c, f])
-        expect(grid.graph().invAdjacentVertices(a)).to.be.eql([b, e])
+        expect(grid.graph().outVertices(a)).to.be.eql([c, f])
+        expect(grid.graph().inVertices(a)).to.be.eql([b, e])
 
       it 'should merge adjacent vertices', ->
         grid = egrid.core.grid()
@@ -224,15 +224,15 @@ module.exports = ->
         grid.ungroup h
         expect(grid.graph().numVertices()).to.be 6
         expect(grid.graph().numEdges()).to.be 4
-        expect(grid.graph().vertex a).to.be a
-        expect(grid.graph().vertex b).to.be b
-        expect(grid.graph().vertex c).to.be c
-        expect(grid.graph().vertex d).to.be d
-        expect(grid.graph().vertex e).to.be e
-        expect(grid.graph().vertex f).to.be f
-        expect(grid.graph().vertex g).to.not.be.ok()
-        expect(grid.graph().vertex h).to.not.be.ok()
-        expect(grid.graph().vertex i).to.not.be.ok()
+        expect(grid.graph().vertex a).to.be.ok()
+        expect(grid.graph().vertex b).to.be.ok()
+        expect(grid.graph().vertex c).to.be.ok()
+        expect(grid.graph().vertex d).to.be.ok()
+        expect(grid.graph().vertex e).to.be.ok()
+        expect(grid.graph().vertex f).to.be.ok()
+        expect(grid.graph().vertex g).to.be(null)
+        expect(grid.graph().vertex h).to.be(null)
+        expect(grid.graph().vertex i).to.be(null)
         expect(grid.graph().edge a, b).to.be.ok()
         expect(grid.graph().edge b, c).to.be.ok()
         expect(grid.graph().edge d, e).to.be.ok()
@@ -333,10 +333,10 @@ module.exports = ->
         grid.undo()
         expect(grid.graph().numVertices()).to.be(6)
         expect(grid.graph().numEdges()).to.be(4)
-        expect(grid.graph().adjacentVertices(a)).to.be.eql([c])
-        expect(grid.graph().invAdjacentVertices(a)).to.be.eql([b])
-        expect(grid.graph().adjacentVertices(d)).to.be.eql([f])
-        expect(grid.graph().invAdjacentVertices(d)).to.be.eql([e])
+        expect(grid.graph().outVertices(a)).to.be.eql([c])
+        expect(grid.graph().inVertices(a)).to.be.eql([b])
+        expect(grid.graph().outVertices(d)).to.be.eql([f])
+        expect(grid.graph().inVertices(d)).to.be.eql([e])
 
       it 'should revert merge', ->
         grid = egrid.core.grid()
@@ -480,8 +480,8 @@ module.exports = ->
         grid.redo()
         expect(grid.graph().numVertices()).to.be(5)
         expect(grid.graph().numEdges()).to.be(4)
-        expect(grid.graph().adjacentVertices(a)).to.be.eql([c, f])
-        expect(grid.graph().invAdjacentVertices(a)).to.be.eql([b, e])
+        expect(grid.graph().outVertices(a)).to.be.eql([c, f])
+        expect(grid.graph().inVertices(a)).to.be.eql([b, e])
 
       it 'should re-execute merge', ->
         grid = egrid.core.grid()
